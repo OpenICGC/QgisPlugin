@@ -2371,10 +2371,10 @@ class MetadataBase(object):
         
         return description
 
-    def get_about(self):
+    def get_about(self, replace_text_with_newline="  ", language_split_text="\n\n"):
         """ Obté la descripció llarga del plugin actual """
         # Detectem si tenim un about multi idioma (separats per doble canvi de linia)
-        multi_about_list = self.get("about").split("\n\n")
+        multi_about_list = self.get("about").split(language_split_text)
 
         # Carreguem la descripció llarga segon l'idioma del QGIS
         language = self.parent.translation.get_qgis_language()
@@ -2400,6 +2400,10 @@ class MetadataBase(object):
             # Si no agafem la descripció llarga estàndar que hem fet servir en el metadata.txt
             about = self.get("about")
         
+        # Canviem una cadena de caràcters per canvi de linia si així ens ho demanen
+        if replace_text_with_newline:
+            about = about.replace(replace_text_with_newline, "\n")
+
         return about
 
     def get_author(self):

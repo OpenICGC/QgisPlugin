@@ -11,13 +11,16 @@ description=Accés a dades obertes ICGC
 description_es=Acceso a datos abiertos ICGC
 description_en=ICGC Open data access
 about=Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
-    Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.
+    Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.  
+	Aquest plugin utilitza la llibreria suds-py3.
 	
 	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
-	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.
+	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.	
+	Este plugin utiliza la llibrería suds-py3.
 	
 	Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
     Includes spatial toponymic searches, streets, roads, coordinates in different reference systems and load of WMS base layers of Catalonia.
+	This plugin uses suds-py3 library.
 tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,steet,road,WMS
 icon=icon.png
 author=ICGC
