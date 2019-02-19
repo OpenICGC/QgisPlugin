@@ -1,0 +1,34 @@
+# This file contains metadata for your plugin. Beginning
+# with version 1.8 this is the preferred way to supply information about a
+# plugin. The current method of embedding metadata in __init__.py will
+# be supported until version 2.0
+# git sha : $Format:%H$
+# This file should be included when you package your plugin.
+
+[general]
+name=Open ICGC
+description=Accés a dades obertes ICGC
+description_es=Acceso a datos abiertos ICGC
+description_en=ICGC Open data access
+about=Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
+    Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.
+	
+	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
+	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.
+	
+	Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
+    Includes spatial toponymic searches, streets, roads, coordinates in different reference systems and load of WMS base layers of Catalonia.
+tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,steet,road,WMS
+icon=icon.png
+author=ICGC
+email=joan.arnaldich@icgc.cat
+
+version=0.1b
+qgisMinimumVersion=2.99
+qgisMaximumVersion=3.99
+changelog=0.1b 2019-02-11: Primera versió
+homepage=http://www.icgc.cat
+tracker=https://github.com/OpenICGC/QgisPlugin/issues
+repository=https://github.com/OpenICGC/QgisPlugin
+experimental=True
+deprecated=False
