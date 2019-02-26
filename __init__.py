@@ -1,21 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-/***************************************************************************
- OpenICGC
+*******************************************************************************
+OpenICGC
                                  A QGIS plugin
- Cerca zones geogràfiques per toponim, carrer, referència cadastra o coordenades
+
+Plugin for accessing open data published by the Cartographic and Geological 
+Institute of Catalonia (Catalan mapping agency).
+Includes spatial toponymic searches, streets, roads, coordinates in different 
+reference systems and load of WMS base layers of Catalonia.
+
                              -------------------
         begin                : 2019-01-18
-        copyright            : (C) 2019 by ICGC
-        email                : joan.arnaldich@icgc.cat
- ***************************************************************************/
- This script initializes the plugin, making it known to QGIS.
+        author               : Albert Adell
+        email                : albert.adell@icgc.cat
+
+This script initializes the plugin, making it known to QGIS.
+
+*******************************************************************************
 """
 
 # pylint: disable=C0103
 # noinspection PyPep8Naming
 def classFactory(iface):
-    """Load OpenICGCPlugin class from file OpenICGC.
+    """Load OpenICGC plugin class from file OpenICGC.
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """

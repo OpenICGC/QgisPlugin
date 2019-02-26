@@ -1,17 +1,19 @@
 # encoding: utf-8
 """
-MODULE: email.py
-
-Funcions per enviar emails
-
+*******************************************************************************
+Module with functions for sending emails in Windows environments using Outlook
+*******************************************************************************
 """
+
 import win32com
 import win32com.client
 
 
 class eMail(object):
     def __init__(self, to, cc, subject, htmlbody, attachment_files = []):
-        # Si no es passen la capçalera HTML la possem nosaltres
+        """ Object initialization with all email requireds parameters """
+
+        # If we do not pass the HTML header we have it
         if htmlbody.upper().find("<BODY>") < 0:
             htmlbody = """
                 <HTML>
@@ -22,7 +24,7 @@ class eMail(object):
                 </HTML>
                 """ % htmlbody
 
-        # Creem un objecte email de l'Outlook i l'omplim
+        # We create an Outlook email object and fill it out
         obj = win32com.client.Dispatch("Outlook.Application")
         olMailItem = 0x0
         self.newMail = obj.CreateItem(olMailItem)
@@ -34,6 +36,7 @@ class eMail(object):
         self.newMail.HTMLBody = htmlbody
 
     def send(self):
+        # send email
         self.newMail.Send()
 
     def open(self):

@@ -1,24 +1,24 @@
 <RCC>
 	<qresource prefix="/lib/qlib3/base" >
-		<file>console.png</file>
-		<file>python.png</file>
-		<file>wms.png</file>
-		<file>wms_remove.png</file>
-		<file>cat_ortho1k.png</file>
-		<file>cat_ortho5k.png</file>
-		<file>cat_ortho5kbw.png</file>
-		<file>cat_ortho5ki.png</file>
-		<file>cat_topo5k.png</file>
-		<file>cat_topo50k.png</file>
-		<file>cat_topo250k.png</file>
-		<file>andorra_orto2003.png</file>
-		<file>andorra_orto2003i.png</file>
-		<file>andorra_orto2008.png</file>
-		<file>andorra_shadows.png</file>
-		<file>andorra_topo25k.png</file>
-		<file>andorra_topo50k.png</file>
-		<file>spain_orto.png</file>
-		<file>spain_topo.png</file>
-		<file>icgc_banner.png</file>
+		<file>images/console.png</file>
+		<file>images/python.png</file>
+		<file>images/wms.png</file>
+		<file>images/wms_remove.png</file>
+		<file>images/cat_ortho1k.png</file>
+		<file>images/cat_ortho5k.png</file>
+		<file>images/cat_ortho5kbw.png</file>
+		<file>images/cat_ortho5ki.png</file>
+		<file>images/cat_topo5k.png</file>
+		<file>images/cat_topo50k.png</file>
+		<file>images/cat_topo250k.png</file>
+		<file>images/andorra_orto2003.png</file>
+		<file>images/andorra_orto2003i.png</file>
+		<file>images/andorra_orto2008.png</file>
+		<file>images/andorra_shadows.png</file>
+		<file>images/andorra_topo25k.png</file>
+		<file>images/andorra_topo50k.png</file>
+		<file>images/spain_orto.png</file>
+		<file>images/spain_topo.png</file>
+		<file>images/icgc_banner.png</file>
 	</qresource>
 </RCC>

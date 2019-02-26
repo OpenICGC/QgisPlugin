@@ -1,32 +1,36 @@
 # -*- coding: utf-8 -*-
-
 """
-/***************************************************************************
- GeoFinder
+*******************************************************************************
+OpenICGC
                                  A QGIS plugin
- Cerca zones geogràfiques per toponim, carrer, referència cadastral
- o coordenades
+
+Plugin for accessing open data published by the Cartographic and Geological 
+Institute of Catalonia (Catalan mapping agency).
+Includes spatial toponymic searches, streets, roads, coordinates in different 
+reference systems and load of WMS base layers of Catalonia.
+
                              -------------------
         begin                : 2019-01-18
-        copyright            : (C) 2019 by ICGC
+        author               : Albert Adell
         email                : albert.adell@icgc.cat
- ***************************************************************************/
+
+*******************************************************************************
 """
 
 import re
 from importlib import reload
 
-# Afegim llibreries addicionales del plugin al pythonpath
+# Add a additional library folder to pythonpath
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
-# Import per connexions SOAP
+# Support to SOAP connections
 import suds
 from suds import null
 from suds.client import Client
 from suds.wsse import Security
-# Import connexió amb password DigestToken
+# Support to connections with password digest token
 from . import wsse
 reload(wsse)
 from .wsse import UsernameDigestToken
@@ -38,90 +42,98 @@ from PyQt5.QtWidgets import QApplication, QComboBox
 # Initialize Qt resources from file resources_rc.py
 from . import resources_rc
 
-# Import plugin base
+# Add basic plugin functionalities
 import qlib3.base.pluginbase
 reload(qlib3.base.pluginbase)
 from qlib3.base.pluginbase import PluginBase
 
-# Import About
+# Add generic aboug dialog
 import qlib3.base.aboutdialog
 reload(qlib3.base.aboutdialog)
 from qlib3.base.aboutdialog import AboutDialog
 
-# Import error manager
+# Add error manager
 import qlib3.base.errors
 reload(qlib3.base.errors)
 from qlib3.base.errors import generic_handle_error, error_report_manager
 
-# Import the code for the dialog
+# Add geofinder dialog
 from . import geofinderdialog
 reload(geofinderdialog)
 from .geofinderdialog import GeoFinderDialog
 
 
-class OpenICGC(PluginBase):     
+class OpenICGC(PluginBase):
     ###########################################################################
-    # Definim constants del plugin
+    # Plugin constants
     
-    # Preparem un mapeig de tipus de topònim amb la icona a mostrar
+    # We prepare a toponym mapping with the icon to show
     TOPOICONS_DICT = {
-        '1':'icon.png', '2':'icon.png', '3':'icon.png', '17':'icon.png', #Cap municipi, municipi, entitat de població, comarca
-        '4':'house.png', #Edifici
-        '20':'history.png', #Edifici històric
-        '21':'build.png', '16':'build.png', #Nucli, barri
-        '18':'crossroad.png', '19':'crossroad.png', '22':'crossroad.png', '99':'crossroad.png', #diss., diss., e.m.d., llogaret carrerer
-        '6':'mountain.png', '7':'mountain.png', '8':'mountain.png', '9':'mountain.png', '10':'mountain.png', #Serra, orografia, cim, coll, litoral
-        '11':'pin.png', #Indret
-        '12':'equipment.png', #Equipaments
-        '13':'communications.png', #Comunicacions
-        '14':'river.png', '15':'river.png' #Curs fluvial, hidrografia
+        1:'town.png', 2:'town.png', #Cap municipi, municipi
+        3:'flag.png', 17:'flag.png', #Entitat de població, comarca
+        4:'build.png', #Edifici
+        20:'history.png', #Edifici històric
+        21:'house.png', 16:'house.png', #Nucli, barri
+        18:'crossroad.png', 19:'crossroad.png', 22:'crossroad.png', 99:'crossroad.png', #diss., diss., e.m.d., llogaret carrerer
+        6:'mountain.png', 7:'mountain.png', 8:'mountain.png', 9:'mountain.png', 10:'mountain.png', #Serra, orografia, cim, coll, litoral
+        11:'pin.png', #Indret
+        12:'equipment.png', #Equipaments
+        13:'communications.png', #Comunicacions
+        14:'river.png', 15:'river.png' #Curs fluvial, hidrografia
         }
 
 
     ###########################################################################
-    # Gestió dels serveis web a utilitzar
+    # Web service management
     
-    ## Web Service Cadastre
-    #cadastral_streets_client = None # [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
+    ## Web Service Cadastre (alternative)
+    #cadastral_streets_client = None
     #def get_cadastral_streets_client(self):
     #    if not self.cadastral_streets_client:
+    #        # SOAP client configuration
+    #        # Available functions: [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
     #        self.cadastral_streets_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx?wsdl") # [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
     #    return self.cadastral_streets_client    
     
-    # Web Service Cadastre. Per consultar crides disponibles fer: client.wsdl.services[0].ports[0].methods.keys()
-    cadastral_coordinates_client = None # [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
+    # Web Service Cadastre. Available functions to call: client.wsdl.services[0].ports[0].methods.keys()
+    cadastral_coordinates_client = None 
     def get_cadastral_coordinates_client(self):
-        # Configurem el client SOAP
         if not self.cadastral_coordinates_client:
-            self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl") # [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
+            # SOAP client configuration
+            # Available functions: [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
+            self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl")
         return self.cadastral_coordinates_client    
     
-    # Web Service ICGC. Per el WS de l'ICC cal afegir capçalera de seguretat codificada md5 / base64
-    icgc_geoencoder_client = None # [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
+    # ICGC Web Service. ICGC Web service requires a md5 / base64 encoded security header
+    icgc_geoencoder_client = None
     def get_icgc_geoencoder_client(self):
-        # Configurem la seguretat de la connexió
-        wsse_security = Security()
-        username_digest_token = UsernameDigestToken('QGIS', 'QGIS')
-        wsse_security.tokens.append(username_digest_token)
-        # Configurem el client SOAP amb Password Digest
         if not self.icgc_geoencoder_client:
-            self.icgc_geoencoder_client = Client(url="http://www.icc.cat/geocodificador/ws/wss_1.0?wsdl", wsse=wsse_security) # [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
+            # Configure connection security 
+            wsse_security = Security()
+            username_digest_token = UsernameDigestToken('QGIS', 'QGIS')
+            wsse_security.tokens.append(username_digest_token)
+            # SOAP client configuration with Password Digest 
+            # Available functions: [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
+            self.icgc_geoencoder_client = Client(url="http://www.icc.cat/geocodificador/ws/wss_1.0?wsdl", wsse=wsse_security) 
         return self.icgc_geoencoder_client
 
 
     ###########################################################################
-    # Inicialització del plugin
+    # Plugin initialization
 
     def __init__(self, iface):
-        """ Inicialització de variables i serveis del plugin """        
+        """ Plugin variables initialization """
+        
         # Save reference to the QGIS interface
         super().__init__(iface, __file__)
 
-        # Inicialitzem el diccionari de traduccions
+        # Translations dictionary initialization
         self.initLanguages()
 
     def initLanguages(self):
-        # Català
+        """ PluginBase translations dictionary initialization """
+
+        # Catalan
         self.translation.set_text(self.translation.LANG_CA, "FIND", "Cerca espacial")
         self.translation.set_text(self.translation.LANG_CA, "FIND_LABEL", "Cercar")
         self.translation.set_text(self.translation.LANG_CA, "ABOUT", "Sobre Open ICGC")
@@ -165,7 +177,7 @@ class OpenICGC(PluginBase):
             """)
         self.translation.set_text(self.translation.LANG_CA, "TOPO_HEADER", ["Nom", "Tipus", "Municipi", "Comarca"])
 
-        # Castellà
+        # Spanish
         self.translation.set_text(self.translation.LANG_ES, "FIND", "Búsqueda espacial")
         self.translation.set_text(self.translation.LANG_ES, "FIND_LABEL", "Buscar")
         self.translation.set_text(self.translation.LANG_ES, "ABOUT", "Acerca de Open ICGC")
@@ -209,7 +221,7 @@ class OpenICGC(PluginBase):
             """)
         self.translation.set_text(self.translation.LANG_ES, "TOPO_HEADER", ["Nombre", "Tipo", "Municipio", "Comarca"])
 
-        # Anglès
+        # English
         self.translation.set_text(self.translation.LANG_EN, "FIND", "Spatial search")
         self.translation.set_text(self.translation.LANG_EN, "FIND_LABEL", "Find")
         self.translation.set_text(self.translation.LANG_EN, "ABOUT", "About Open ICGC")
@@ -253,140 +265,144 @@ class OpenICGC(PluginBase):
             """)
         self.translation.set_text(self.translation.LANG_EN, "TOPO_HEADER", ["Name", "Type", "Municipality", "Region"])
 
-    def initGui(self):
-        """ Inicialització de la part gràfica del plugin """
-        # Registra el plugin
+    def initGui(self, debug=False):
+        """ GUI initializacion """
+        # Plugin registration in the plugin manager
         self.gui.configure_plugin(self.metadata.get_name(), self.about, QIcon(":/plugins/openicgc/icon.png"))
 
-        ## Configurem el gestor d'errors
+        ## Error manager configuration (description and report email)
         error_report_manager.set_dialog("%s error" % self.metadata.get_name())
         error_report_manager.set_email("%s error" % self.metadata.get_name(), self.metadata.get_email())
                        
-        # Inicialitzem el diàleg About
+        # About dialog configuration
         self.about_dlg = AboutDialog(self.metadata.get_name(), QIcon(":/plugins/openicgc/icon.png"), self.metadata.get_info(), False, self.iface.mainWindow())
 
-        # Preparem un combobox per llegir la cerca
+        # Add combobox to search
         self.combobox = QComboBox()
         self.combobox.setFixedSize(QSize(250,24))
         self.combobox.setEditable(True)              
         self.combobox.setToolTip(self.translation.get_text("TOOLTIP_HELP"))
         self.combobox.activated.connect(self.run) # Apretar intro i seleccionar valor del combo
-        # Afegim la eina a la toolbar
+        # Add new toolbar with plugin options (using pluginbase functions)
         self.toolbar = self.gui.configure_toolbar(self.translation.get_text("FIND"), [
-            self.translation.get_text("FIND_LABEL"),
-            self.combobox,
-            (self.translation.get_text("FIND"), self.run, QIcon(":/plugins/geofinder/geofinder.png")),
+            self.translation.get_text("FIND_LABEL"), # Label text
+            self.combobox, # Editable combobox
+            (self.translation.get_text("FIND"), self.run, QIcon(":/plugins/openicgc/images/geofinder.png")), # Action button
             ])
-        # Afegim un menú amb les capes WMS de l'ICGC
+        # Add a new button with access to ICGS WMS layers
         self.tools.add_tool_WMS_background_maps_lite(self.translation.get_text("FIND"), self.translation.get_text('BACKGROUND_MAPS'), self.translation.get_text('BAGROUND_MAPS_DELETE'))
-        # Afegim reload per debug
-        #self.gui.add_to_toolbar(self.toolbar, [
-        #    "---",
-        #    (self.translation.get_text("RELOAD"), self.reload_plugin, QIcon(":/lib/qlib3/base/python.png")),
-        #    ])
+        # Add plugin reload button (debug purpose)
+        if debug:
+            self.gui.add_to_toolbar(self.toolbar, [
+                "---",
+                (self.translation.get_text("RELOAD"), self.reload_plugin, QIcon(":/lib/qlib3/base/images/python.png")),
+                ])
 
     def unload(self):
-        """ Alliberament de recursos """
+        """ Release of resources """
+        # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
 
     @generic_handle_error
-    def run(self, checked): # Afegeixo checked, perquè el mapeig del signal triggered passa un paràmetre
-        """ Crida bàsica del plugin, que llegeix el text del combobox i el cerca als diferentes serveis web disponibles """
+    def run(self, checked): # I add checked param, because the mapping of the signal triggered passes a parameter
+        """ Basic plugin call, which reads the text of the combobox and the search for the different web services available """
         self.find(self.combobox.currentText())
 
     @generic_handle_error
-    def about(self, checked): # Afegeixo checked, perquè el mapeig del signal triggered passa un paràmetre
-        """ Mostra informació sobre l'aplicació """
+    def about(self, checked): # I add checked param, because the mapping of the signal triggered passes a parameter
+        """ Show plugin information (about dialog) """
         self.about_dlg.do_modal()
 
 
     ###########################################################################
-    # Implementació de les cerques
+    # Search implementation
 
     def find(self, user_text):
-        """ Cerca del text indicat en el diferentes serveis web disponibles. 
-            Mostra els resultats en un diàleg i centra el mapa en l'element seleccionat per usuari """
+        """ Find the text indicated in the different web services available.
+            Show results in a dialog and center the map on the item selected by the user """
 
         print(u"Find: %s" % user_text)
         
-        # Cerquem el text i obtenim una llista de diccionaris amb els resultats
+        # Find text and return a list of dictionaries with results
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         dict_list = self.find_data(user_text)
         print(u"Found %d: %s %s" % (len(dict_list), ", ".join([data_dict['nom'] for data_dict in dict_list[:10]]), "..." if len(dict_list) > 10 else ""))
         QApplication.restoreOverrideCursor()
 
-        # Si tenim un rectangle, no cal mostrar res, accedim i ja està
+        # If we have a rectangle, we do not have to do anything, we get the coordinates and access
         if len(dict_list) == 1 and dict_list[0]['nom'].startswith("Rectangle"):
-            # Obtenim les coordenades del rectangle
+            # Get rectangle coordinates
             west = dict_list[0]['west']
             north = dict_list[0]['north']
             east = dict_list[0]['east']
             south = dict_list[0]['south']
             epsg = dict_list[0]['epsg']
-            # Resituem el mapa
+            # We resituate the map (implemented in parent PluginBase)
             self.set_map_rectangle(west, north, east, south, epsg)
         
         else:
-            # Mostrem els indrets trobats
+            # We show the found places in a dialog
             dlg = GeoFinderDialog(self.translation.get_text("FIND"), self.translation.get_text("TOPO_HEADER", []), dict_list, self.TOPOICONS_DICT)
             selection = dlg.get_selection_index()
             if selection < 0:
                 return
             print(u"Selected: %s" % dict_list[selection]['nom'])
 
-            # Obtenim les coordenades del punt
+            # We get point coordinates
             x = dict_list[selection]['x']
             y = dict_list[selection]['y']
             epsg = dict_list[selection]['epsg']
-            # Resituem el mapa
+            # We resituate the map (implemented in parent PluginBase)
             self.set_map_point(x, y, epsg)
 
         print(u"")
 
     def find_data(self, text, find_all = False):
-        """ Retorna una llista de diccionaris amb els llocs trobats a partir del text indicat 
-        """
-        # Detectem si ens passen un rectangle terra
+        """ Returns a list of dictionaries with the sites found from the indicated text """
+
+        # Let's see if we pass a ground rectangle 
         west, north, east, south, epsg = self.get_rectangle(text)
         if west and north and east and south: 
             return self.find_rectangle(west, north, east, south, epsg)
 
-        # Detectem si ens passen una coordenada terra
+        # We detect if we pass a ground coordinate
         x, y, epsg = self.get_coordinate(text)
         if x and y: 
             return self.find_coordinate(x, y, epsg)
 
-        # Detectem si ens passen una carretera
+        # Let's see if we pass a road
         road, km = self.get_road(text)
         if road and km:
             return self.find_road(road, km)
 
-        # Detectem si ens passen una cruilla
+        # Let's see if we pass a crossroads
         municipality, type1, name1, type2, name2 = self.get_crossing(text)
         if municipality and name1 and name2:
             return self.find_crossing(municipality, type1, name1, type2, name2, find_all)
 
-	                # Detectem si ens demanen una adreça
+	    # Let's see if we pass an address
         municipality, type, name, number = self.get_address(text)
         if municipality and name and number:
             return self.find_adress(municipality, type, name, number, find_all)
 
-	    # Detectem si ens demanen una referència catastral
+	    # We detect if we pass a cadastral reference
         cadastral_ref = self.get_cadastral_ref(text)
         if cadastral_ref:
             return self.find_cadastral_ref(cadastral_ref);
 
-	    # Si cap de les anteriors cerquem un topónim
+        # If you do not meet any of the above, we are looking for a place name
         return self.find_placename(text)
 
     def get_rectangle(self, text):
-        """ Detecta un rectangle de coordenades a partir del text
-            Accepta textos amb 4 reals i opcionalment un codi epsg
-            pex: 1.0 2.0 3.0 4.0 EPSG:0
-                 EPSG:0 1.0 2.0 3.0 4.0 
-                 1.0 2.0 3.0 4.0 
-            return west, north, east, south, epsg """        
+        """ Detects a coordinate rectangle from the text
+            Accept texts with 4 reals and optionally an epsg code        
+            For example: 1.0 2.0 3.0 4.0 EPSG:0
+                         EPSG:0 1.0 2.0 3.0 4.0 
+                         1.0 2.0 3.0 4.0 
+            Return west, north, east, south, epsg """        
 
+        # We detect 4 reals (and EPSG code) with a regular expression
+        # [EPSG:<int>] <real> <real> <real> <real> [EPSG:<int>]
         expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s*(?:\s+EPSG:(\d+))?\s*$" 
         found = re.search(expression, text, re.IGNORECASE)
         if found:
@@ -403,14 +419,16 @@ class OpenICGC(PluginBase):
         return west, north, east, south, epsg
 
     def get_coordinate(self, text):
-        """ Detecta una coordenada a partir del text
-            Accepta textos amb 2 reals i opcionalment un codi epsg
-            Pex: 1.0 2.0 EPSG:0
-                 EPSG:0 1.0 2.0 EPSG:0
-                 1.0 2.0
+        """ Detects a coordinate from the text
+            Accepts texts with 2 reals and optionally an epsg code
+            For example: 1.0 2.0 EPSG:0
+                         EPSG:0 1.0 2.0 EPSG:0
+                         1.0 2.0
             return x, y, epsg """
 
-        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s*([+-]?[0-9]*[.,]?[0-9]+)(?:\s+EPSG:(\d+))?\s*$" # <real> <real> [EPSG:<int>]
+        # We detect 2 reals (and EPSG code) with a regular expression
+        # [EPSG:<int>] <real> <real> [EPSG:<int>]
+        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s*([+-]?[0-9]*[.,]?[0-9]+)(?:\s+EPSG:(\d+))?\s*$" 
         found = re.search(expression, text, re.IGNORECASE)
         if found:
             epsg1, x, y, epsg2 = found.groups()
@@ -423,13 +441,14 @@ class OpenICGC(PluginBase):
         return x, y, epsg
 
     def get_road(self, text):
-        """ Detecta una carretera a partir del text
-            Accepta informació de carretera / km
-            Pex: C32 km 10
-                 C32, 10
+        """ Detects a road from the text
+            Accept road / km
+            For example: C32 km 10
+                         C32, 10
             return road, km """
 
-        ##expression = r'^\s*([\w]+)?\s*(?:km)?\s*([\d]+)?\s*$'
+        # We use regular expression
+        # <road> [km|,] <int>
         expression = r'^\s*(\w+)\s*(?:(?:km)|,)\s*(\d+)\s*$'
         found = re.search(expression, text, re.IGNORECASE)
         if found:
@@ -440,11 +459,13 @@ class OpenICGC(PluginBase):
         return road, km
 
     def get_crossing(self, text):
-        """ Detecta una cruilla a partir del text
-            Accepta informació d'una cruilla (municipi, carrer, carrer)
-            Pex: Barcelona, Muntaner, C/ Aragó 
+        """ Detects a crossword from the text
+            Accept information of crossroads (municipality, street, street)
+            For example: Barcelona, Muntaner, C/ Aragó 
             return municipality, type1, name1, type2, name2 """
 
+        # We use regular expression
+        # <municipality>, [street_type] <street>, [street_type] <street>
         expression = r"\s*(\D+)\s*,\s*([\w]+[./])?\s*(\D+)\s*,\s*([\w]+[./])?\s*(\D+)\s*"
         found = re.search(expression, text, re.IGNORECASE)
         if found:
@@ -455,15 +476,17 @@ class OpenICGC(PluginBase):
         return municipality, type1, street1, type2, street2
 
     def get_address(self, text):
-        """ Detecta una adreça a partri del text
-            Accepta informació d'adreça d'un municipi 
-            Pex: Barcelona, Aribau 86
-                 Aribau 86, Barcelona
-                 Barcelona, C/ Aribau nº 86
-                 Barcelona, Avd. Diagonal nº 86
+        """ Detects an adress from the text
+            Accept information about the address of a municipality
+            For example: Barcelona, Aribau 86
+                         Aribau 86, Barcelona
+                         Barcelona, C/ Aribau nº 86
+                         Barcelona, Avd. Diagonal nº 86
             return municipality, type, name, number """
 
-        # Per acceptar accents utilitzo el rang: \u00C0-\u017F
+        # We use regular expression
+        # [<municipality>, [street_type] <street> [nº] <number> | [street_type] <street> [nº] <number>, <municipality>]
+        # To accept accents I use the range: \ u00C0- \ u017F
         expression = r"^\s*(?:([\D\s]+)\s*,)?\s*([\w]+[./])?\s*([\D\s]+)\s+(?:nº)?\s*(\d+)\s*(?:,\s*([\D\s]+[\D]))?\s*$" # [ciutat,] [C/] <carrer> <numero> [, ciutat]
         found = re.search(expression, text, re.IGNORECASE)
         if found:
@@ -475,18 +498,18 @@ class OpenICGC(PluginBase):
         return municipality, type, street, number
 
     def get_cadastral_ref(self, text):
-        """ Detecta una referència cadastral a partir del text
-            Accepta un codi de referència cadastral en els 3 formats oficials
-            Pex: 9872023 VH5797S 0001 WX
+        """ Detects a cadastral reference from the text
+            Accept a cadastral reference code in the 3 official formats
+            For example: 9872023 VH5797S 0001 WX
                  13 077 A 018 00039 0000 FP
-                 13077A018000390000FP (també funciona amb els 14 primers dígites)
+                 13077A018000390000FP (also works with the first 14 digits)
             return cadastra_ref """
         
-        # Sense espais ha d'ocupar 14 o 20 caràcters alfanumèrics
+        # No spaces should occupy 14 or 20 alphanumeric characters
         cleaned_text = text.replace(' ', '')        
         if len(cleaned_text) not in (14, 20):
             return None
-        # Validem que no tingui simbols
+        # Validate that it do not have symbols with a regular expression
         expression = r'(\w+)'
         found = re.search(expression, cleaned_text, re.IGNORECASE)  
         if found:           
@@ -497,7 +520,7 @@ class OpenICGC(PluginBase):
         return cadastral_ref
 
     def find_rectangle(self, west, north, east, south, epsg):
-        """ Retorna una llista amb un diccionari amb les coordenades del rectangle """
+        """ Returns a list with a dictionary with the coordinates of the rectangle """
 
         if not epsg:
             epsg = int(self.project.get_epsg())
@@ -513,17 +536,17 @@ class OpenICGC(PluginBase):
         return dicts_list
 
     def find_coordinate(self, x, y, epsg):
-        """ Retorna una llista de diccionaris amb els llocs trobats al punt indicat """
+        """ Returns a list of dictionaries with the sites found at the indicated point """
 
         if not epsg:
             epsg = int(self.project.get_epsg())
         print(u"Coordinate: %s %s EPSG:%s" % (x, y, epsg))
 
-        # Convertim les coordenades a ETRS89 UTM31N per fer la consulta        
-        nom = "Punt: %s %s (EPSG:%s)" % (x, y, epsg), 
+        # We convert the coordinates to ETRS89 UTM31N to do the query
+        nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg), 
         query_x, query_y = self.crs.transform_point(x, y, epsg, 25831)
 
-        # Fem la consulta
+        # We execute the query
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_tuple_list = self.get_icgc_geoencoder_client().service.geocodificacioInversa(
@@ -532,9 +555,8 @@ class OpenICGC(PluginBase):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        #print(u"Return: %s%s" % (res_tuple_list[:3], "..." if len(res_tuple_list) > 3 else ""))
         
-        # Convertim el resultat a format únic
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': ("%s (%s)" % (res_dict['Descripcio'], nom)) if 'Descripcio' in res_dict else ("%s, %s %s %s-%s" % (res_dict['municipi']['nom'], res_dict['via']['Tipus'], res_dict['via']['Nom'], res_dict['portalParell'], res_dict['portalSenar'])) if 'portalParell' in res_dict else ("%s, %s %s" % (res_dict['municipi']['nom'], res_dict['via']['Tipus'], res_dict['via']['Nom'])),
             'idTipus': u'', 
@@ -548,9 +570,11 @@ class OpenICGC(PluginBase):
         return dicts_list
 
     def find_road(self, road, km):
-        """ Retorna una llista de diccionaris amb les carreteres trobades amb la nomenclatura indicada """
+        """ Returns a list of dictionaries with the roads found with the indicated nomenclature """
 
         print(u"Road: %s %s" % (road, km))
+
+        # We execute the query
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaPK(
@@ -560,9 +584,8 @@ class OpenICGC(PluginBase):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        #print(u"Return: %s%s" % (res_dicts_list[:3], "..." if len(res_dicts_list) > 3 else ""))
         
-        # Convertim el resultat a format únic
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['PkXY'],
             'idTipus': '', 
@@ -576,9 +599,11 @@ class OpenICGC(PluginBase):
         return dicts_list
 
     def find_crossing(self, municipality, type1, street1, type2, street2, find_all):
-        """ Retorna una llista de diccionaris amb les cruilles trobades amb la nomenclatura indicada """
+        """ Returns a list of dictionaries with crossings found with the indicated nomenclature """
 
         print(u"Crossing %s, %s %s / %s %s" % (municipality, type1, street1, type2, street2))
+
+        # We execute the query
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaCruilla(
@@ -589,9 +614,8 @@ class OpenICGC(PluginBase):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        #print(u"Return: %s%s" % (res_dicts_list[:3], "..." if len(res_dicts_list) > 3 else ""))
         
-        # Convertim el resultat a format únic
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['CruillaXY'],
             'idTipus': '', 
@@ -605,9 +629,11 @@ class OpenICGC(PluginBase):
         return dicts_list
 
     def find_adress(self, municipality, type, street, number, find_all):
-        """ Retorna una llista de diccionaris amb les adreces trobades amb la nomenclatura indicada """
+        """ Returns a list of dictionaries with the addresses found with the indicated nomenclature """
 
         print(u"Adress: %s, %s %s %s" % (municipality, type, street, number))
+
+        # We execute the query
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaAdreca(
@@ -623,9 +649,8 @@ class OpenICGC(PluginBase):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        #print(u"Return: %s%s" % (res_dicts_list[:3], "..." if len(res_dicts_list) > 3 else ""))
         
-        # Convertim el resultat a format únic
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['AdrecaXY'],
             'idTipus': '', 
@@ -639,15 +664,17 @@ class OpenICGC(PluginBase):
         return dicts_list
         
     def find_cadastral_ref(self, cadastral_ref):
-        """ Retorna una llista amb un diccionari amb la referència cadastral indicada """
+        """ Returns a list with a dictionary with the indicated cadastral reference """
 
         print(u"Cadastral ref: %s" % cadastral_ref)
-        print(u"URL: %s" % self.get_cadastral_coordinates_client().wsdl.url)
-        clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
-        # Exemples de RefCat:
+        # Examples of cadastral reference:
         # 9872023 VH5797S 0001 WX
         # 13 077 A 018 00039 0000 FP
         # 13077A018000390000FP
+
+        # We execute the query
+        print(u"URL: %s" % self.get_cadastral_coordinates_client().wsdl.url)
+        clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
         try:
             res_dict = self.get_cadastral_coordinates_client().service.Consulta_CPMRC(
                 Provincia = "", 
@@ -659,8 +686,9 @@ class OpenICGC(PluginBase):
             raise e
         if res_dict['control']['cuerr'] != '0':
             raise Exception(str(res_dict['lerr']['err']['des']))
-        #print(u"Return: %s" % res_dict)
 
+        # We evaluate the result
+        # If we have found a match int the response, we separate the street, municipality and district
         adress = res_dict['coordenadas']['coord']['ldt']
         expression = r"([\D]+ \d+) ([\D]+) \(([\D]+)\)"
         found = re.search(expression, adress, re.IGNORECASE)
@@ -670,7 +698,6 @@ class OpenICGC(PluginBase):
         if not found:
             expression = r"(.+)()\(([\D]+)\)"
             found = re.search(expression, adress, re.IGNORECASE)        
-        # Si hem trobat un coincidencia separem carrer, municipi i comarca
         if found:
             street, municipality1, municipality2 = found.groups()
         else:
@@ -678,6 +705,7 @@ class OpenICGC(PluginBase):
             municipality1 = u''
             municipality2 = u''
 
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s%s (%s)" % (res_dict['coordenadas']['coord']['pc']['pc1'], res_dict['coordenadas']['coord']['pc']['pc2'], street), 
             'idTipus': '', 
@@ -691,9 +719,11 @@ class OpenICGC(PluginBase):
         return dicts_list
    
     def find_placename(self, text):
-        """ Retorna una llista de diccionaris amb els topònims trobats amb la nomenclatura indicada """
+        """ Returns a list of dictionaries with the toponyms found with the indicated nomenclature """
 
         print(u"Placement: %s" % text)
+
+        # We execute the query
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaToponim(
@@ -702,9 +732,8 @@ class OpenICGC(PluginBase):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        #print(u"Return: %s%s" % (res_dicts_list[:3], "..." if len(res_dicts_list) > 3 else ""))
         
-        # Convertim les coordenades a float i guardem l epsg
+        # We convert the result to a unique format
         dicts_list = [{
             'nom': res_dict['Nom'],
             'idTipus': int(res_dict['IdTipus']), 
@@ -717,10 +746,10 @@ class OpenICGC(PluginBase):
             } for res_dict in res_dicts_list]
         return dicts_list
 
-    ### Implementació alternativa no utilitzada...
+    ### Alternative implementation not used ...
     ##def find_placename_json(self, text):
     ##    print(u"Placement: %s" % text)
-    ##    # Enviem la petició de topònim i llegim les coordeandes
+    ##    # We send a request for a place name and read the coordinates
     ##    ##url = "http://www.icc.cat/vissir2/php/getToponim.php?nom=%s" % urllib2.quote(text.toLatin1())
     ##    ##url = "http://www.icc.cat/web/content/php/getToponim/getToponim.php?nom=%s" % urllib2.quote(text.toLatin1())
     ##    url = "http://www.icc.cat/web/content/php/getToponim/getToponim.php?nom=%s" % urllib2.quote(text.encode('latin1'))
@@ -735,7 +764,8 @@ class OpenICGC(PluginBase):
     ##        print(u"Error %s %s" % (response_data, e))
     ##        return
     ##    #print(u"Return: %s" % topo_list)
-    ##    # Parsejem la resposta (pex: Barcelona)
+    ##
+    ##    # Let's parse the answer (for example: Barcelona)
     ##    # [{"nom":"Barcelona","x":"431300","y":"4581740","idMunicipi":"080193","nomMunicipi":"Barcelona","idComarca":"13","nomComarca":"Barcelonès","idTipus":"1","nomTipus":"Cap de municipi","municipis":{"080193":"Barcelona"},"comarques":{"13":"Barcelonès"}},
     ##    #  {"nom":"Can Barcelona","x":"483074","y":"4628657","idMunicipi":"172137","nomMunicipi":"Vidreres","idComarca":"34","nomComarca":"Selva","idTipus":"4","nomTipus":"Edificació","municipis":{"172137":"Vidreres","170335":"Caldes de Malavella"},"comarques":{"34":"Selva"}},
     ##    #  {"nom":"Fira Barcelona","x":"429059","y":"4580842","idMunicipi":"080193","nomMunicipi":"Barcelona","idComarca":"13","nomComarca":"Barcelonès","idTipus":"12","nomTipus":"Equipament","municipis":{"080193":"Barcelona"},"comarques":{"13":"Barcelonès"}},
@@ -758,15 +788,9 @@ class OpenICGC(PluginBase):
     ##    #  {"nom":"Hotel Melià Barcelona","x":"428331","y":"4582727","idMunicipi":"080193","nomMunicipi":"Barcelona","idComarca":"13","nomComarca":"Barcelonès","idTipus":"12","nomTipus":"Equipament","municipis":{"080193":"Barcelona"},"comarques":{"13":"Barcelonès"}}
     ##    # ]
 
-    ##    # Convertim les coordenades a float i guardem el epsg
+    ##    # We convert the coordinates to float and keep the epsg
     ##    for topo_dict in topo_list:
     ##        topo_dict['x'] = float(topo_dict['x'])
     ##        topo_dict['y'] = float(topo_dict['y'])
     ##        topo_dict['epsg'] = 23031
     ##    return topo_list
-
-
-    ###########################################################################
-    # Crides auxiliars de resituació al mapa i reprojecció
-
-    

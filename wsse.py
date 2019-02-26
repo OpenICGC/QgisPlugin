@@ -1,14 +1,15 @@
 """
-Codi baixat d'internet:
+*******************************************************************************
+Module that allows you to add SOAP packets with password coded in MD5 / BASE64
+Downloaded code:
     https://gist.github.com/copitux/5029872
 
-que permet afegir paquets de seguretat SOAP amb contrasenya codificada en MD5/BASE64
+Changes tagged with "## Python3 change:"
+*******************************************************************************
 """
 
 from base64 import b64encode
-
 from suds.wsse import UsernameToken, Token
-
 try:
     from hashlib import sha1, md5
 except:
@@ -51,9 +52,9 @@ class UsernameDigestToken(UsernameToken):
             s.append(self.password)
             s.append(Token.sysdate())
             m = md5()
-            m.update(':'.join(s).encode('ascii')) # Canvi Python3, cal codificar el valor
+            m.update(':'.join(s).encode('ascii')) ## Python3 change: We we need to encode the value
             self.raw_nonce = m.digest()
-            self.nonce = b64encode(self.raw_nonce).decode('ascii') # Canvi Python3, cal codificar el valor
+            self.nonce = b64encode(self.raw_nonce).decode('ascii') ## Python3 change: We we need to encode the value
         else:
             self.nonce = text
 
@@ -68,9 +69,9 @@ class UsernameDigestToken(UsernameToken):
                              '#PasswordDigest')
         s = sha1()
         s.update(self.raw_nonce)
-        s.update(created.getText().encode('ascii')) # Canvi Python3, cal codificar el valor
-        s.update(password.getText().encode('ascii')) # Canvi Python3, cal codificar el valor
-        password.setText(b64encode(s.digest()).decode('ascii')) # Canvi Python3, cal codificar el valor
+        s.update(created.getText().encode('ascii')) ## Python3 change: We we need to encode the value
+        s.update(password.getText().encode('ascii')) ## Python3 change: We we need to encode the value
+        password.setText(b64encode(s.digest()).decode('ascii')) ## Python3 change: We we need to encode the value
 
         nonce.set('EncodingType', 'http://docs.oasis-open.org/wss/2004'
             '/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary')

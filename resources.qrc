@@ -1,19 +1,17 @@
 <RCC>
-    <qresource prefix="/plugins/geofinder" >
-        <file>geofinder.png</file>
-    </qresource>
     <qresource prefix="/plugins/openicgc" >
         <file>icon.png</file>
-        <file>communications.png</file>
-        <file>house.png</file>
-        <file>mountain.png</file>
-        <file>build.png</file>
-        <file>river.png</file>
-        <file>crossroad.png</file>
-        <file>equipment.png</file>
-        <file>history.png</file>
-        <file>flag.png</file>
-        <file>pin.png</file>
-        <file>town.png</file>
+        <file>images/geofinder.png</file>
+        <file>images/communications.png</file>
+        <file>images/house.png</file>
+        <file>images/mountain.png</file>
+        <file>images/build.png</file>
+        <file>images/river.png</file>
+        <file>images/crossroad.png</file>
+        <file>images/equipment.png</file>
+        <file>images/history.png</file>
+        <file>images/flag.png</file>
+        <file>images/pin.png</file>
+        <file>images/town.png</file>
     </qresource>
 </RCC>
