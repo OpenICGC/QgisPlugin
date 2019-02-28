@@ -22,9 +22,11 @@ ui_geofinder, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_geo
 
 
 class GeoFinderDialog(QDialog, ui_geofinder):
+    """ Dialog class that allows to show the results of the spatial searches """
+
     def __init__(self, title, topoheader_list, topodata_list, topoicons_dict, auto_show=True):
-        QDialog.__init__(self)
         """ Dialog initialization """
+        QDialog.__init__(self)
 
         # Set up the user interface from Designer.
         self.setupUi(title, topoheader_list, topodata_list, topoicons_dict)

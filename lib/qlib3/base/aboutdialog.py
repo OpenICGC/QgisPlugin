@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-    Diàleg per mostrar informació multiliniea
+*******************************************************************************
+Mòdul amb classe diàleg per mostrar informació bàsica del plugin i logo el ICGC
+---
+Module with a dialog class to display basic information of plugin and ICGC logo
+
+                             -------------------
+        begin                : 2019-01-18
+        author               : Albert Adell
+        email                : albert.adell@icgc.cat
+*******************************************************************************
 """
 
-
 import os
-import win32clipboard as clipboard
-import utilities.email
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
@@ -17,7 +23,30 @@ ui_about, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_about.u
 
 
 class AboutDialog(QDialog, ui_about):
+    """ Classe diàleg per mostrar informació bàsica del plugin i logo el ICGC
+        ---
+        Class to display basic information of plugin and ICGC logo
+        """
+
     def __init__(self, app_name, app_icon, info, autoshow=True, parent=None, new_line="  "):
+        """ Inicialització del diàleg "about", cal informar de:
+            - app_name: Títol del diàleg
+            - app_icon: Icona del diàleg
+            - info: Informació a mostrar
+            Opcionalment:
+            - autoshow: Mostra el diàleg automàticament al crear-lo
+            - parent: Especifica la finestra pare del diàleg
+            - new_line: Caràcters a substituir per un canvi de linia
+            ---
+            Initialization of the "about" dialog, you need to report:
+             - app_name: Title of the dialog
+             - app_icon: Icon of the dialog
+             - info: Information to show
+             Optionally:
+             - autoshow: Show the dialog automatically when you create it
+             - parent: Specifies the parent window of the dialog
+             - new_line: Characters to be replaced by a change of line
+            """
         QDialog.__init__(self, parent)
         self.setupUi(self)        
         self.ui = self # Per compatibilitat QGIS2/3
@@ -43,12 +72,24 @@ class AboutDialog(QDialog, ui_about):
             self.return_value = self.do_modal()
 
     def resizeEvent(self, newSize):
+        """ Mapeja l'event de canvi de mida del diàlog
+            ---
+            Map dialog size change event
+            """
         self.resize_banner()
 
     def resize_banner(self):
+        """ Reescala el "banner" (logo ICGC) a la mida del diàleg
+            ---
+            Resize banner (logo ICGC) to dialog size
+            """
         self.label_banner.setPixmap(self.pixmap_banner.scaled(self.label_banner.width(), self.label_banner.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def do_modal(self):
+        """ Mostra el diàleg en mode modal
+            ---
+            Show dialog on modal mode
+            """
         self.show()
         self.return_value = self.exec_()
         return self.return_value

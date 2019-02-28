@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-    Diàleg per mostrar informació multiliniea
+*******************************************************************************
+Mòdul amb una classe diàleg per mostrar informació multilinia
+---
+Module with a dialog class to display multi-line information
+
+                             -------------------
+        begin                : 2019-01-18
+        author               : Albert Adell
+        email                : albert.adell@icgc.cat
+*******************************************************************************
 """
 
 
 import os
 import win32clipboard as clipboard
-try:    
+try:
     import utilities.email
     email_available = True
 except:
@@ -22,6 +31,11 @@ ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_login
 
 
 class LogInfoDialog(QDialog, ui_loginfo):
+    """ Classe diàleg per mostrar informació multilinia
+        ---
+        Dialog class to display multi-line information
+        """
+
     mode_info = 0
     mode_warning = 1
     mode_error = 2
@@ -38,13 +52,51 @@ class LogInfoDialog(QDialog, ui_loginfo):
     buttons_yesno = (buttons_yes | buttons_no)
     buttons_yesno_defno = (buttons_yes | buttons_no | buttons_defno)
 
-    def __init__(self, info_or_tupleinfolist, title = u"Informació de procés", 
-            mode = mode_info, buttons = buttons_ok, 
-            default_combo_selection = None, 
-            extrainfo_or_tupleextrainfolist = None, extrainfohtml_or_tupleextrainfohtmllist = None,
-            email_button_text = None, email_subject = None, email_to = None, email_cc = None,            
-            save_button_text = None, copy_clipboard_button_test = None,
-            autoshow = True, width = None, height = None, parent = None):
+    def __init__(self, info_or_tupleinfolist, 
+            title=u"Informació de procés", mode=mode_info, buttons=buttons_ok, 
+            default_combo_selection=None, 
+            extrainfo_or_tupleextrainfolist=None, extrainfohtml_or_tupleextrainfohtmllist=None,
+            email_button_text=None, email_subject=None, email_to=None, email_cc=None,
+            save_button_text=None, copy_clipboard_button_text=None,
+            autoshow=True, width=None, height=None, parent=None):
+        """ Inicialització del diàleg, cal especificar paràmetre amb un text d'informació o amb una 
+            llista de tuples amb la informació. Opcionalment es pot especificar:
+            - title: Títol del diàleg
+            - mode: Mode del diàleg que canvia la icona a mostrar (mode_info, mode_warning, mode_error)
+            - buttons: Màscara de botons a mostrar (buttons_ok, buttons_cancel, buttons_yes ...)
+            - default_combo_selection: En cas de tenir una llista d'informacions, valor de la llista a mostrar per defecte
+            - extrainfo_or_tupleextrainfolist: Informació addicional a mostrar (botó email + shift)
+            - extrainfohtml_or_tupleextrainfohtmllist: Informació HTML addicional a mostrar (en emails)
+            - email_button_text: Text del botó que serveix per enviar informes per email
+            - email_subject: Asumpte del informes per email
+            - email_to: Destinataris dels informes per email
+            - email_cc: Destinataris en copia dels informes per email
+            - save_button_text: Text del botó de guardar informació a fitxer
+            - copy_clipboard_button_text: Text del botó per guardar informació al porta papers
+            - autoshow: Mostra automàticament el diàleg al crear-lo
+            - width: Amplada del diàleg
+            - height: Alçada del diàleg
+            - parent: Finestra pare del diàleg
+            ---
+            Initialization of the dialog, you need to specify a parameter with an information text or with a
+            list of tuples with information. Optionally you can specify:
+            - title: Dialog title
+            - mode: Dialog mode that switches the icon to display (mode_info, mode_warning, mode_error)
+            - buttons: Mask of buttons to show (buttons_ok, buttons_cancel, buttons_yes ...)
+            - default_combo_selection: If you have a list of information, value of the list to be displayed by default
+            - extrainfo_or_tupleextrainfolist: Additional information to show (email button + shift)
+            - extrainfohtml_or_tupleextrainfohtmllist: Additional HTML information to show (in emails)
+            - email_button_text: Text of the button used to send reports by email
+            - email_subject: Subject of the reports by email
+            - email_to: Receivers of the reports by email
+            - email_cc: Receivers in copy of the reports by email
+            - save_button_text: Text of the button to save information to file
+            - copy_clipboard_button_text: Text of the button to save information to clipboard
+            - autoshow: Automatically show the dialog when creating it
+            - width: Dialog width
+            - height: Dialog height
+            - parent: Parent window of the dialog
+            """
         QDialog.__init__(self, parent)
         self.setupUi(self)        
         self.ui = self # Per compatibilitat QGIS2/3
@@ -94,9 +146,9 @@ class LogInfoDialog(QDialog, ui_loginfo):
             self.ui.pushButton_save.setVisible(False)
 
         # Motrem el botó de copiar al portapapers 
-        if copy_clipboard_button_test:
-            self.ui.pushButton_clipboard.setText(copy_clipboard_button_test)
-            self.ui.pushButton_clipboard.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(copy_clipboard_button_test) + 20)
+        if copy_clipboard_button_text:
+            self.ui.pushButton_clipboard.setText(copy_clipboard_button_text)
+            self.ui.pushButton_clipboard.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(copy_clipboard_button_text) + 20)
             self.ui.pushButton_clipboard.setEnabled(True)
             self.ui.pushButton_clipboard.setVisible(True)
         else:
@@ -155,10 +207,20 @@ class LogInfoDialog(QDialog, ui_loginfo):
             self.return_value = self.do_modal()
 
     def update(self, index):
+        """ En cas de tenir una llista d'informacions, mostra la informació associada a "index" 
+            ---
+            In case you have a list of information, show the information associated with "index"
+            """
         self.index = index
         self.ui.plainTextEdit.setPlainText(self.tuple_list[index][1])
 
-    def get_report_info(self, html_format = False, crlf = False):        
+    def get_report_info(self, html_format=False, crlf=False):        
+        """ Retorna un text amb la informació mostrada en el diàleg, pot ser en format
+            text pla, HTML i es pot configurar els canvis de linia
+            ---
+            Returns a text with the information displayed in the dialog, it can be in
+            plain text format, HTML, and you can configure line changes format
+            """
         if self.index:
             if html_format and self.extrainfohtml_or_tupleextrainfohtmllist:
                 report_info = self.extrainfohtml_or_tupleextrainfohtmllist[self.index][1]
@@ -179,14 +241,13 @@ class LogInfoDialog(QDialog, ui_loginfo):
         return report_info
 
     def save(self):
+        """ Guarda la informació del diàleg en un fitxer
+            --- 
+            Saves dialog information into a file
+            """
         out_file = QDir.toNativeSeparators(QFileDialog.getSaveFileName(None, "Save log info", "log.txt", "Text files (*.txt)"))
         if not out_file:
             return
-        ##text = self.ui.plainTextEdit.toPlainText().replace('\n', '\r\n')
-        ##print "text", text
-        ##try:
-        ##    with open(out_file, "w") as fout:
-        ##        fout.write(text)
         report_info = self.get_report_info(html_format = False, crlf = True)
         try:
             with open(out_file, 'w') as file:
@@ -195,20 +256,26 @@ class LogInfoDialog(QDialog, ui_loginfo):
             QMessageBox.warning(None, u"Save error", u"Error saving log\n%s" % e)
 
     def copy_to_clipboard(self):
-        ##message = "\r\n".join(["\t".join([unicode(value) for value in strip_info]) for strip_info in delivery_note_strips_list[1:]])
-        # Put string into clipboard (open, clear, set, close)
+        """ Guarda la informació del diàleg en el portapapers
+            --- 
+            Saves dialog information into clipboard
+            """
         clipboard.OpenClipboard()
         clipboard.EmptyClipboard()
         clipboard.SetClipboardText(self.ui.plainTextEdit.toPlainText())
         clipboard.CloseClipboard()
 
     def send_email(self):
+        """ Envia la informació del diàleg per email
+            --- 
+            Send dialog information by email
+            """
         if not email_available:
             return
         if QApplication.keyboardModifiers() == Qt.ShiftModifier:
             return self.show_extra_info()
 
-        email_info = self.get_report_info(html_format = True, crlf = False)
+        email_info = self.get_report_info(html_format=True, crlf=False)
         try:
             email_object = utilities.email.eMail(self.email_to, self.email_cc, self.email_subject, htmlbody = email_info, attachment_files = [])
             email_object.open()
@@ -216,6 +283,10 @@ class LogInfoDialog(QDialog, ui_loginfo):
             QMessageBox.warning(None, u"Enviar informe", u"Error no es pot obrir el programa d'email per enviar l'informe")
 
     def show_extra_info(self):
+        """ Mostra la informació addicional en el diàleg
+            ---
+            Show extra information on dialog
+            """
         # Mostrem la informació extesa al diàleg
         extra_info = self.get_report_info()
         self.ui.plainTextEdit.clear();
@@ -227,6 +298,10 @@ class LogInfoDialog(QDialog, ui_loginfo):
         self.move(self.x() - extra_width / 2, self.y() - extra_height / 2)
 
     def do_modal(self):
+        """ Mostra el diàleg en mode modal
+            ---
+            Show modal dialog
+            """
         self.show()
         self.return_value = self.exec_()
         return self.return_value
@@ -238,13 +313,29 @@ class LogInfoDialog(QDialog, ui_loginfo):
         QDialog.reject(self)
 
     def is_ok(self):
+        """ Retorna si s'ha premut el botó ok
+            ---
+            Return if ok button has been pressed
+            """
         return self.return_value == 1
 
     def is_cancel(self):
+        """ Retorna si s'ha premut el botó cancelar
+            ---
+            Return if cancel button has been pressed
+            """
         return self.return_value == 0
 
     def is_yes(self):
+        """ Retorna si s'ha premut el botó yes
+            ---
+            Return if yes button has been pressed
+            """
         return self.return_value == 1
 
     def is_no(self):
+        """ Retorna si s'ha premut el botó no
+            ---
+            Return if no button has been pressed
+            """
         return self.return_value == 0

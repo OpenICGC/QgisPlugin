@@ -1,9 +1,16 @@
 # encoding: utf-8
 """
-MODULE: progressdialog.py
-Funcions per fer progress o working bars en diàlegs
+*******************************************************************************
+Mòdul amb funcions i classes fer gestionar diàlegs amb progress o working bars
+---
+Module with functions and classes to manage dialogs with progress or working 
+bars
+                             -------------------
+        begin                : 2019-01-18
+        author               : Albert Adell
+        email                : albert.adell@icgc.cat
+*******************************************************************************
 """
-
 
 import datetime
 import time
@@ -15,6 +22,10 @@ from PyQt5.QtWidgets import QProgressDialog, QProgressBar, QApplication
 
 
 def get_main_window():
+    """ Retorna una referència a la finestra principal de QGIS
+        ---
+        Returns a reference to the main QGIS window
+        """
     # QGIS té MÉS D'UNA MAINWINDOW (La finestra principal i els reports de mapes...)
     # Per distinguir-los, de moment utilitzo el nombre de fills que té cada un i ens quedem amb el que en té més (la finestra principal...)
     main_window = max([(w, len(w.children())) for w in QApplication.instance().topLevelWidgets() if w.inherits("QMainWindow")] , key=operator.itemgetter(1))[0]
@@ -24,7 +35,28 @@ def process_events():
     QApplication.instance().processEvents()
 
 class ProgressDialog(object):
-    def __init__(self, label, num_steps, title = "Processing...", cancel_button_text = None, autoclose = True, time_info = "Elapsed %s. Remaining %s", parent = None):
+    """ Classe diàleg amb progressbar, % i estimació de temps de finalització
+        ---
+        Dialog class with progressbar, % and end time estimate
+        """
+
+    def __init__(self, label, num_steps, title="Processing...", cancel_button_text=None, autoclose=True, time_info="Elapsed %s. Remaining %s", parent=None):
+        """ Inicialitza un diàleg amb una progressbar a dins, cal indicar etiqueta a mostrar i nombre de passos de la barra.
+            Opcionalment es pot especificar:
+            - title: Títol del diàleg
+            - cancel_button_text: Afegeix un botó de cancelació amb el text indicat
+            - autoclose: indica si es tanca automàticament a l'arribar al 100%
+            - time_info: plantilla text amb la informació de temps transcorregut i restant (ha de portar 2 %s)
+            - parent: finestra pare del diàleg
+            ---
+            Initializes a dialog with a progressbar inside, you must indicate the label to show and the number of steps in the bar.
+            Optionally you can specify:
+            - title: dialog title
+            - cancel_button_text: add a cancellation button with the indicated text
+            - Autoclose: indicates if it is automatically closed when reaching 100%
+            - time_info: text template with the elapsed and remaining time information (requires 2 %s)
+            - parent: parent window of the dialog
+            """
         self.time_info = time_info
         self.app = QApplication.instance()        
         self.parent = parent if parent else get_main_window()
@@ -73,7 +105,7 @@ class ProgressDialog(object):
         # Obtinc un apuntador a la barra de progres
         self.bar = [c for c in self.dlg.children() if type(c) == QProgressBar][0]
 
-        # Mostrem el di``aleg
+        # Mostrem el diàleg
         self.show();
 
     def __enter__(self):
@@ -83,6 +115,10 @@ class ProgressDialog(object):
         self.close()
 
     def show(self):
+        """ Mostra el diàleg i desactiva la finestra pare si cal
+            ---
+            Show the dialog and deactivate the parent window if necessary
+            """
         self.time_begin = datetime.datetime.now()
         self.time_last = self.time_begin
         self.time_average = datetime.timedelta(0)
@@ -94,62 +130,116 @@ class ProgressDialog(object):
         self.app.processEvents()
 
     def close(self):
+        """ Tanca el diàleg 
+            ---
+            Close the dialog
+            """
         self.app.processEvents()
         self.dlg.hide()
         self.dlg.close()
         self.__post_close__()
 
     def __post_close__(self):
+        """ Desbloqueja la finestra pare
+            ---
+            Unlock parent window
+            """
         if self.parent_was_enabled:
             self.parent.setEnabled(True)
             ##print "Enabled!", self.parent, self.parent.windowTitle()
         self.app.processEvents()
 
     def set_steps(self, num_steps):
+        """ Especifica el nombre de passos de la progress bar
+            ---
+            Specify the passos name of the progress bar
+            """
         self.dlg.setMaximum(num_steps)
 
     def set_value(self, value):
+        """ Especifica la posició actual de progress bar
+            ---
+            Specify the current position of progress bar
+            """
         self.dlg.setValue(value)
         self.update_time()
         self.app.processEvents()
-        # Quan es tanca sol el diàleg de progress ens podem deixar el programa bloquejat, això ho eivtarà
+        # Quan es tanca sol el diàleg de progress ens podem deixar el programa bloquejat, això ho evitarà
         if self.autoclose and not self.dlg.isVisible():
             self.__post_close__()
 
     def get_value(self):
+        """ Retorna la posició actual de progress bar
+            ---
+            Get current position of progress bar
+            """
         return self.dlg.value()
 
-    def step_it(self, steps = 1):
+    def step_it(self, steps=1):
+        """ Avança la posició de la progressbar "steps" vegades 
+            ---
+            Move progressbar position "steps" times
+            """
         self.set_value(self.get_value() + steps)
 
     def set_label(self, label):
+        """ Canvia la etiqueta informativa del diàleg 
+            ---
+            Change informative dialog label
+            """
         self.dlg.setLabelText("%s\n%s" % (label, self.get_time_info()))
         self.app.processEvents()
 
     def get_label(self):
+        """ Retorna la etiqueta informativa del diàleg 
+            ---
+            Get informative dialog label text
+            """
         full_label = self.dlg.labelText()
         return full_label[:full_label.rfind('\n')]
-        ##label_parts = self.dlg.labelText().split('\n')
-        ##return "\n".join(label_parts[0:len(label_parts) - 1] if len(label_parts) > 1 else label_parts)
 
     def was_canceled(self):
+        """ Retorna si s'ha apretat el botó de cancelar 
+            ---
+            Returns if the cancel button has been pressed
+            """
         self.app.processEvents()
         return self.dlg.wasCanceled()
 
     def update_time(self):
+        """ Actualitza la estimació de temps per acabat i temps transcorregut
+            ---
+            Update estimated time to finish and elapsed time
+            """
         self.time_last = datetime.datetime.now()
         self.set_label(self.get_label()) # Força actualitzar el temps
 
     def get_begin_time(self):
+        """ Retorna el temps d'inici de procés 
+            ---
+            Returns the start time of the process
+            """
         return self.time_begin
 
     def get_last_time(self):
+        """ Retorna la última marca de temps registrada
+            ---
+            Returns the last recorded time
+            """
         return self.time_last
 
     def get_elapsed_time(self):
+        """ Retorna el temps transcorregut des de l'inici de procés 
+            ---
+            Returns the time elapsed since the beginning of the process
+            """
         return self.time_last - self.time_begin
 
     def get_average_time(self):
+        """ Retorna el temps mig de procés per pas
+            ---
+            Returns the average time of process per step
+            """
         values = self.get_value()
         if values < 0:
             values = self.dlg.maximum()
@@ -158,13 +248,28 @@ class ProgressDialog(object):
             return datetime.timedelta(0)
         return elapsed / values
 
+    def get_remaining_time(self):
+        """ Retorna el temps estima de finalització
+            ---
+            Returns estimated end time
+            """
+        return self.get_average_time() * (self.dlg.maximum() - self.get_value())
+
     def get_time_info(self):
+        """ Retorna informació del temps transcorregut i temps restant 
+            ---
+            Returns information about the time elapsed and the remaining time
+            """
         if self.dlg.maximum():
             return self.time_info % (self.get_delta_info(self.get_elapsed_time()), self.get_delta_info(self.get_remaining_time()))
         else:
             return self.time_info % (self.get_delta_info(self.get_elapsed_time()))
 
     def get_delta_info(self, delta):
+        """ Formateja una diferència de temps 
+            ---
+            Format a time difference
+            """
         # Obtenim el temps
         h, remaining = divmod(delta.seconds, 3600)
         m, s = divmod(remaining, 60)
@@ -185,17 +290,39 @@ class ProgressDialog(object):
         # Retornem el temps am unitats
         return ":".join(info) + suffix
 
-    def get_remaining_time(self):
-        return self.get_average_time() * (self.dlg.maximum() - self.get_value())
-
 class WorkingDialog(ProgressDialog):
-    def __init__(self, label, title = "Processing...", cancel_button_text = None, autoclose = True, time_info = "Elapsed %s"):
+    """ Classe diàleg amb workingbar i informació de temps transcorregut
+        ---
+        Dialog class with workingbar and elapsed time information
+        """
+
+    def __init__(self, label, title="Processing...", cancel_button_text=None, autoclose=True, time_info="Elapsed %s", parent=None):
+        """ Inicialitza un diàleg amb una workingbar a dins, cal indicar etiqueta a mostrar.
+            Opcionalment es pot especificar:
+            - title: Títol del diàleg
+            - cancel_button_text: Afegeix un botó de cancelació amb el text indicat
+            - autoclose: indica si es tanca automàticament a l'arribar al 100%
+            - time_info: plantilla text amb la informació de temps transcorregut i restant (ha de portar 2 %s)
+            - parent: finestra pare del diàleg
+            ---
+            Initializes a dialog with a progressbar inside, you must indicate the label to show and the number of steps in the bar.
+            Optionally you can specify:
+            - title: dialog title
+            - cancel_button_text: add a cancellation button with the indicated text
+            - Autoclose: indicates if it is automatically closed when reaching 100%
+            - time_info: text template with the elapsed and remaining time information (requires 2 %s)
+            - parent: parent window of the dialog
+            """
         # Creem un progressdialog amb nombre de passos 0
-        super(self.__class__, self).__init__(label, 0, title, cancel_button_text, autoclose, time_info)
+        super(self.__class__, self).__init__(label, 0, title, cancel_button_text, autoclose, time_info, parent )
         # Amaguem el percentatge de la progressbar
         self.bar.setTextVisible(False)
 
 def execute_fx_with_workingbar(fx, label, title = u"Processant...", cancel_button_text = None):
+    """ Executa una funció obrint prèviament un working dialog i tancant-lo al finalitzar 
+        ---
+        Run a function by opening a working dialog and closing it at the end
+        """
     class FxReturn:
         return_value = None
         def run(self):

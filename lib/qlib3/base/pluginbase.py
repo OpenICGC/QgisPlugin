@@ -23,6 +23,7 @@ import codecs
 import fnmatch
 import urllib.request
 import socket
+import configparser
 from importlib import reload
 
 from PyQt5.QtCore import Qt, QSize, QTimer, QSettings
@@ -33,8 +34,6 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsP
 from qgis.utils import plugins, reloadPlugin
 
 from . import resources_rc
-
-import configparser
 
 from . import progressdialog
 reload(progressdialog)

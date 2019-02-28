@@ -38,7 +38,7 @@ from .wsse import UsernameDigestToken
 # Import the PyQt and QGIS libraries
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QApplication, QComboBox
+from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox
 # Initialize Qt resources from file resources_rc.py
 from . import resources_rc
 
@@ -64,6 +64,8 @@ from .geofinderdialog import GeoFinderDialog
 
 
 class OpenICGC(PluginBase):
+    """ Plugin for accessing open data published by ICGC """
+
     ###########################################################################
     # Plugin constants
     
@@ -176,6 +178,7 @@ class OpenICGC(PluginBase):
                13077A018000390000FP           
             """)
         self.translation.set_text(self.translation.LANG_CA, "TOPO_HEADER", ["Nom", "Tipus", "Municipi", "Comarca"])
+        self.translation.set_text(self.translation.LANG_CA, "ERROR_NOCOORDINATES", "Error, localització sense coordenades")
 
         # Spanish
         self.translation.set_text(self.translation.LANG_ES, "FIND", "Búsqueda espacial")
@@ -220,6 +223,7 @@ class OpenICGC(PluginBase):
                13077A018000390000FP           
             """)
         self.translation.set_text(self.translation.LANG_ES, "TOPO_HEADER", ["Nombre", "Tipo", "Municipio", "Comarca"])
+        self.translation.set_text(self.translation.LANG_ES, "ERROR_NOCOORDINATES", "Error, localización sin coordenadas")
 
         # English
         self.translation.set_text(self.translation.LANG_EN, "FIND", "Spatial search")
@@ -264,6 +268,7 @@ class OpenICGC(PluginBase):
                13077A018000390000FP           
             """)
         self.translation.set_text(self.translation.LANG_EN, "TOPO_HEADER", ["Name", "Type", "Municipality", "Region"])
+        self.translation.set_text(self.translation.LANG_EN, "ERROR_NOCOORDINATES", "Error, location without coordinates")
 
     def initGui(self, debug=False):
         """ GUI initializacion """
@@ -346,18 +351,24 @@ class OpenICGC(PluginBase):
             selection = dlg.get_selection_index()
             if selection < 0:
                 return
-            print(u"Selected: %s" % dict_list[selection]['nom'])
+            print("Selected: %s" % dict_list[selection]['nom'])
 
             # We get point coordinates
+            epsg = dict_list[selection]['epsg']
             x = dict_list[selection]['x']
             y = dict_list[selection]['y']
-            epsg = dict_list[selection]['epsg']
+            if not x or not y:
+                print("Error, no coordinates found")
+                QMessageBox.warning(self.iface.mainWindow(), self.translation.get_text("FIND"),    
+                    self.translation.get_text("ERROR_NOCOORDINATES"))
+                return
+
             # We resituate the map (implemented in parent PluginBase)
             self.set_map_point(x, y, epsg)
 
         print(u"")
 
-    def find_data(self, text, find_all = False):
+    def find_data(self, text, find_all=False, recursive=True):
         """ Returns a list of dictionaries with the sites found from the indicated text """
 
         # Let's see if we pass a ground rectangle 
@@ -383,7 +394,7 @@ class OpenICGC(PluginBase):
 	    # Let's see if we pass an address
         municipality, type, name, number = self.get_address(text)
         if municipality and name and number:
-            return self.find_adress(municipality, type, name, number, find_all)
+            return self.find_adress(municipality, type, name, number, find_all, recursive)
 
 	    # We detect if we pass a cadastral reference
         cadastral_ref = self.get_cadastral_ref(text)
@@ -482,12 +493,13 @@ class OpenICGC(PluginBase):
                          Aribau 86, Barcelona
                          Barcelona, C/ Aribau nº 86
                          Barcelona, Avd. Diagonal nº 86
+                         Barcelona, C/ Aragó 1-5
             return municipality, type, name, number """
 
         # We use regular expression
         # [<municipality>, [street_type] <street> [nº] <number> | [street_type] <street> [nº] <number>, <municipality>]
         # To accept accents I use the range: \ u00C0- \ u017F
-        expression = r"^\s*(?:([\D\s]+)\s*,)?\s*([\w]+[./])?\s*([\D\s]+)\s+(?:nº)?\s*(\d+)\s*(?:,\s*([\D\s]+[\D]))?\s*$" # [ciutat,] [C/] <carrer> <numero> [, ciutat]
+        expression = r"^\s*(?:([\D\s]+)\s*,)?\s*([\w]+[./])?\s*([\D\s]+)\s+(?:nº)?\s*,*([\d-]+)\s*(?:[,.]\s*([\D\s]+[\D]))?\s*$" # [ciutat,] [C/] <carrer> <numero> [, ciutat]
         found = re.search(expression, text, re.IGNORECASE)
         if found:
             municipality1, type, street, number, municipality2 = found.groups()
@@ -592,8 +604,8 @@ class OpenICGC(PluginBase):
             'nomTipus': u'Via', 
             'nomMunicipi': u'', 
             'nomComarca': u'', 
-            'x': float(res_dict['coordenadesETRS89UTM']['X']), 
-            'y': float(res_dict['coordenadesETRS89UTM']['Y']),
+            'x': float(res_dict['coordenadesETRS89UTM']['X']) if 'coordenadesETRS89UTM' in res_dict else None, 
+            'y': float(res_dict['coordenadesETRS89UTM']['Y']) if 'coordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
         return dicts_list
@@ -622,13 +634,13 @@ class OpenICGC(PluginBase):
             'nomTipus': u'Cruilla', 
             'nomMunicipi': res_dict['Cruilla']['Poblacio'], 
             'nomComarca': res_dict['Cruilla']['Comarca']['nom'], 
-            'x': float(res_dict['CoordenadesETRS89UTM'][0]['X']), 
-            'y': float(res_dict['CoordenadesETRS89UTM'][0]['Y']),
+            'x': float(res_dict['CoordenadesETRS89UTM'][0]['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'y': float(res_dict['CoordenadesETRS89UTM'][0]['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
         return dicts_list
 
-    def find_adress(self, municipality, type, street, number, find_all):
+    def find_adress(self, municipality, type, street, number, find_all, recursive):
         """ Returns a list of dictionaries with the addresses found with the indicated nomenclature """
 
         print(u"Adress: %s, %s %s %s" % (municipality, type, street, number))
@@ -654,13 +666,24 @@ class OpenICGC(PluginBase):
         dicts_list = [{
             'nom': "%s" % res_dict['AdrecaXY'],
             'idTipus': '', 
-            'nomTipus': u'Adreça', 
+            'nomTipus': 'Adreça', 
             'nomMunicipi': res_dict['Adreca']['Poblacio'], 
             'nomComarca': res_dict['Adreca']['Comarca']['nom'], 
-            'x': float(res_dict['CoordenadesETRS89UTM']['X']), 
-            'y': float(res_dict['CoordenadesETRS89UTM']['Y']),
+            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'y': float(res_dict['CoordenadesETRS89UTM']['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
+
+        # We detect locations without coordinates and try to obtain the coordinate by doing the search on the name
+        # returned in the initial request
+        if recursive:
+            for res_dict in dicts_list:
+                if not res_dict['x'] or not res_dict['y']:
+                    alternative_res_dict_list = self.find_data(res_dict['nom'], recursive=False)
+                    if alternative_res_dict_list:
+                        alternative_res_dict = alternative_res_dict_list[0]
+                        res_dict['x'] = alternative_res_dict['x']
+                        res_dict['y'] = alternative_res_dict['y']
         return dicts_list
         
     def find_cadastral_ref(self, cadastral_ref):
@@ -740,8 +763,8 @@ class OpenICGC(PluginBase):
             'nomTipus': res_dict['NomTipus'], 
             'nomMunicipi': res_dict['NomMunicipi'] if 'NomMunicipi' in res_dict else u'', 
             'nomComarca': res_dict['NomComarca']if 'NomComarca' in res_dict else u'', 
-            'x': float(res_dict['CoordenadesETRS89UTM']['X']), 
-            'y': float(res_dict['CoordenadesETRS89UTM']['Y']),
+            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'y': float(res_dict['CoordenadesETRS89UTM']['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
         return dicts_list
