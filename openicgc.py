@@ -35,6 +35,8 @@ from . import wsse
 reload(wsse)
 from .wsse import UsernameDigestToken
 
+# Import QGIS libraries
+from qgis.core import QgsRasterLayer, QgsVectorLayer
 # Import the PyQt and QGIS libraries
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon, QCursor
@@ -142,6 +144,9 @@ class OpenICGC(PluginBase):
         self.translation.set_text(self.translation.LANG_CA, "RELOAD", "Recarregar Open ICGC")
         self.translation.set_text(self.translation.LANG_CA, "BACKGROUND_MAPS", "Mapes de fons")
         self.translation.set_text(self.translation.LANG_CA, "BAGROUND_MAPS_DELETE", "Esborrar mapes de fons")
+        self.translation.set_text(self.translation.LANG_CA, "STYLES", "Estils de pintat")
+        self.translation.set_text(self.translation.LANG_CA, "DESATURATE", "Desaturar capa raster seleccionada")
+        self.translation.set_text(self.translation.LANG_CA, "TRANSPARENCY", "Transparència")
         self.translation.set_text(self.translation.LANG_CA, "TOOLTIP_HELP", """Cercar:
             Adreça: municipi, carrer número o al revés
                Barcelona, Aribau 86
@@ -187,6 +192,9 @@ class OpenICGC(PluginBase):
         self.translation.set_text(self.translation.LANG_ES, "RELOAD", "Recargar Open ICGC") 
         self.translation.set_text(self.translation.LANG_ES, "BACKGROUND_MAPS", "Mapas de fondo")
         self.translation.set_text(self.translation.LANG_ES, "BAGROUND_MAPS_DELETE", "Borrar mapas de fondo")
+        self.translation.set_text(self.translation.LANG_ES, "STYLES", "Estiles de pintado")
+        self.translation.set_text(self.translation.LANG_ES, "DESATURATE", "Desaturar capa raster seleccionada")
+        self.translation.set_text(self.translation.LANG_ES, "TRANSPARENCY", "Transparencia")
         self.translation.set_text(self.translation.LANG_ES, "TOOLTIP_HELP", """Buscar:
             Dirección: municipio, calle número o al reves
                Barcelona, Aribau 86
@@ -232,6 +240,9 @@ class OpenICGC(PluginBase):
         self.translation.set_text(self.translation.LANG_EN, "RELOAD", "Reload Open ICGC")
         self.translation.set_text(self.translation.LANG_EN, "BACKGROUND_MAPS", "Background maps")
         self.translation.set_text(self.translation.LANG_EN, "BAGROUND_MAPS_DELETE", "Delete background maps")
+        self.translation.set_text(self.translation.LANG_EN, "STYLES", "Paint styles")
+        self.translation.set_text(self.translation.LANG_EN, "DESATURATE", "Desaturate selected raster layer")
+        self.translation.set_text(self.translation.LANG_EN, "TRANSPARENCY", "Transparence")
         self.translation.set_text(self.translation.LANG_EN, "TOOLTIP_HELP", """Find:
             Address: municipality, street number or vice versa
                Barcelona, Aribau 86
@@ -295,7 +306,18 @@ class OpenICGC(PluginBase):
             (self.translation.get_text("FIND"), self.run, QIcon(":/plugins/openicgc/images/geofinder.png")), # Action button
             ])
         # Add a new button with access to ICGS WMS layers
-        self.tools.add_tool_WMS_background_maps_lite(self.translation.get_text("FIND"), self.translation.get_text('BACKGROUND_MAPS'), self.translation.get_text('BAGROUND_MAPS_DELETE'))
+        self.tools.add_tool_WMS_background_maps_lite(self.translation.get_text("FIND"), self.translation.get_text('BACKGROUND_MAPS'), self.translation.get_text('BAGROUND_MAPS_DELETE'), self.translation.get_text('BACKGROUND_MAPS'))
+        # Add style options
+        self.gui.add_to_toolbar(self.toolbar, [
+            (self.translation.get_text('STYLES'), None, QIcon(":/plugins/openicgc/images/style.png"), [
+                (self.translation.get_text('TRANSPARENCY'),
+                    lambda:self.tools.show_transparency_dialog(self.translation.get_text('TRANSPARENCY'), self.iface.mapCanvas().currentLayer()) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None, 
+                    QIcon(":/plugins/openicgc/images/transparency.png")),
+                (self.translation.get_text('DESATURATE'), 
+                    lambda:self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
+                    QIcon(":/plugins/openicgc/images/desaturate.png")),
+                ])
+            ])
         # Add plugin reload button (debug purpose)
         if debug:
             self.gui.add_to_toolbar(self.toolbar, [

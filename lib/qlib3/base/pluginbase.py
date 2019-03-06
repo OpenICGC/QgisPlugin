@@ -27,10 +27,11 @@ import configparser
 from importlib import reload
 
 from PyQt5.QtCore import Qt, QSize, QTimer, QSettings
-from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
+from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton, QSlider
 from PyQt5.QtGui import QPainter, QCursor, QIcon
 from qgis.gui import QgsProjectionSelectionTreeWidget
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsContrastEnhancement, QgsRasterMinMaxOrigin
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsContrastEnhancement
+from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer
 from qgis.utils import plugins, reloadPlugin
 
 from . import resources_rc
@@ -42,6 +43,10 @@ from .progressdialog import ProgressDialog
 from . import loginfodialog
 reload(loginfodialog)
 from .loginfodialog import LogInfoDialog
+
+from . import transparencydialog
+reload(transparencydialog)
+from .transparencydialog import TransparencyDialog
 
 
 class GuiBase(object):
@@ -120,6 +125,9 @@ class GuiBase(object):
             ref_action = menu_or_toolbar.actions()[position]
 
         for entry in names_callbacks:
+            # Ignorem les entrades a None
+            if entry is None:
+                continue
             # Recollim les dades de usuari
             eseparator, elabel, eaction, econtrol, name, callback, icon, enabled, checkable, subentries_list = self.__parse_entry(entry)
 
@@ -1783,7 +1791,7 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_transparency(layer, nodata)
+        self.set_transparency(layer, transparency)
         return True
 
     def set_transparency(self, layer, transparency):
@@ -1791,7 +1799,11 @@ class LayersBase(object):
             ---
             Change the transparency of a layer
             """
-        layer.renderer().setOpacity(transparency)
+        opacity = (100 - transparency) / 100
+        if layer.type() == 0: # Si es vectorial
+            layer.setOpacity(opacity)
+        else:
+            layer.renderer().setOpacity(opacity) 
 
     def set_custom_properties(self, idprefix, properties_dict, pos=0):
         """ Canvia propietats custom d'una capa per id
@@ -1812,7 +1824,7 @@ class LayersBase(object):
         for property, value in properties_dict.items():
             layer.setCustomProperty(property, value)
 
-    def set_properties_by_id(self, idprefix, visible=None, collapsed=None, group_name="", only_one_map_on_group=False, min_scale=None, max_scale=None, transparency=None, properties_dict=None, pos=0):
+    def set_properties_by_id(self, idprefix, visible=None, collapsed=None, group_name="", only_one_map_on_group=False, min_scale=None, max_scale=None, transparency=None, saturation=None, properties_dict=None, pos=0):
         """ Canvia les propietats d'una capa. Veure set_properties per opcions
             ---
             Change custom properties of a layer. See set_properties for options
@@ -1820,10 +1832,32 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_properties(layer, nodata)
+        self.set_properties(layer, visible, collapsed, group_name, only_one_map_on_group, min_scale, max_scale, transparency, saturation, properties_dict)
         return True
 
-    def set_properties(self, layer, visible=None, collapsed=None, group_name="", only_one_map_on_group=False, min_scale=None, max_scale=None, transparency=None, properties_dict=None):
+    def set_saturation_by_id(self, idprefix, saturation, refresh=False, pos=0):
+        """ Canvia la saturació de color d'una capa per id
+            ---
+            Change color saturation of a layer by id
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return False
+        self.set_saturation(layer, saturation, refresh)
+        return True
+
+    def set_saturation(self, layer, saturation, refresh=False):
+        """ Canvia la saturació de color d'una capa
+            ---
+            Change color saturation of a layer
+            """
+        filter = QgsHueSaturationFilter()
+        filter.setSaturation(saturation)        
+        layer.pipe().set(filter)
+        if refresh:
+            layer.triggerRepaint()
+
+    def set_properties(self, layer, visible=None, collapsed=None, group_name="", only_one_map_on_group=False, min_scale=None, max_scale=None, transparency=None, saturation=None, properties_dict=None):
         """ Canvia les propietats d'una capa:
             - visible: Carrega la capa deixant-la visible o no
             - collapsed: Colapsa la llegenda de la capa
@@ -1831,6 +1865,7 @@ class LayersBase(object):
             - only_one_map_on_group: Indica que només pot haver una imatge en el grup, la última imatge esborra les capes anterior
             - min_scale, max_scala: Activa la visualització per escala
             - transparency: Activa factor de transparència
+            - saturation: Saturació de color [-100, 100]
             - properties_dict: defineix propietats particulars d'usuari 
             ---
             Change custom properties of a layer:
@@ -1840,6 +1875,7 @@ class LayersBase(object):
             - only_one_map_on_group: Indicates that there can only be an image in the group, the last image deletes the previous layers
             - min_scale, max_scale: Activates the scale view
             - transparency: Activate transparency factor
+            - saturation: Color saturation [-100, 100]
             - properties_dict: define custom properties
             """
         # Canviem la visiblitat per escala si cal
@@ -1848,6 +1884,9 @@ class LayersBase(object):
         # Canviem la transparència si cal
         if transparency is not None:
             self.set_transparency(layer, transparency)
+        # Canvia la saturació dels canals
+        if saturation is not None:
+            self.set_saturation(layer, saturation)
         # Canviem la visibilitat si cal
         if visible is not None:
             self.set_visible(layer, visible)
@@ -1945,7 +1984,7 @@ class LayersBase(object):
             if not color_default_expansion:
                 self.enable_color_expansion(last_layer, False)
             # Canviem les propiedats de la capa
-            self.set_properties(last_layer, visible, not expanded, group_name, only_one_map_on_group, min_scale, max_scale, transparency, properties_dict_list[i] if properties_dict_list else None)
+            self.set_properties(last_layer, visible, not expanded, group_name, only_one_map_on_group, min_scale, max_scale, transparency, None, properties_dict_list[i] if properties_dict_list else None)
 
             #if ICGC_custom_ED50:
             #    # Si tenim una capa ED50 i el projecte no és ED50, posem ED50 ICC a la capa
@@ -2026,7 +2065,7 @@ class LayersBase(object):
             if style_file:
                 self.load_layer_style2(last_layer, style_file, refresh=True)
             # Canviem les propiedats de la capa
-            self.set_properties(last_layer, visible, not expanded, group_name, only_one_map_on_group, min_scale, max_scale, transparency, properties_dict_list[i] if properties_dict_list else None)
+            self.set_properties(last_layer, visible, not expanded, group_name, only_one_map_on_group, min_scale, max_scale, transparency, None, properties_dict_list[i] if properties_dict_list else None)
         QApplication.restoreOverrideCursor()
 
         # Mostrem errors
@@ -2042,7 +2081,7 @@ class LayersBase(object):
         # Retornem la última capa inserida
         return last_layer
     
-    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", only_one_map_on_group=False, collapsed=True, visible=True):
+    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", only_one_map_on_group=False, collapsed=True, visible=True, saturation=None):
         """ Afegeix una capa a partir de la URL base, una llista de capes WMS, una llista d'estils i un format d'imatge.
             Retorna la capa.
             Opcionalment es pot especificar:
@@ -2068,9 +2107,9 @@ class LayersBase(object):
         uri = "url=%s&crs=epsg:%s&format=%s&%s&%s" % (url, epsg, image_format, "&".join(["layers=%s" % layer for layer in layers_list]), "&".join(["styles=%s" % style for style in styles_list]))
         if extra_tags:
             uri += "&%s" % extra_tags
-        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, only_one_map_on_group, collapsed, visible)
+        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, only_one_map_on_group, collapsed, visible, saturation)
 
-    def add_wms_url_query_layer(self, layer_name, url_query, group_name="", only_one_map_on_group=False, collapsed=True, visible=True):
+    def add_wms_url_query_layer(self, layer_name, url_query, group_name="", only_one_map_on_group=False, collapsed=True, visible=True, saturation=None):
         """ Afegeix una capa WMS a partir d'una petició WMS (URL). Retorna la capa. 
             Veure add_wms_layer per opcions
             ---            
@@ -2078,9 +2117,9 @@ class LayersBase(object):
             See add_wms_layer for options
             """
         uri = "url=%s" % url_query.lower().replace("epsg:", "epsg:").replace("srs=", "crs=").replace("?", "&")
-        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, only_one_map_on_group, collapsed, visible)
+        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, only_one_map_on_group, collapsed, visible, saturation)
 
-    def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", only_one_map_on_group=False, collapsed=True, visible=True):
+    def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", only_one_map_on_group=False, collapsed=True, visible=True, saturation=None):
         """ Afegeix una capa raster a partir d'un URI i proveidor de dades (wms, oracle ...). Retorna la capa.
             Veure add_wms_layer per opcions
             ---
@@ -2093,7 +2132,7 @@ class LayersBase(object):
         if not layer:
             return layer
         # Canviem les propiedats de la capa
-        self.set_properties(layer, visible, collapsed, group_name, only_one_map_on_group)
+        self.set_properties(layer, visible, collapsed, group_name, only_one_map_on_group, saturation=saturation)
         return layer
 
     def add_wms_ortoxpres_layer(self, year, gsd, layer_prefix="ortoXpres", url="http://www.ortoxpres.cat/server/sgdwms.dll/WMS", styles_list=["default"], image_format="image/jpeg", epsg=None, extra_tags="", group_name="", only_one_map=False):
@@ -2116,16 +2155,58 @@ class LayersBase(object):
             Add a layer type BBDD. Returns the layer
             """
         # configurem la connexió a la BBDD
-        uri = QgsDataSourceURI()
+        uri = QgsDataSourceUri()
         uri.setConnection(host, str(port), dbname, user, password)
         uri.setSrid(str(epsg));
         uri.setWkbType(wkbtype)
         uri.setDataSource(schema, table, geometry_column, filter)
         # afegim la capa
-        layer = QgsVectorLayer(uri.uri(), layer_name, provider)
-        if layer_name:
-            layer.setLayerName(layer_name)
-        QgsMapLayerRegistry.instance().addMapLayer(layer)
+        ##layer = QgsVectorLayer(uri.uri(), layer_name, provider)
+        ##if layer_name:
+        ##    layer.setLayerName(layer_name)
+        ##QgsMapLayerRegistry.instance().addMapLayer(layer)
+        return self.add_vector_uri_layer(uri.uri(), layer_name, provider)
+
+    def add_wfs_layer(self, layer_name, url, layers_list, epsg=None, extra_tags="", version="2.0.0", group_name="", only_one_map_on_group=False, collapsed=True, visible=True):
+        """ Afegeix una capa vectorial a partir de la URL base i una llista de capes WFS.
+            Retorna la capa.
+            Opcionalment es pot especificar:
+            - epsg: codi EPSG (per defecte el del projecte),
+            - extra_tags: tags addicional per enviar al servidor
+            - group_name: un nom de grup / carpeta QGIS on afegir la capa 
+            - only_one_map_on_group: Especifica que només tindrem una capa en el grup i la última carregada esborra les anteriors
+            - collapsed: Indica si volem carregar la capa amb la llegenda colapsada
+            - visible: Indica si volem carregar la capa deixant-la visible o no
+            ---
+            Adds a vector layer from the base URL and a list of WFS layers. 
+            Returns the layer.
+            Optionally you can specify:
+             - epsg: EPSG code (by default the project),
+             - extra_tags: additional tags to send to the server
+             - group_name: a QGIS group name / folder where to add the layer
+             - only_one_map_on_group: Specifies that we will only have one layer in the group and the last loaded deletes the previous ones
+             - collapsed: Indicates whether we want to load the layer with collapsed legend
+             - visible: Indicates whether we want to load the layer by leaving it visible or not
+            """
+        if not epsg:
+            epsg = self.parent.project.get_epsg()
+        uri = "%s?service=WFS&version=%s&request=GetFeature&typename=%s&srsname=EPSG:%s" % (url, version, ",".join(layers_list), epsg)
+        if extra_tags:
+            uri += "&%s" % extra_tags
+        return self.add_vector_uri_layer(layer_name, uri, "WFS", group_name, only_one_map_on_group, collapsed, visible)
+
+    def add_vector_uri_layer(self, layer_name, uri, provider, group_name="", only_one_map_on_group=False, collapsed=True, visible=True):
+        """ Afegeix una capa vectorial a partir d'un URI i proveidor de dades (wms, oracle ...). Retorna la capa.
+            Veure add_wms_layer per opcions
+            ---
+            Adds a vector layer from a URI and data provider (wfs, oracle ...). Returns the layer.
+            See add_wfs_layer for options
+            """
+        layer = self.iface.addVectorLayer(uri, layer_name, provider)        
+        if not layer:
+            return layer
+        # Canviem les propiedats de la capa
+        self.set_properties(layer, visible, collapsed, group_name, only_one_map_on_group)        
         return layer
 
     def refresh_attributes_table_by_id(self, layer_id):
@@ -3114,46 +3195,95 @@ class ToolsBase(object):
         wms_url, historic_ortho_list = None, []
         historic_ortho_menu_list = [
             (layer_name, 
-            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, only_one_map),
+            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "referer=QGIS&bgcolor=0x000000", group_name, only_one_map),
             QIcon(":/lib/qlib3/base/images/cat_ortho5k%s.png" % ("bw" if color_type == "bw" else ""))) 
             for layer_id, layer_name, color_type, scale, year in historic_ortho_list if color_type != "ir"
             ]
         historic_infrared_ortho_menu_list = [
             (layer_name, 
-            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, only_one_map),
+            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "referer=QGIS&bgcolor=0x000000", group_name, only_one_map),
             QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")) 
             for layer_id, layer_name, color_type, scale, year in historic_ortho_list if color_type == "ir"
             ]
+        ##wms_url, historic_satelite_ortho_list = self.get_historic_satelite_ortho()
+        wms_url, historic_satelite_ortho_list = None, []
+        historic_satelite_ortho_menu_list = [
+            ]
+        historic_satelite_infrared_ortho_menu_list = [
+            ]
 
         # Afegim les capes WMS al menú (les capes actuals suposem que tenen URL coneguda)
-        self.parent.gui.configure_toolbar(toolbar_name, [
+        self.background_maps_toolbar = self.parent.gui.configure_toolbar(toolbar_name, [
+            ("Caps de municipi", 
+                lambda:self.parent.layers.add_wfs_layer("WFS Caps de municipi", "http://geoserveis.icgc.cat/icgc_bm5m/wfs/service", ["icgc_bm5m:_0_CAP_PN"], 25831, "referer=ICGC", group_name=group_name, only_one_map_on_group=only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+            ("Municipis", 
+                lambda:self.parent.layers.add_wfs_layer("WFS Municipis", "http://geoserveis.icgc.cat/icgc_bm5m/wfs/service", ["icgc_bm5m:_0_NOMMUNICIPI_TX"], 25831, "referer=ICGC", group_name=group_name, only_one_map_on_group=only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+            ("Comarques", 
+                lambda:self.parent.layers.add_wfs_layer("WFS Comarques", "http://geoserveis.icgc.cat/icgc_bm5m/wfs/service", ["icgc_bm5m:_0_COMARCA_PC"], 25831, "referer=ICGC", group_name=group_name, only_one_map_on_group=only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+            ("Provincies", 
+                lambda:self.parent.layers.add_wfs_layer("WFS Províncies", "http://geoserveis.icgc.cat/icgc_bm5m/wfs/service", ["icgc_bm5m:_0_PROVINCIA_PC"], 25831, "referer=ICGC",  group_name=group_name, only_one_map_on_group=only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+            "---",
             ("&Topogràfic (piràmide topogràfica)",
-                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic (piràmide topogràfica)", "http://mapcache.icc.cat/map/bases/service", ["topo"], ["default"], "image/png", None, "BGCOLOR=0x000000", group_name, only_one_map),
-                QIcon(":/lib/qlib3/base/images/cat_topo50k.png")),
+                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic (piràmide topogràfica)", "http://geoserveis.icc.cat/icc_mapesmultibase/utm/wms/service", ["topo"], ["default"], "image/png", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_topo250k.png")),
             ("&Topogràfic 1:5.000", 
-                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:5.000", "http://shagrat.icc.cat/lizardtech/iserv/ows", ["mtc5m"], ["default"], "image/png", None, "BGCOLOR=0x000000", group_name, only_one_map), 
+                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:5.000", "http://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc5m"], ["default"], "image/png", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map), 
                 QIcon(":/lib/qlib3/base/images/cat_topo5k.png")),
             ("T&opogràfic 1:50.000", 
-                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:50.000", "http://shagrat.icc.cat/lizardtech/iserv/ows", ["mtc50m"], ["default"], "image/png", None, "BGCOLOR=0x000000", group_name, only_one_map),
+                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:50.000", "http://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc50m"], ["default"], "image/png", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
                 QIcon(":/lib/qlib3/base/images/cat_topo50k.png")),
             ("To&pogràfic 1:250.000", 
-                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:250.000", "http://shagrat.icc.cat/lizardtech/iserv/ows", ["mtc250m"], ["default"], "image/png", None, "BGCOLOR=0x000000", group_name, only_one_map), 
+                lambda:self.parent.layers.add_wms_layer("WMS Topogràfic 1:250.000", "http://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc250m"], ["default"], "image/png", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map), 
                 QIcon(":/lib/qlib3/base/images/cat_topo250k.png")),
             "---",
+            ("&Mapa geològic 1:250.000",
+                lambda:self.parent.layers.add_wms_layer("WMS mapa geològic 1:250.000", "http://siurana.icgc.cat/arcgis/services/Base/MGC_MapaBase/MapServer/WMSServer", ["1"], ["default"], "image/png", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_geo250k.png")),
+            "---",
+            None,
+            ("&MET en escala de grisos",
+                lambda:self.parent.layers.add_wms_layer("WMS MET escala de grisos", "http://geoserveis.icgc.cat/icgc_mdt2m/wms/service", ["MET2m"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0xFFFFFF", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_dtm.png")),
+            ("&Ombrejat",
+                lambda:self.parent.layers.add_wms_layer("WMS ombrejat", "http://geoserveis.icgc.cat/icgc_mdt2m/wms/service", ["OMB2m"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0xFFFFFF", group_name, only_one_map),
+                ##lambda:self.parent.layers.add_wms_layer("WMS ombrejat", "http://geoserveis.icc.cat/icgc_ombres_muntanya/utm/wms/service", ["ombres_tfosc"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_shadows.png")),
+            "---",
             ("&Ortofoto color",
-                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "http://mapcache.icc.cat/map/bases/service", ["orto"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, only_one_map),
+                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "http://geoserveis.icc.cat/icc_mapesmultibase/utm/wms/service", ["orto"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
                 QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")),
-            ##("Ortofoto &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), historic_ortho_menu_list),
+            ("Ortofoto color &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), historic_ortho_menu_list) if historic_ortho_menu_list else None,
+            ("&Ortofoto satèl·lit color",
+                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service", ["sen2rgb"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")),
+            ("Ortofoto satèlit color &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), historic_satelite_ortho_menu_list) if historic_satelite_ortho_menu_list else None,
             ("Ortofoto &infraroja", 
-                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "http://shagrat.icc.cat/lizardtech/iserv/ows", ["ortoi5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, only_one_map),
+                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "http://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["ortoi5m"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
                 QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
-            ##("Ortofoto in&fraroja històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png"), historic_infrared_ortho_menu_list),
-            "---",            
-            (delete_text, lambda:self.parent.legend.empty_group_by_name(group_name), QIcon(":/lib/qlib3/base/images/wms_remove.png"))        
+            ("Ortofoto in&fraroja històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png"), historic_infrared_ortho_menu_list) if historic_infrared_ortho_menu_list else None,
+            ("Ortofoto satèl·lit &infraroja", 
+                lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service", ["sen2irc"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
+                QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
+            ("Ortofoto satèl·lit in&fraroja històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png"), historic_satelite_infrared_ortho_menu_list) if historic_satelite_infrared_ortho_menu_list else None,
+            "---",
+            (delete_text, 
+                lambda:self.parent.legend.empty_group_by_name(group_name),
+                QIcon(":/lib/qlib3/base/images/wms_remove.png"))        
             ], 
             tool_text,
             QIcon(":/lib/qlib3/base/images/wms.png"))
     
+    def show_transparency_dialog(self, title=None, layer=None, transparency=None):
+        """ Mostra un diàleg simplificat per escollir la transparència d'una capa
+            ---
+            Show simplified transparency layer dialog
+            """
+        dlg = TransparencyDialog(title, layer, transparency, True, self.iface.mainWindow())
+
     def get_historic_ortho(self, timeout_seconds=5, retries=3):
         """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista "neta" de capes disponibles (sense dades redundants) 
             Retorna: URL, [(layer_id, layer_name, color_type, scale, year)] 
@@ -3340,9 +3470,9 @@ class MetadataBase(object):
 
 
 class TranslationBase(object):
-    LANG_CA = "ca_ES"
+    LANG_CA = "ca"
     LANG_ES = "es"
-    LANG_EN = "en_US"
+    LANG_EN = "en"
 
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare, a l'iface i 
@@ -3362,7 +3492,7 @@ class TranslationBase(object):
             ---
             Returns the active language in the QGIS. Pex: ca_ES, es
             """
-        return QSettings().value('locale/userLocale')
+        return QSettings().value('locale/userLocale').split('_')[0]
 
     def set_text(self, language, key, text):
         """ Guarda un text en un determinat idioma associat a una clau en el diccionari de traduccions

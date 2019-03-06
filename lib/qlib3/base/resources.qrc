@@ -11,6 +11,10 @@
 		<file>images/cat_topo5k.png</file>
 		<file>images/cat_topo50k.png</file>
 		<file>images/cat_topo250k.png</file>
+		<file>images/cat_geo250k.png</file>
+		<file>images/cat_vector.png</file>
+		<file>images/cat_dtm.png</file>
+		<file>images/cat_shadows.png</file>
 		<file>images/andorra_orto2003.png</file>
 		<file>images/andorra_orto2003i.png</file>
 		<file>images/andorra_orto2008.png</file>

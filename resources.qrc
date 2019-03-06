@@ -13,5 +13,9 @@
         <file>images/flag.png</file>
         <file>images/pin.png</file>
         <file>images/town.png</file>
+        <file>images/desaturate.png</file>
+        <file>images/transparency.png</file>
+        <file>images/style.png</file>
+
     </qresource>
 </RCC>
