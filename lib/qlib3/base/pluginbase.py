@@ -3203,13 +3203,21 @@ class ToolsBase(object):
             (layer_name, 
             lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "referer=QGIS&bgcolor=0x000000", group_name, only_one_map),
             QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")) 
-            for layer_id, layer_name, color_type, scale, year in historic_ortho_list if color_type == "ir"
+            for layer_id, layer_name, color_type, scale, year in historic_ortho_list if color_type == "irc"
             ]
         ##wms_url, historic_satelite_ortho_list = self.get_historic_satelite_ortho()
         wms_url, historic_satelite_ortho_list = None, []
         historic_satelite_ortho_menu_list = [
+            (layer_name, 
+            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "referer=QGIS&bgcolor=0x000000", group_name, only_one_map),
+            QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")) 
+            for layer_id, layer_name, color_type, date_tag in historic_satelite_ortho_list if color_type == "rgb"
             ]
         historic_satelite_infrared_ortho_menu_list = [
+            (layer_name, 
+            lambda dummy, lname=layer_name, lid=layer_id: self.parent.layers.add_wms_layer(lname, wms_url, [lid], ["default"], "image/jpeg", None, "referer=QGIS&bgcolor=0x000000", group_name, only_one_map),
+            QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")) 
+            for layer_id, layer_name, color_type, date_tag in historic_satelite_ortho_list if color_type == "irc"
             ]
 
         # Afegim les capes WMS al menú (les capes actuals suposem que tenen URL coneguda)
@@ -3259,7 +3267,7 @@ class ToolsBase(object):
             ("&Ortofoto satèl·lit color",
                 lambda:self.parent.layers.add_wms_layer("WMS Ortofoto satèl·lit color", "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service", ["sen2rgb"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
                 QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")),
-            ("Ortofoto satèlit color &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), historic_satelite_ortho_menu_list) if historic_satelite_ortho_menu_list else None,
+            ("Ortofoto satèl·lit color &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), historic_satelite_ortho_menu_list) if historic_satelite_ortho_menu_list else None,
             ("Ortofoto &infraroja", 
                 lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "http://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["ortoi5m"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map),
                 QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
@@ -3275,14 +3283,7 @@ class ToolsBase(object):
             ], 
             tool_text,
             QIcon(":/lib/qlib3/base/images/wms.png"))
-    
-    def show_transparency_dialog(self, title=None, layer=None, transparency=None):
-        """ Mostra un diàleg simplificat per escollir la transparència d'una capa
-            ---
-            Show simplified transparency layer dialog
-            """
-        dlg = TransparencyDialog(title, layer, transparency, True, self.iface.mainWindow())
-
+            
     def get_historic_ortho(self, timeout_seconds=5, retries=3):
         """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista "neta" de capes disponibles (sense dades redundants) 
             Retorna: URL, [(layer_id, layer_name, color_type, scale, year)] 
@@ -3293,7 +3294,7 @@ class ToolsBase(object):
             color_type: "rgb" | "go" | "bw"
             """
         # Consultem el Capabilities del servidor WMS d'ortofotos històriques
-        url_base = "http://historics.icc.cat/lizardtech/iserv/ows"
+        url_base = "http://geoserveis.icgc.cat/icc_ortohistorica/wms/service"
         url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
         while retries:
             try:
@@ -3328,7 +3329,7 @@ class ToolsBase(object):
         wms_ex_list = [
             (layer_id, 
             layer_name, 
-            ("ir" if layer_name.lower().find("infraroja") >= 0 else "rgb" if year_list and int(year_list[0]) >= 2000 else "bw"), 
+            ("irc" if layer_name.lower().find("infraroja") >= 0 else "rgb" if year_list and int(year_list[0]) >= 2000 else "bw"), 
             int(scale_list[0]) if scale_list else None, 
             int(year_list[0]) if year_list else None) 
             for layer_id, layer_name, scale_list, year_list in wms_ex_list]
@@ -3345,6 +3346,51 @@ class ToolsBase(object):
         wms_ex_list.sort(key=lambda p: p[4], reverse=True)
 
         return url_base, wms_ex_list
+
+    def get_historic_satelite_ortho(self, timeout_seconds=5, retries=3):
+        """ Obté la URL del servidor d'ortofotos històriques satèl·lt de l'ICGC i la llista capes disponibles 
+            Retorna: URL, [(layer_id, layer_name, color_type, date_tag)] 
+            color_type: "rgb"|"ir"|"bw"
+            ---
+            Gets the URL of the ICGC historical satelite orthophotos server and the "list of available layers
+            Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
+            color_type: "rgb" | "go" | "bw"
+            """
+        # Consultem el Capabilities del servidor WMS d'ortofotos satèl·lit històriques
+        url_base = "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service"
+        url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
+        while retries:
+            try:
+                response = None
+                response = urllib.request.urlopen(url, timeout=timeout_seconds)
+                retries = 0
+            except socket.timeout:
+                retries -= 1
+                print("retries", retries)
+        if response:            
+            response_data = response.read()
+            response_data = response_data.decode('utf-8')
+        else:
+            response_data = ""
+
+        # Recuperem les capes històriques
+        reg_ex = "<Name>(sen2(\w+)_(\d+))</Name>\s+<Title>(.+)</Title>"
+        wms_list = re.findall(reg_ex, response_data)
+        
+        # Reorganitzem la informació
+        wms_ex_list = [(layer_id, layer_name, color_type, date_tag) for layer_id, color_type, date_tag, layer_name in wms_list]
+    
+        # Ordenem per any
+        wms_ex_list.sort(key=lambda p: p[3], reverse=True)
+
+        return url_base, wms_ex_list
+
+    def show_transparency_dialog(self, title=None, layer=None, transparency=None):
+        """ Mostra un diàleg simplificat per escollir la transparència d'una capa
+            ---
+            Show simplified transparency layer dialog
+            """
+        dlg = TransparencyDialog(title, layer, transparency, True, self.iface.mainWindow())
 
 
 class MetadataBase(object):
