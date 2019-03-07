@@ -1,4 +1,4 @@
-# This file contains metadata for your plugin. Beginning
+﻿# This file contains metadata for your plugin. Beginning
 # with version 1.8 this is the preferred way to supply information about a
 # plugin. The current method of embedding metadata in __init__.py will
 # be supported until version 2.0
@@ -29,7 +29,7 @@ email=openicgc@icgc.cat
 version=0.1b
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-changelog=0.1b 2019-02-11: Primera versió
+changelog=0.1b 2019-02-11: First version
 homepage=https://github.com/OpenICGC/QgisPlugin/blob/master/README.md
 tracker=https://github.com/OpenICGC/QgisPlugin/issues
 repository=https://github.com/OpenICGC/QgisPlugin
