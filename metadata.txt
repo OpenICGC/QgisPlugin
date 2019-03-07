@@ -7,20 +7,20 @@
 
 [general]
 name=Open ICGC
-description=Accés a dades obertes ICGC
+description=ICGC Open data access
+description_ca=Accés a dades obertes ICGC
 description_es=Acceso a datos abiertos ICGC
-description_en=ICGC Open data access
-about=Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
-    Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.  
+about=Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
+	Includes spatial toponymic searches, streets, roads, coordinates in different reference systems and load of WMS base layers of Catalonia.
+	This plugin uses suds-py3, wsse libraries and land registry geo services.
+	
+	Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
+	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.  
 	Aquest plugin utilitza les llibreries suds-py3, wsse i serveis web del cadastre.
 	
 	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
 	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.	
 	Este plugin utiliza las llibrerías suds-py3, wsse y servicios web del catastro.
-	
-	Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
-    Includes spatial toponymic searches, streets, roads, coordinates in different reference systems and load of WMS base layers of Catalonia.
-	This plugin uses suds-py3, wsse libraries and land registry geo services.
 tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,steet,road,WMS
 icon=icon.png
 author=ICGC
@@ -30,7 +30,7 @@ version=0.1b
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 changelog=0.1b 2019-02-11: Primera versió
-homepage=http://www.icgc.cat
+homepage=https://github.com/OpenICGC/QgisPlugin/blob/master/README.md
 tracker=https://github.com/OpenICGC/QgisPlugin/issues
 repository=https://github.com/OpenICGC/QgisPlugin
 experimental=True
