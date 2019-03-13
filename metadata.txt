@@ -26,10 +26,13 @@ icon=icon.png
 author=ICGC
 email=openicgc@icgc.cat
 
-version=0.1b
+version=0.1.2
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-changelog=0.1b 2019-02-11: First version
+changelog=v0.1.2 (2019-03-13):
+	- Fixed compatibility problems using win32 libraries in Mac OS X and Linux enviroments
+	v0.1b (2019-02-11):
+	- First version
 homepage=https://github.com/OpenICGC/QgisPlugin/blob/master/README.md
 tracker=https://github.com/OpenICGC/QgisPlugin/issues
 repository=https://github.com/OpenICGC/QgisPlugin
