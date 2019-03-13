@@ -13,6 +13,7 @@ Module with a dialog class to display basic information of plugin and ICGC logo
 """
 
 import os
+import sys
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
@@ -54,7 +55,8 @@ class AboutDialog(QDialog, ui_about):
         # Canviem el títol i la icona
         title = self.windowTitle()
         self.setWindowTitle(title % app_name)
-        self.setWindowIcon(app_icon)
+        if sys.platform == "win32":
+            self.setWindowIcon(app_icon)
 
         # Escalem la imatge de logo mantenint proporcions
         self.label_banner.setScaledContents(False)

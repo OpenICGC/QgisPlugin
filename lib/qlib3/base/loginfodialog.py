@@ -14,7 +14,11 @@ Module with a dialog class to display multi-line information
 
 
 import os
-import win32clipboard as clipboard
+try:
+    import win32clipboard as clipboard
+    clipboard_available = True
+except:
+    clipboard_available = False
 try:
     import utilities.email
     email_available = True
@@ -149,7 +153,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
         if copy_clipboard_button_text:
             self.ui.pushButton_clipboard.setText(copy_clipboard_button_text)
             self.ui.pushButton_clipboard.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(copy_clipboard_button_text) + 20)
-            self.ui.pushButton_clipboard.setEnabled(True)
+            self.ui.pushButton_clipboard.setEnabled(clipboard_available)
             self.ui.pushButton_clipboard.setVisible(True)
         else:
             self.ui.pushButton_clipboard.setEnabled(False)
@@ -260,6 +264,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
             --- 
             Saves dialog information into clipboard
             """
+        if not clipboard_available:
+            return
         clipboard.OpenClipboard()
         clipboard.EmptyClipboard()
         clipboard.SetClipboardText(self.ui.plainTextEdit.toPlainText())

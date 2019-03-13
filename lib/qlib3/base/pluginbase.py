@@ -3406,7 +3406,7 @@ class MetadataBase(object):
 
         # Carreguem informació del metadata.txt
         self.metadata = configparser.ConfigParser()
-        self.metadata.read(os.path.join(os.path.dirname(plugin_pathname), 'metadata.txt'))
+        self.metadata.read(os.path.join(os.path.dirname(plugin_pathname), 'metadata.txt'), "utf8")
 
     def get(self, option, section="general", default_value=""):
         """ Retorna una metadada del plugin especificada en el fitxer metadata.txt
@@ -3452,7 +3452,7 @@ class MetadataBase(object):
         
         return description
 
-    def get_about(self, replace_text_with_newline="  ", language_split_text="\n\n", language=None):
+    def get_about(self, replace_text_with_newline="  ", language_split_text="---\n", language=None):
         """ Obté la descripció llarga del plugin actual en l'idioma especificat (per defecte d'idioma de QGIS)
             ---
             Gets the long description of the current plugin in the specified language (QGIS language defect)
@@ -3468,19 +3468,19 @@ class MetadataBase(object):
             about = self.get("about_ca")
             if not about:
                 # Suposo que el català està en segona posició
-                about = multi_about_list[0]
+                about = multi_about_list[1]
         elif language == self.parent.translation.LANG_ES:
             # Castellà
             about = self.get("about_es")
             if not about and len(multi_about_list) > 1:
                 # Suposo que el castellà està en segona posició
-                about = multi_about_list[1]
+                about = multi_about_list[2]
         else:
             # Per defecte anglés
             about = self.get("about_en")        
             if not about and len(multi_about_list) > 2: 
                 # Suposo que l'anglés està en tercera posició
-                about = multi_about_list[2]
+                about = multi_about_list[0]
         if not about:
             # Si no agafem la descripció llarga estàndar que hem fet servir en el metadata.txt
             about = self.get("about")

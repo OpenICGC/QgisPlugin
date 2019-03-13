@@ -54,11 +54,6 @@ import qlib3.base.aboutdialog
 reload(qlib3.base.aboutdialog)
 from qlib3.base.aboutdialog import AboutDialog
 
-# Add error manager
-import qlib3.base.errors
-reload(qlib3.base.errors)
-from qlib3.base.errors import generic_handle_error, error_report_manager
-
 # Add geofinder dialog
 from . import geofinderdialog
 reload(geofinderdialog)
@@ -285,10 +280,6 @@ class OpenICGC(PluginBase):
         """ GUI initializacion """
         # Plugin registration in the plugin manager
         self.gui.configure_plugin(self.metadata.get_name(), self.about, QIcon(":/plugins/openicgc/icon.png"))
-
-        ## Error manager configuration (description and report email)
-        error_report_manager.set_dialog("%s error" % self.metadata.get_name())
-        error_report_manager.set_email("%s error" % self.metadata.get_name(), self.metadata.get_email())
                        
         # About dialog configuration
         self.about_dlg = AboutDialog(self.metadata.get_name(), QIcon(":/plugins/openicgc/icon.png"), self.metadata.get_info(), False, self.iface.mainWindow())
@@ -330,12 +321,10 @@ class OpenICGC(PluginBase):
         # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
 
-    @generic_handle_error
     def run(self, checked): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Basic plugin call, which reads the text of the combobox and the search for the different web services available """
         self.find(self.combobox.currentText())
 
-    @generic_handle_error
     def about(self, checked): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Show plugin information (about dialog) """
         self.about_dlg.do_modal()
