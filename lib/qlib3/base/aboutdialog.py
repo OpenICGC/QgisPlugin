@@ -29,33 +29,36 @@ class AboutDialog(QDialog, ui_about):
         Class to display basic information of plugin and ICGC logo
         """
 
-    def __init__(self, app_name, app_icon, info, autoshow=True, parent=None, new_line="  "):
+    def __init__(self, app_name, app_info, app_icon=None, title="Sobre", autoshow=True, new_line="  ", parent=None):
         """ Inicialització del diàleg "about", cal informar de:
             - app_name: Títol del diàleg
             - app_icon: Icona del diàleg
-            - info: Informació a mostrar
+            - app_info: Informació a mostrar
+            - title: Títol de la finestra
             Opcionalment:
             - autoshow: Mostra el diàleg automàticament al crear-lo
-            - parent: Especifica la finestra pare del diàleg
             - new_line: Caràcters a substituir per un canvi de linia
+            - parent: Especifica la finestra pare del diàleg
             ---
             Initialization of the "about" dialog, you need to report:
              - app_name: Title of the dialog
              - app_icon: Icon of the dialog
-             - info: Information to show
+             - app_info: Information to show
+             - title: Window title
              Optionally:
              - autoshow: Show the dialog automatically when you create it
-             - parent: Specifies the parent window of the dialog
              - new_line: Characters to be replaced by a change of line
+             - parent: Specifies the parent window of the dialog
             """
         QDialog.__init__(self, parent)
         self.setupUi(self)        
         self.ui = self # Per compatibilitat QGIS2/3
 
         # Canviem el títol i la icona
-        title = self.windowTitle()
-        self.setWindowTitle(title % app_name)
-        if sys.platform == "win32":
+        if not title:
+            title = self.windowTitle()
+        self.setWindowTitle("%s %s" % (title, app_name))
+        if app_icon and sys.platform == "win32":
             self.setWindowIcon(app_icon)
 
         # Escalem la imatge de logo mantenint proporcions
@@ -67,7 +70,7 @@ class AboutDialog(QDialog, ui_about):
         # Carreguem la informació
         self.label_info.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
         self.label_info.setWordWrap(True);
-        self.label_info.setText("\n" + info.replace("  ", "\n"))
+        self.label_info.setText("\n" + app_info.replace(new_line, "\n"))
 
         # Mostrem el diàleg
         if autoshow:

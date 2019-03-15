@@ -82,6 +82,7 @@ class OpenICGC(PluginBase):
         }
 
 
+
     ###########################################################################
     # Web service management
     
@@ -126,155 +127,41 @@ class OpenICGC(PluginBase):
         # Save reference to the QGIS interface
         super().__init__(iface, __file__)
 
-        # Translations dictionary initialization
-        self.initLanguages()
-
-    def initLanguages(self):
-        """ PluginBase translations dictionary initialization """
-
-        # Catalan
-        self.translation.set_text(self.translation.LANG_CA, "FIND", "Cerca espacial")
-        self.translation.set_text(self.translation.LANG_CA, "FIND_LABEL", "Cercar")
-        self.translation.set_text(self.translation.LANG_CA, "ABOUT", "Sobre Open ICGC")
-        self.translation.set_text(self.translation.LANG_CA, "RELOAD", "Recarregar Open ICGC")
-        self.translation.set_text(self.translation.LANG_CA, "BACKGROUND_MAPS", "Mapes de fons")
-        self.translation.set_text(self.translation.LANG_CA, "BAGROUND_MAPS_DELETE", "Esborrar mapes de fons")
-        self.translation.set_text(self.translation.LANG_CA, "STYLES", "Estils de pintat")
-        self.translation.set_text(self.translation.LANG_CA, "DESATURATE", "Desaturar capa raster seleccionada")
-        self.translation.set_text(self.translation.LANG_CA, "TRANSPARENCY", "Transparència")
-        self.translation.set_text(self.translation.LANG_CA, "TOOLTIP_HELP", """Cercar:
-            Adreça: municipi, carrer número o al revés
-               Barcelona, Aribau 86
-               Aribau 86, Barcelona
-               Barcelona, C/ Aribau 86
-
-            Cruilla: municipi, carrer, carrer
-               Barcelona, Mallorca, Aribau
-
-            Carretera: carretera, km
-               C32 km 10
-               C32, 10
-
-            Topònim: text lliure
-               Barcelona
-               Collserola
-               Institut Cartogràfic
-
-            Coordenada: x y EPSG:codi (per defecte sistema de coordenades del projecte)
-               429394.751 4580170.875
-               429394,751 4580170,875
-               429394.751 4580170.875 EPSG:25831
-               EPSG:4326 1.9767050 41.3297270
-
-            Rectangle: oest nord est sud EPSG:codi (per defecte sistema coordenades del projecte)
-               427708.277 4582385.829 429708.277 4580385.829
-               427708,277 4582385,829 429708,277 4580385,829
-               427708.277 4582385.829 429708.277 4580385.829 EPSG:25831
-               EPSG:25831 427708.277 4582385.829 429708.277 4580385.829
-
-            Referència cadastral: ref (també funciona amb els 14 primers dígits)
-               9872023 VH5797S 0001 WX
-               13 077 A 018 00039 0000 FP
-               13077A018000390000FP           
-            """)
-        self.translation.set_text(self.translation.LANG_CA, "TOPO_HEADER", ["Nom", "Tipus", "Municipi", "Comarca"])
-        self.translation.set_text(self.translation.LANG_CA, "ERROR_NOCOORDINATES", "Error, localització sense coordenades")
-
-        # Spanish
-        self.translation.set_text(self.translation.LANG_ES, "FIND", "Búsqueda espacial")
-        self.translation.set_text(self.translation.LANG_ES, "FIND_LABEL", "Buscar")
-        self.translation.set_text(self.translation.LANG_ES, "ABOUT", "Acerca de Open ICGC")
-        self.translation.set_text(self.translation.LANG_ES, "RELOAD", "Recargar Open ICGC") 
-        self.translation.set_text(self.translation.LANG_ES, "BACKGROUND_MAPS", "Mapas de fondo")
-        self.translation.set_text(self.translation.LANG_ES, "BAGROUND_MAPS_DELETE", "Borrar mapas de fondo")
-        self.translation.set_text(self.translation.LANG_ES, "STYLES", "Estiles de pintado")
-        self.translation.set_text(self.translation.LANG_ES, "DESATURATE", "Desaturar capa raster seleccionada")
-        self.translation.set_text(self.translation.LANG_ES, "TRANSPARENCY", "Transparencia")
-        self.translation.set_text(self.translation.LANG_ES, "TOOLTIP_HELP", """Buscar:
-            Dirección: municipio, calle número o al reves
-               Barcelona, Aribau 86
-               Aribau 86, Barcelona
-               Barcelona, C/ Aribau 86
-
-            Cruce: municipio, calle, calle
-               Barcelona, Mallorca, Aribau
-
-            Carretera: carretera, km
-               C32 km 10
-               C32, 10
-
-            Topónimo: texto libre
-               Barcelona
-               Collserola
-               Institut Cartogràfic
-
-            Coordenada: x y EPSG:codigo (por defecto sistema de coordenades del proyecto)
-               429394.751 4580170.875
-               429394,751 4580170,875
-               429394.751 4580170.875 EPSG:25831
-               EPSG:4326 1.9767050 41.3297270
-
-            Rectángulo: oeste norte este sur EPSG:codi (por defecto sistema de coordenades del proyecto)
-               427708.277 4582385.829 429708.277 4580385.829
-               427708,277 4582385,829 429708,277 4580385,829
-               427708.277 4582385.829 429708.277 4580385.829 EPSG:25831
-               EPSG:25831 427708.277 4582385.829 429708.277 4580385.829
-
-            Referencia catastral: ref (también funciona con los primeros 14 dígitos)
-               9872023 VH5797S 0001 WX
-               13 077 A 018 00039 0000 FP
-               13077A018000390000FP           
-            """)
-        self.translation.set_text(self.translation.LANG_ES, "TOPO_HEADER", ["Nombre", "Tipo", "Municipio", "Comarca"])
-        self.translation.set_text(self.translation.LANG_ES, "ERROR_NOCOORDINATES", "Error, localización sin coordenadas")
-
-        # English
-        self.translation.set_text(self.translation.LANG_EN, "FIND", "Spatial search")
-        self.translation.set_text(self.translation.LANG_EN, "FIND_LABEL", "Find")
-        self.translation.set_text(self.translation.LANG_EN, "ABOUT", "About Open ICGC")
-        self.translation.set_text(self.translation.LANG_EN, "RELOAD", "Reload Open ICGC")
-        self.translation.set_text(self.translation.LANG_EN, "BACKGROUND_MAPS", "Background maps")
-        self.translation.set_text(self.translation.LANG_EN, "BAGROUND_MAPS_DELETE", "Delete background maps")
-        self.translation.set_text(self.translation.LANG_EN, "STYLES", "Paint styles")
-        self.translation.set_text(self.translation.LANG_EN, "DESATURATE", "Desaturate selected raster layer")
-        self.translation.set_text(self.translation.LANG_EN, "TRANSPARENCY", "Transparence")
-        self.translation.set_text(self.translation.LANG_EN, "TOOLTIP_HELP", """Find:
+        # This is a constant but I declare it here to be able to use the tr() function
+        self.TOOLTIP_HELP = self.tr("""Find:
             Address: municipality, street number or vice versa
-               Barcelona, Aribau 86
-               Aribau 86, Barcelona
-               Barcelona, C/ Aribau 86
+                Barcelona, Aribau 86
+                Aribau 86, Barcelona
+                Barcelona, C/ Aribau 86
 
             Crossing: municipality, street, street
-               Barcelona, Mallorca, Aribau
+                Barcelona, Mallorca, Aribau
 
             Road: road, km
-               C32 km 10
-               C32, 10
+                C32 km 10
+                C32, 10
 
             Toponym: free text
-               Barcelona
-               Collserola
-               Institut Cartogràfic
+                Barcelona
+                Collserola
+                Institut Cartografic
 
             Coordinate: x and EPSG: code (by default coordinate system of the project)
-               429394.751 4580170.875
-               429394,751 4580170,875
-               429394.751 4580170.875 EPSG:25831
-               EPSG:4326 1.9767050 41.3297270
+                429394.751 4580170.875
+                429394,751 4580170,875
+                429394.751 4580170.875 EPSG:25831
+                EPSG:4326 1.9767050 41.3297270
 
             Rectangle: north east southeast EPSG: code (by default system coordinates of the project)
-               427708.277 4582385.829 429708.277 4580385.829
-               427708,277 4582385,829 429708,277 4580385,829
-               427708.277 4582385.829 429708.277 4580385.829 EPSG:25831
-               EPSG:25831 427708.277 4582385.829 429708.277 4580385.829
+                427708.277 4582385.829 429708.277 4580385.829
+                427708,277 4582385,829 429708,277 4580385,829
+                427708.277 4582385.829 429708.277 4580385.829 EPSG:25831
+                EPSG:25831 427708.277 4582385.829 429708.277 4580385.829
 
             Cadastral reference: ref (also works with the first 14 digits)
-               9872023 VH5797S 0001 WX
-               13 077 A 018 00039 0000 FP
-               13077A018000390000FP           
-            """)
-        self.translation.set_text(self.translation.LANG_EN, "TOPO_HEADER", ["Name", "Type", "Municipality", "Region"])
-        self.translation.set_text(self.translation.LANG_EN, "ERROR_NOCOORDINATES", "Error, location without coordinates")
+                9872023 VH5797S 0001 WX
+                13 077 A 018 00039 0000 FP
+                13077A018000390000FP""")
 
     def initGui(self, debug=False):
         """ GUI initializacion """
@@ -282,29 +169,31 @@ class OpenICGC(PluginBase):
         self.gui.configure_plugin(self.metadata.get_name(), self.about, QIcon(":/plugins/openicgc/icon.png"))
                        
         # About dialog configuration
-        self.about_dlg = AboutDialog(self.metadata.get_name(), QIcon(":/plugins/openicgc/icon.png"), self.metadata.get_info(), False, self.iface.mainWindow())
+        self.about_dlg = AboutDialog(self.metadata.get_name(), self.metadata.get_info(), QIcon(":/plugins/openicgc/icon.png"), 
+            self.tr("About"), False, parent=self.iface.mainWindow())
 
         # Add combobox to search
         self.combobox = QComboBox()
         self.combobox.setFixedSize(QSize(250,24))
         self.combobox.setEditable(True)              
-        self.combobox.setToolTip(self.translation.get_text("TOOLTIP_HELP"))
-        self.combobox.activated.connect(self.run) # Apretar intro i seleccionar valor del combo
+        self.combobox.setToolTip(self.TOOLTIP_HELP)
+        self.combobox.activated.connect(self.run) # Press intro and select combo value
         # Add new toolbar with plugin options (using pluginbase functions)
-        self.toolbar = self.gui.configure_toolbar(self.translation.get_text("FIND"), [
-            self.translation.get_text("FIND_LABEL"), # Label text
+        self.toolbar = self.gui.configure_toolbar(self.tr("Spatial search"), [
+            self.tr("Find"), # Label text
             self.combobox, # Editable combobox
-            (self.translation.get_text("FIND"), self.run, QIcon(":/plugins/openicgc/images/geofinder.png")), # Action button
+            (self.tr("Find"), self.run, QIcon(":/plugins/openicgc/images/geofinder.png")), # Action button
             ])
         # Add a new button with access to ICGS WMS layers
-        self.tools.add_tool_WMS_background_maps_lite(self.translation.get_text("FIND"), self.translation.get_text('BACKGROUND_MAPS'), self.translation.get_text('BAGROUND_MAPS_DELETE'), self.translation.get_text('BACKGROUND_MAPS'))
+        self.tools.add_tool_WMS_background_maps_lite(self.tr("Spatial search"), 
+            self.tr("Background maps"), self.tr("Delete background maps"), self.tr("Background maps"))
         # Add style options
         self.gui.add_to_toolbar(self.toolbar, [
-            (self.translation.get_text('STYLES'), None, QIcon(":/plugins/openicgc/images/style.png"), [
-                (self.translation.get_text('TRANSPARENCY'),
-                    lambda:self.tools.show_transparency_dialog(self.translation.get_text('TRANSPARENCY'), self.iface.mapCanvas().currentLayer()) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None, 
+            (self.tr("Paint styles"), None, QIcon(":/plugins/openicgc/images/style.png"), [
+                (self.tr("Transparence"),
+                    lambda:self.tools.show_transparency_dialog(self.tr("Transparence"), self.iface.mapCanvas().currentLayer()) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None, 
                     QIcon(":/plugins/openicgc/images/transparency.png")),
-                (self.translation.get_text('DESATURATE'), 
+                (self.tr("Desaturate selected raster layer"), 
                     lambda:self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
                     QIcon(":/plugins/openicgc/images/desaturate.png")),
                 ])
@@ -313,7 +202,7 @@ class OpenICGC(PluginBase):
         if debug:
             self.gui.add_to_toolbar(self.toolbar, [
                 "---",
-                (self.translation.get_text("RELOAD"), self.reload_plugin, QIcon(":/lib/qlib3/base/images/python.png")),
+                (self.tr("Reload Open ICGC"), self.reload_plugin, QIcon(":/lib/qlib3/base/images/python.png")),
                 ])
 
     def unload(self):
@@ -358,7 +247,7 @@ class OpenICGC(PluginBase):
         
         else:
             # We show the found places in a dialog
-            dlg = GeoFinderDialog(self.translation.get_text("FIND"), self.translation.get_text("TOPO_HEADER", []), dict_list, self.TOPOICONS_DICT)
+            dlg = GeoFinderDialog(dict_list, self.TOPOICONS_DICT)
             selection = dlg.get_selection_index()
             if selection < 0:
                 return
@@ -370,8 +259,8 @@ class OpenICGC(PluginBase):
             y = dict_list[selection]['y']
             if not x or not y:
                 print("Error, no coordinates found")
-                QMessageBox.warning(self.iface.mainWindow(), self.translation.get_text("FIND"),    
-                    self.translation.get_text("ERROR_NOCOORDINATES"))
+                QMessageBox.warning(self.iface.mainWindow(), self.tr("Spatial search"),    
+                    self.tr("Error, location without coordinates"))
                 return
 
             # We resituate the map (implemented in parent PluginBase)

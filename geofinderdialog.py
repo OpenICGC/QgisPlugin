@@ -24,12 +24,12 @@ ui_geofinder, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_geo
 class GeoFinderDialog(QDialog, ui_geofinder):
     """ Dialog class that allows to show the results of the spatial searches """
 
-    def __init__(self, title, topoheader_list, topodata_list, topoicons_dict, auto_show=True):
+    def __init__(self, topodata_list, topoicons_dict, auto_show=True):
         """ Dialog initialization """
         QDialog.__init__(self)
 
         # Set up the user interface from Designer.
-        self.setupUi(title, topoheader_list, topodata_list, topoicons_dict)
+        self.setupUi(topodata_list, topoicons_dict)
         
         # Variables initialization
         self.status = False
@@ -38,7 +38,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         if auto_show:
             self.do_modal()
 
-    def setupUi(self, title, topoheader_list, topodata_list, topoicons_dict):
+    def setupUi(self, topodata_list, topoicons_dict):
         """ Setup the components that form the dialog """
 
         # We Initialize the UI by associating the items in the plugin class
@@ -47,10 +47,6 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         super().setupUi(self)
         self.ui = self
         
-        # We initialize the window title
-        if title:
-            self.setWindowTitle(title)
-
         # We initialize dialog items
         self.ui.tableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.ui.tableWidget.setShowGrid(False)
@@ -58,8 +54,6 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.ui.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ui.tableWidget.verticalHeader().setVisible(False)
         self.ui.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.ui.tableWidget.setColumnCount(len(topoheader_list))
-        self.ui.tableWidget.setHorizontalHeaderLabels(topoheader_list)
         self.ui.tableWidget.setRowCount(len(topodata_list))
 
         # topodata_list example:

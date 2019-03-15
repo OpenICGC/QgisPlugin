@@ -17,11 +17,32 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Cerca geogràfica</string>
+   <string>Spatial search</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="QTableWidget" name="tableWidget"/>
+    <widget class="QTableWidget" name="tableWidget">
+     <column>
+      <property name="text">
+       <string>Name</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Type</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Municipality</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Region</string>
+      </property>
+     </column>
+    </widget>
    </item>
    <item row="1" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">

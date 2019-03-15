@@ -26,7 +26,7 @@ import socket
 import configparser
 from importlib import reload
 
-from PyQt5.QtCore import Qt, QSize, QTimer, QSettings
+from PyQt5.QtCore import Qt, QSize, QTimer, QSettings, QObject, QTranslator, qVersion, QCoreApplication
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton, QSlider
 from PyQt5.QtGui import QPainter, QCursor, QIcon
 from qgis.gui import QgsProjectionSelectionTreeWidget
@@ -1683,22 +1683,36 @@ class LayersBase(object):
             """
         QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
-    def save_shapefile_by_id(self, idprefix, pathname, encoding="utf-8", pos=0):
+    def save_shape_file_by_id(self, idprefix, pathname, encoding="utf-8", pos=0):
         """ Guarda el contingut d'una capa vectorial per id com un shape
             ---
             Save the contents of a vector layer by id as a shape
             """
-        layer = self.get_by_id(idprefix, pos)
-        if not layer:
-            return False
-        return self.layerSaveShapeFile2(layer, pathname, encoding)
+        return self.save_vector_file_by_id(idprefix, pathname, "ESRI Shapefile", encoding, pos)
 
-    def save_shapefile(self, layer, pathname, encoding="utf-8"):
+    def save_shape_file(self, layer, pathname, encoding="utf-8"):
         """ Guarda el contingut d'una capa vectorial com un shape
             ---
             Save the contents of a vector layer as a shape
             """
-        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, None, "ESRI Shapefile") == QgsVectorFileWriter.NoError    
+        return self.save_vector_file(layer, pathname, "ESRI Shapefile", encoding)
+
+    def save_vector_file_by_id(self, idprefix, pathname, format="GeoJSON", encoding="utf-8", pos=0):
+        """ Guarda el contingut d'una capa vectorial per id com un fitxer vectorial
+            ---
+            Save the contents of a vector layer by id as a vectorial file
+            """
+        layer = self.layerById(idprefix, pos)
+        if not layer:
+            return False
+        return self.save_vector_file(layer, pathname, format, encoding)
+
+    def save_vector_file(self, layer, pathname, format="GeoJSON", encoding="utf-8"):
+        """ Guarda el contingut d'una capa vectorial com un fitxer vectorial
+            ---
+            Save the contents of a vector layer as a vectorial file
+            """
+        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, None, format) == QgsVectorFileWriter.NoError
         
     def rename_fields_by_id(self, idprefix, rename_dict, pos=0):
         """ Reanomena camps d'una capa a partir del seu id
@@ -3529,8 +3543,43 @@ class TranslationBase(object):
         self.parent = parent
         self.iface = parent.iface
 
-        # Preparem un diccionari de traduccions
-        self.translation_dict = {}
+        # Carreguem el fitxer de traduccío segons el locale
+        self.translator = None
+        self.translator_pathname = None
+        self.load_translator()
+
+    def get_default_translator_pathname(self, locale=None):
+        """ Retorna el fitxer de traducció per l'idioma indicat en cas d'existir.
+            Si no s'especifica idioma utilitza l'idioma de QGIS
+            ---
+            Returns the translation file for the specified language if it exists.
+            If no locale is specified, use the QGIS language
+            """
+        if not locale:
+            locale = self.get_qgis_language()
+        pathname = os.path.join(self.parent.plugin_path, 'i18n', "%s_%s.qm" % (self.parent.plugin_id.lower(), locale.lower()))
+        return pathname if os.path.exists(pathname) else None
+
+    def load_translator(self, translator_pathname=None, locale=None):
+        """ Carrega un fitxer de traducció. Si no s'especifica detecta si existeix un fitxer 
+            dins la carpeta i18n del plugin apropiat per l'idioma indicat o del QGIS.
+            ---
+            Load a translation file. If it is not specified it detects if a file exists
+            within the i18n plugin folder for the indicated language or the QGIS locale.
+            """
+        # Detectem si existeix un fitxer de traducció per l'idioma indicat
+        if not translator_pathname:
+            translator_pathname = self.get_default_translator_pathname(locale)
+        if not translator_pathname:
+            return False
+        self.translator_pathname = translator_pathname
+        
+        # Carreguem la traducció
+        self.translator = QTranslator()
+        self.translator.load(self.translator_pathname)
+        if qVersion() > '4.3.3':
+            QCoreApplication.installTranslator(self.translator)
+        return True
 
     def get_qgis_language(self):
         """ Retorna l'idioma actiu en el QGIS. Pex: ca_ES, es
@@ -3539,37 +3588,15 @@ class TranslationBase(object):
             """
         return QSettings().value('locale/userLocale').split('_')[0]
 
-    def set_text(self, language, key, text):
-        """ Guarda un text en un determinat idioma associat a una clau en el diccionari de traduccions
-            ---
-            Save a text in a certain language associated with a key in the dictionary of translations
-            """
-        if language not in self.translation_dict:
-            self.translation_dict[language] = {}
-        self.translation_dict[language][key] = text
-
-    def get_text(self, key, default_text="", language=None):
-        """ Recupera un text a partir d'una clau en un determinat idioma del diccionari de traduccions
-            ---            
-            Retrieves a text from a key in a given language from the translation dictionary
-            """
-        # Per defecte intentem recuperar el text en l'idioma del QGIS
-        if not language:
-            language = self.get_qgis_language()
-        # Si l'idioma no està al diccionar, intentem recuperar anglés
-        if language not in self.translation_dict:
-            language = self.LANG_EN
-        # Si tot falla retornem el text per defecte
-        return self.translation_dict[language].get(key, default_text) if language in self.translation_dict else default_text
-
-
-class PluginBase(object):
+class PluginBase(QObject):
     # Inicialització de la classe
     def __init__(self, iface, plugin_pathname):
         """ Inicialització d'informació del plugin, accés a iface i accés a classes auxiliar de gestió 
             ---
             Initialization of plugin information, access to access and access to auxiliary management classes
             """
+        super().__init__()
+
         self.plugin_pathname = plugin_pathname
         self.plugin_path = os.path.dirname(self.plugin_pathname)
         self.plugin_id = os.path.basename(self.plugin_path)
