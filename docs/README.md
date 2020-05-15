@@ -1,4 +1,8 @@
-# Open ICGC plugin
+---
+layout: post
+title: Open ICGC QGIS plugin
+---
+# Open ICGC QGIS plugin
 
 QGIS Plugin for accessing [open data](http://www.icgc.cat/en/The-ICGC/Public-Information/Transparency/Re-use-of-the-information) published by the [ICGC](http://www.icgc.cat/en) (Institut Cartogràfic de Catalunya, Catalan Mapping Agency).
 
