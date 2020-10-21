@@ -1,20 +1,11 @@
 <RCC>
     <qresource prefix="/plugins/openicgc" >
         <file>icon.png</file>
-        <file>images/geofinder.png</file>
-        <file>images/communications.png</file>
-        <file>images/house.png</file>
-        <file>images/mountain.png</file>
-        <file>images/build.png</file>
-        <file>images/river.png</file>
-        <file>images/crossroad.png</file>
-        <file>images/equipment.png</file>
-        <file>images/history.png</file>
-        <file>images/flag.png</file>
-        <file>images/pin.png</file>
-        <file>images/town.png</file>
-        <file>images/desaturate.png</file>
-        <file>images/transparency.png</file>
-        <file>images/style.png</file>
+        <file>images/download.png</file>
+        <file>images/download_area.png</file>
+        <file>images/download_municipalities.png</file>
+        <file>images/download_counties.png</file>
+        <file>images/download_cat.png</file>
+        <file>images/download_all.png</file>
     </qresource>
 </RCC>

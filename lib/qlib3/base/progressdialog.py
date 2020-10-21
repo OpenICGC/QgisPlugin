@@ -70,30 +70,31 @@ class ProgressDialog(object):
                     if not parent:
                         parent = get_main_window()
                     if self.isMinimized():
-                        ##print "minimize"
+                        ##print("minimize")
                         parent.setWindowState(Qt.WindowMinimized)
                     else:
-                        ##print "restore"
+                        ##print("restore")
                         parent.setWindowState(Qt.WindowNoState)
                 elif event.type() == event.Close:
-                    ##print "close"
+                    ##print("close")
                     pass
                 elif event.type() == event.Hide:
-                    ##print "hide"
+                    ##print("hide")
                     pass
             def closeEvent(self, event):
-                ##print "close2"
+                ##print("close2")
                 pass
             def reject(self):
-                ##print "reject"
+                ##print("reject")
                 pass
             def cancel(self):
-                ##print "cancel"
+                ##print("cancel")
                 pass
             def canceled(self):
-                ##print "canceled"
+                ##print("canceled")
                 pass
         self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent, Qt.Dialog | Qt.WindowTitleHint | Qt.WindowMinimizeButtonHint)
+        self.dlg.resize(400, self.dlg.height())
 
         # Configurem el diàleg
         self.dlg.setWindowState(Qt.WindowNoState if self.parent != None and not self.parent.isMinimized() else Qt.WindowMinimized)
@@ -263,7 +264,8 @@ class ProgressDialog(object):
         if self.dlg.maximum():
             return self.time_info % (self.get_delta_info(self.get_elapsed_time()), self.get_delta_info(self.get_remaining_time()))
         else:
-            return self.time_info % (self.get_delta_info(self.get_elapsed_time()))
+            # Ens assegurem de que només tenim un %s
+            return self.time_info.split("%s")[0]+"%s" % (self.get_delta_info(self.get_elapsed_time()))
 
     def get_delta_info(self, delta):
         """ Formateja una diferència de temps 
@@ -289,6 +291,14 @@ class ProgressDialog(object):
         suffix = "s"
         # Retornem el temps am unitats
         return ":".join(info) + suffix
+
+    def is_visible(self):
+        """ Retorna si el diàleg és visible
+            ---
+            Returns that dialog is visible
+            """
+        return self.dlg and self.dlg.isVisible()
+
 
 class WorkingDialog(ProgressDialog):
     """ Classe diàleg amb workingbar i informació de temps transcorregut

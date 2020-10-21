@@ -1,18 +1,29 @@
 # Open ICGC plugin
 
-QGIS Plugin for accessing [open data](http://www.icgc.cat/en/The-ICGC/Public-Information/Transparency/Re-use-of-the-information) published by the [ICGC](http://www.icgc.cat) (Institut Cartogràfic de Catalunya, Catalan Mapping Agency).
+QGIS Plugin for accessing [open data](http://www.icgc.cat/en/The-ICGC/Public-Information/Transparency/Re-use-of-the-information) published by the [ICGC](http://www.icgc.cat/en) (Institut Cartogràfic de Catalunya, Catalan Mapping Agency).
 
-At the moment, it provides geocoding searches for place names, streets, roads, coordinates in different reference systems:
+It provides geocoding searches for place names, streets, roads, coordinates in different reference systems:
 
-![geofinder](doc/geo_finder.png)
+![geofinder](docs/images/geo_finder.png)
 
 loading of base data layers:
 
-![resources](doc/resources.png)
+![resources](docs/images/resources.png)
 
-and basic style control:
+time series management:
 
-![styles](doc/styles.png)
+![time_series](docs/images/time_series.png)
+
+downloading of vectorial o raster information by area, municipality or county (depending on the product):
+![downloads](docs/images/downloads.png)
+
+basic style control:
+
+![styles](docs/images/styles.png)
+
+and show help:
+
+![help](docs/images/help.png)
 
 More data and services will be added in the near future.
 

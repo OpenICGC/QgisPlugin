@@ -1,67 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>DockWidget</class>
+ <widget class="QDockWidget" name="DockWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>320</width>
-    <height>50</height>
+    <width>271</width>
+    <height>75</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>200</width>
-    <height>50</height>
+    <width>100</width>
+    <height>75</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>800</width>
-    <height>50</height>
+    <width>524287</width>
+    <height>75</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Transparència</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
-    <widget class="QSlider" name="horizontalSlider">
-     <property name="minimum">
-      <number>0</number>
-     </property>
-     <property name="maximum">
-      <number>100</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="tickPosition">
-      <enum>QSlider::TicksAbove</enum>
-     </property>
-     <property name="tickInterval">
-      <number>25</number>
-     </property>
-    </widget>
-   </item>
-  </layout>
+  <widget class="QWidget" name="dockWidgetContents">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QSlider" name="horizontalSlider">
+      <property name="minimum">
+       <number>0</number>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksAbove</enum>
+      </property>
+      <property name="tickInterval">
+       <number>25</number>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
  </widget>
  <resources/>
  <connections>
   <connection>
    <sender>horizontalSlider</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>Dialog</receiver>
+   <receiver>DockWidget</receiver>
    <slot>on_value_changed()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>24</y>
+     <x>135</x>
+     <y>50</y>
     </hint>
     <hint type="destinationlabel">
-     <x>159</x>
-     <y>24</y>
+     <x>135</x>
+     <y>37</y>
     </hint>
    </hints>
   </connection>

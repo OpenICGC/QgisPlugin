@@ -1,0 +1,16 @@
+<RCC>
+	<qresource prefix="/lib/qlib3/geofinderdialog" >
+		<file>images/geofinder.png</file>
+        <file>images/communications.png</file>
+        <file>images/house.png</file>
+        <file>images/mountain.png</file>
+        <file>images/build.png</file>
+        <file>images/river.png</file>
+        <file>images/crossroad.png</file>
+        <file>images/equipment.png</file>
+        <file>images/history.png</file>
+        <file>images/flag.png</file>
+        <file>images/pin.png</file>
+        <file>images/town.png</file>	
+	</qresource>
+</RCC>

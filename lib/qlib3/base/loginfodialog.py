@@ -28,7 +28,7 @@ except:
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette, QColor, QFontMetrics
+from PyQt5.QtGui import QPalette, QColor, QFontMetrics, QFont
 from PyQt5.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication
 
 ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_loginfo.ui'))
@@ -62,7 +62,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             extrainfo_or_tupleextrainfolist=None, extrainfohtml_or_tupleextrainfohtmllist=None,
             email_button_text=None, email_subject=None, email_to=None, email_cc=None,
             save_button_text=None, copy_clipboard_button_text=None,
-            autoshow=True, width=None, height=None, parent=None):
+            autoshow=True, width=None, height=None, font_size=10, parent=None):
         """ Inicialització del diàleg, cal especificar paràmetre amb un text d'informació o amb una 
             llista de tuples amb la informació. Opcionalment es pot especificar:
             - title: Títol del diàleg
@@ -176,7 +176,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
         palette = self.ui.plainTextEdit.palette()
         palette.setColor(QPalette.Base, QColor('transparent'))
         self.ui.plainTextEdit.setPalette(palette)
-        ##self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), 11))
+        self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size))
 
         # Carreguem les dades
         self.info_or_tupleinfolist = info_or_tupleinfolist

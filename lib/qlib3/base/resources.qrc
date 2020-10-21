@@ -1,7 +1,6 @@
 <RCC>
 	<qresource prefix="/lib/qlib3/base" >
-		<file>images/console.png</file>
-		<file>images/python.png</file>
+		<!-- GeoResources -->
 		<file>images/wms.png</file>
 		<file>images/wms_remove.png</file>
 		<file>images/cat_ortho1k.png</file>
@@ -14,8 +13,9 @@
 		<file>images/cat_geo250k.png</file>
 		<file>images/cat_vector.png</file>
 		<file>images/cat_dtm.png</file>
-		<file>images/cat_shadows.png</file>
-		<file>images/andorra_orto2003.png</file>
+    <file>images/cat_shadows.png</file>
+    <file>images/cat_landcover.png</file>
+    <file>images/andorra_orto2003.png</file>
 		<file>images/andorra_orto2003i.png</file>
 		<file>images/andorra_orto2008.png</file>
 		<file>images/andorra_shadows.png</file>
@@ -23,6 +23,24 @@
 		<file>images/andorra_topo50k.png</file>
 		<file>images/spain_orto.png</file>
 		<file>images/spain_topo.png</file>
+		<file>images/world.png</file>
+		<file>images/sheets.png</file>
+		<!-- About Banner -->
 		<file>images/icgc_banner.png</file>
+		<!-- Tools -->
+		<file>images/python.png</file>
+		<file>images/console.png</file>
+		<file>images/help.png</file>
+		<file>images/bug.png</file>
+		<file>images/git.png</file>
+		<file>images/new.png</file>
+		<file>images/new_icgc.png</file>
+		<file>images/plugin.png</file>
+		<file>images/send_email.png</file>
+		<file>images/download_folder.png</file>
+		<file>images/desaturate.png</file>
+		<file>images/transparency.png</file>
+		<file>images/style.png</file>
+		<file>images/time.png</file>
 	</qresource>
 </RCC>
