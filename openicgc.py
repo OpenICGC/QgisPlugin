@@ -264,7 +264,7 @@ class OpenICGC(PluginBase):
         self.iface.layerTreeView().currentLayerChanged.disconnect(self.on_change_current_layer)
         self.combobox.activated.disconnect()
 
-    def initGui(self, check_qgis_updates=True, check_icgc_updates=True, debug=True):
+    def initGui(self, check_qgis_updates=True, check_icgc_updates=True, debug=False):
         """ GUI initializacion """
         # Plugin registration in the plugin manager
         self.gui.configure_plugin()
@@ -314,7 +314,7 @@ class OpenICGC(PluginBase):
 
         # Gets available DTMs
         dtm_list = get_dtms() # [(dtm_name, dtm_url), ]
-        height_highlighting_url = dtm_list[0][1]
+        height_highlighting_url = dtm_list[0][1] if dtm_list else None
 
         # Gets available download source data
         fme_services_list = get_services()
@@ -324,6 +324,10 @@ class OpenICGC(PluginBase):
         # Check plugin update
         new_icgc_plugin_version = False #self.check_plugin_update() if check_icgc_updates else None
         new_qgis_plugin_version = self.metadata.get_qgis_new_version_available() if check_qgis_updates else None
+
+        # Check QGIS version problems
+        enable_http_files = self.check_qgis_version(31004)
+        qgis_version_ok = self.check_qgis_version(31004)
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
@@ -335,20 +339,20 @@ class OpenICGC(PluginBase):
             (self.tr("Background maps"), None, QIcon(":/lib/qlib3/base/images/wms.png"), True, False, "background_maps", [
                 (self.tr("Municipal capital"),
                     lambda:self.layers.add_vector_layer(self.tr("Municipal capital"), delimitations_dict["Caps de Municipi"], group_name=group_name, only_one_map_on_group=False, set_current=True, style_file="caps_municipi.qml"),
-                    QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+                    QIcon(":/lib/qlib3/base/images/cat_vector.png"), enable_http_files and "Caps de Municipi" in delimitations_dict),
                 (self.tr("Municipalities"),
                     lambda:self.layers.add_vector_layer(self.tr("Municipalities"), delimitations_dict["Municipis"], group_name=group_name, only_one_map_on_group=False, set_current=True, style_file="municipis.qml"),
-                    QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+                    QIcon(":/lib/qlib3/base/images/cat_vector.png"), enable_http_files and "Municipis" in delimitations_dict),
                 (self.tr("Counties"),
                     lambda:self.layers.add_vector_layer(self.tr("Counties"), delimitations_dict["Comarques"], group_name=group_name, only_one_map_on_group=False, set_current=True, style_file="comarques.qml"),
-                    QIcon(":/lib/qlib3/base/images/cat_vector.png")),
+                    QIcon(":/lib/qlib3/base/images/cat_vector.png"), enable_http_files and "Comarques" in delimitations_dict),
                 (self.tr("Provinces"),
                     lambda:self.layers.add_vector_layer(self.tr("Provinces"), delimitations_dict["Províncies"], group_name=group_name, only_one_map_on_group=False, set_current=True, style_file="provincies.qml"),
-                    QIcon(":/lib/qlib3/base/images/cat_vector.png")),
-                (self.tr("Cartographic series"), None, QIcon(":/lib/qlib3/base/images/sheets.png"), [
+                    QIcon(":/lib/qlib3/base/images/cat_vector.png"), enable_http_files and "Províncies" in delimitations_dict),
+                (self.tr("Cartographic series"), None, QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files, [
                     (self.tr("%s serie") % sheet_name,
                         lambda _dummy, sheet_name=sheet_name, sheet_url=sheet_url:self.layers.add_vector_layer(self.tr("%s serie") % sheet_name, sheet_url, group_name=group_name, only_one_map_on_group=False, set_current=True, style_file="talls.qml"),
-                        QIcon(":/lib/qlib3/base/images/sheets.png")
+                        QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files
                         ) for sheet_name, sheet_url in sheets_list
                     ]),
                 "---",
@@ -374,7 +378,7 @@ class OpenICGC(PluginBase):
                 "---",
                 ] + [(self.tr("DTM %s") % dtm_name,
                     lambda _dummy, dtm_name=dtm_name, dtm_url=dtm_url:self.layers.add_raster_layer(self.tr("DTM %s") % dtm_name, "/vsicurl/%s" % dtm_url, group_name, only_one_map_on_group=False, set_current=True, color_default_expansion=True),
-                    QIcon(":/lib/qlib3/base/images/cat_dtm.png")
+                    QIcon(":/lib/qlib3/base/images/cat_dtm.png"), enable_http_files
                     ) for dtm_name, dtm_url in dtm_list] + [
                 (self.tr("DTM in grayscale"),
                     lambda:self.layers.add_wms_layer(self.tr("DTM in grayscale"), "http://geoserveis.icgc.cat/icgc_mdt2m/wms/service", ["MET2m"], ["default"], "image/jpeg", 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map_on_group=False, set_current=True),
@@ -447,7 +451,7 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/desaturate.png")),
                 (self.tr("Add height highlighting"),
                     lambda _dummy, dtm_url=height_highlighting_url:self.add_height_highlighting_layer(self.tr("Height highlighting"), dtm_url, style_file="ressaltat_alçades.qml", group_name=group_name),
-                    QIcon(":/lib/qlib3/base/images/cat_shadows.png")),
+                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), height_highlighting_url),
                 "---",
                 (self.tr("Change DB/geoPackage style"),
                     lambda:self.tools.show_db_styles_dialog(self.tr("Change DB/geoPackage style")),
@@ -457,6 +461,7 @@ class OpenICGC(PluginBase):
             "---",
             (self.tr("Help"), self.show_help, QIcon(":/lib/qlib3/base/images/help.png"), [
                 (self.tr("About Open ICGC"), self.show_about, QIcon(":/plugins/openicgc/icon.png")),
+                (self.tr("What's new"), self.show_changelog, QIcon(":/lib/qlib3/base/images/new.png")),
                 (self.tr("Help"), self.show_help, QIcon(":/lib/qlib3/base/images/help.png")),
                 "---",
                 (self.tr("Available products list"), self.show_available_products, style.standardIcon(QStyle.SP_FileDialogDetailedView)),
@@ -472,7 +477,7 @@ class OpenICGC(PluginBase):
             ]) + ([] if not new_icgc_plugin_version else [
                 self.tr("Update\n available: v%s") % new_icgc_plugin_version,
                 (self.tr("Download plugin"), lambda _dummy,v=new_icgc_plugin_version:self.download_plugin_update(v, UpdateType.icgc_web), QIcon(":/lib/qlib3/base/images/new_icgc.png")), #style.standardIcon(QStyle.SP_BrowserReload)),
-            ]) + ([] if self.check_qgis_version() else [
+            ]) + ([] if qgis_version_ok else [
                 self.tr("Warning:"),
                 (self.tr("QGIS version warnings"), self.show_qgis_version_warnings, style.standardIcon(QStyle.SP_MessageBoxWarning)),
             ]))
@@ -648,6 +653,14 @@ class OpenICGC(PluginBase):
             old_action.setChecked(False)
         # Get action associated to data_type
         action = self.gui.find_action(data_type)
+
+        # Check EPSG warning
+        if self.project.get_epsg() != "25831":
+            if QMessageBox.warning(self.iface.mainWindow(), self.tr("EPSG warning"), \
+                self.tr("ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.\n\nDo you want change the project coordinate system to EPSG 25831?") % self.project.get_epsg(), \
+                #"Els productes ICGC estan generats en EPSG 25831, carregar-los en un projecte amb EPSG %s podria provocar problemes de visualització, descàrrega o augment del temps de càrrega.\n\nVols canviar el sistema de coordenades del projecte a EPSG 25831?"
+                QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+                self.project.set_epsg(25831)
 
         # Download type selection
         download_descriptions_list = [description for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST]
@@ -908,8 +921,8 @@ class OpenICGC(PluginBase):
         LogInfoDialog(
             self.tr("""Your QGIS version is %s.
 
-In versions of QGIS lower than 3.10.4, http files may not load correctly.
-In versions of QGIS lower than 3.4.0, geopackage files may not load correctly.
+In versions of QGIS lower than 3.10.4 http files may not load correctly. Affected products will be disabled.
+In versions of QGIS lower than 3.4.0 geopackage files may not load correctly.
 
 Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             self.tr("QGIS version warnings"), LogInfoDialog.mode_warning, width=800, height=250)
@@ -927,7 +940,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         elif help_type == HelpType.online_cached:
             self.sync_help("docs", "online", "index")
             self.show_help_file("index")
-            
+
 
     ###########################################################################
     # Update help & plugin
@@ -996,7 +1009,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             print("Help updated:", remote_image_url)
 
     def check_plugin_update(self, timeout=5):
-        """ Check plugin new version 
+        """ Check plugin new version
             Dont' work on SharePoint links
             To do, try: https://pypi.org/project/Office365-REST-Python-Client/
                  https://stackoverflow.com/questions/53671547/python-download-files-from-sharepoint-site

@@ -790,6 +790,7 @@ class ProjectBase(object):
             """
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
         self.iface.mapCanvas().mapSettings().setDestinationCrs(crs)
+        QgsProject.instance().setCrs(crs)
 
     def create_qgis_project_file(self, project_file, template_file, host, dbname, dbusername, excluded_users_list = [], excluded_db_list = []):
         """ Crea un projecte QGIS (.qgs) a partir de:
@@ -2759,8 +2760,8 @@ class LayersBase(object):
         elif is_geopackage_file:
             # Generem una llista amb totes les capes dins el geopackage
             layers_list = [layer.GetName() for layer in ogr.Open(pathname)]
-            layers_list.sort(reverse=True)            
-            pathnames_list = [("%s|layername=%s" % (pathname, layer_name), 
+            layers_list.sort(reverse=True)
+            pathnames_list = [("%s|layername=%s" % (pathname, layer_name),
                 re.sub("_\d+_", "", layer_name, 1)
                 ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             styles_dict = None
@@ -4019,7 +4020,7 @@ class DebugBase(object):
         QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
 
     ###########################################################################
-    # Gestió de timestatmps
+    # Gestió de timestamps
     #
     def ini_timestamps(self, description=None, timestamp_env='QGIS_STARTUP', timestamp_format="%d/%m/%Y %H:%M:%S.%f"):
         """ Afegeix un timestamp a partir d'una variable d'entorn amb l'hora d'inici de QGIS si existex
@@ -4261,7 +4262,7 @@ class ToolsBase(object):
             ---
             Add a button to display the QGIS console
             """
-        self.configureGUI(toolbar_and_menu_name, [
+        self.parent.gui.configure_GUI(toolbar_and_menu_name, [
             (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
             ])
 
@@ -4270,7 +4271,7 @@ class ToolsBase(object):
             ---
             Add tool to reload plugins that match the wildcard
             """
-        self.configureGUI(toolbar_and_menu_name, [
+        self.parent.gui.configure_GUI(toolbar_and_menu_name, [
             (tool_name, lambda p = plugins_id_wildcard : self.parent.debug.reload_plugins(p), QIcon(":/lib/qlib3/base/images/python.png"))
             ])
 
@@ -4559,7 +4560,7 @@ class MetadataBase(object):
     def get_repository_plugin_version(self, plugin_tag, repository_plugin_template, regex_version_template, timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori de software
             ---
-            Returns plugin version hosted in software repository 
+            Returns plugin version hosted in software repository
             """
         # Llegim la pàgina web del plugin en el repository de qgis
         if not plugin_tag:
@@ -4568,13 +4569,13 @@ class MetadataBase(object):
         try:
             hdr = { 'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)' }
             req = urllib.request.Request(repository_plugin_url, headers=hdr)
-            response = urllib.request.urlopen(req, timeout=timeout_seconds)                                    
+            response = urllib.request.urlopen(req, timeout=timeout_seconds)
             html = response.read().decode('utf-8')
         except socket.timeout:
             return None
         except Exception as e:
             return None
-        # Busco la última versió del plugin pujada   
+        # Busco la última versió del plugin pujada
         regex_version = regex_version_template % plugin_tag if regex_version_template.find("%") >= 0 else regex_version_template
         found = re.search(regex_version, html)
         return found.groups()[0] if found else None
@@ -4582,9 +4583,9 @@ class MetadataBase(object):
     def get_qgis_repository_plugin_version(self, plugin_tag=None, \
             repository_plugin_template="http://plugins.qgis.org/plugins/%s", \
             regex_version_template="\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=1):
-        """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS 
+        """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS
             ---
-            Returns plugin version hosted in QGIS plugins repository 
+            Returns plugin version hosted in QGIS plugins repository
             """
         return self.get_repository_plugin_version(plugin_tag, repository_plugin_template, regex_version_template, timeout_seconds)
 
@@ -4604,7 +4605,7 @@ class MetadataBase(object):
             regex_version_template="version=(.+)\s", timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori GitHub
             ---
-            Returns plugin version hosted in GitHub repository 
+            Returns plugin version hosted in GitHub repository
             """
         return self.get_repository_plugin_version(plugin_tag, repository_plugin_template, regex_version_template, timeout_seconds)
 
@@ -4766,6 +4767,18 @@ class PluginBase(QObject):
                 title, False, parent=self.iface.mainWindow())
         # Show about
         self.about_dlg.do_modal()
+
+    def show_changelog(self, checked=None, title=None): # I add checked param, because the mapping of the signal triggered passes a parameter
+        """ Show plugin changelog """
+        if not title:
+            locale = self.translation.get_qgis_language()
+            if locale == self.translation.LANG_CA:
+                title = "Novetats"
+            elif locale == self.translation.LANG_ES:
+                title = "Novedades"
+            else:
+                title = "What's new"
+        LogInfoDialog(self.metadata.get_changelog(), title, LogInfoDialog.mode_info)
 
     def show_help(self, checked=None, path="help", basename="index"): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Show plugin help """

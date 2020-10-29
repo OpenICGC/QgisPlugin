@@ -15,21 +15,28 @@ about=Plugin for accessing open data published by the Cartographic and Geologica
 	This plugin uses suds-py3, wsse libraries and land registry geo services.
 	---
 	Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
-	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.  
+	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.
 	Aquest plugin utilitza les llibreries suds-py3, wsse i serveis web del cadastre.
 	---
 	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
-	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.	
+	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.
 	Este plugin utiliza las llibrerías suds-py3, wsse y servicios web del catastro.
-tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,steet,road,WMS
+tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,street,road,WMS
 icon=icon.png
 author=ICGC
 email=openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.0
-changelog=v1.0.0 (2020-10-13)
+version=1.0.1
+changelog=v1.0.1 (2020-10-29)
+	- Added EPSG warning on projects with EPSG other than 25831
+	- Added deactivation of products not compatible with the QGIS version
+	- Added what's new dialog
+	- Fixed problem loading plugin when ICGC http servers are down (disable unavailable http products)
+	- Removed reload plugin button
+
+	v1.0.0 (2020-10-13)
 	- Added new land cover link and download
 	- Added height highlighting in display styles
 	- Added Source code links / documentation on help menu
