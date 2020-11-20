@@ -24,7 +24,7 @@ Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_ti
 
 #class MySlider(QSlider):
 #    def __init__(self, parent=None):
-#        super().__init__(parent) 
+#        super().__init__(parent)
 #        self.style = QApplication.style()
 #        self.opt = QStyleOptionSlider()
 #        self.tip_offset = QPoint(10, 10)
@@ -39,7 +39,7 @@ Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_ti
 #        pen = QPen()
 #        pen.setWidth(2)
 #        pen.setColor(Qt.black)
- 
+
 #        qp.setPen(pen)
 #        font = QFont('Times', 10)
 #        font_y_offset = font.pointSize()/2
@@ -60,7 +60,7 @@ Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_ti
 #            else:
 #                qp.drawText(contents.x() - font.pointSize(), y_val + font_y_offset + y_val_fudge,'{0:2}'.format(val))
 #            qp.drawLine(contents.x() + font.pointSize(), y_val + y_val_fudge,  contents.x() + contents.width(), y_val + y_val_fudge)
-    
+
 #    def show_tip(self, _):
 #        #self.initStyleOption(self.opt)
 #        #rectHandle = self.style.subControlRect(self.style.CC_Slider, self.opt, self.style.SC_SliderHandle, self)
@@ -115,9 +115,9 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         # Ens guardem la funció d'actualització de dades
         self.update_callback = update_callback
 
-        # Actualitzem el títol amb el nom de la capa        
+        # Actualitzem el títol amb el nom de la capa
         title = self.windowTitle().split(":")[0]
-        self.setWindowTitle("%s: %s" % (title, layer_name))            
+        self.setWindowTitle("%s: %s" % (title, layer_name))
 
         self.time_series_list = time_series_list
         # Assignem les etiquetes
@@ -130,7 +130,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(len(time_series_list) - 1)
         self.set_current_time(current_time)
-    
+
     def set_current_time(self, current_time):
         # Canviem el valor quan és diferent de l'actual
         new_value = self.time_series_list.index(current_time)
@@ -147,7 +147,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.label_current.setText(self.current_value_prefix + self.get_current_time())
 
         # Volem detectar només events de click o de soltar el slider
-        if not self.horizontalSlider.isSliderDown():                
+        if not self.horizontalSlider.isSliderDown():
             # Modifiquem la capa referenciada
             if self.update_callback:
                 self.update_callback(self.get_current_time())

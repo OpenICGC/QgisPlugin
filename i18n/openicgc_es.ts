@@ -4,7 +4,7 @@
 <context>
     <name>OpenICGC</name>
     <message>
-        <location filename="../openicgc.py" line="623"/>
+        <location filename="../openicgc.py" line="626"/>
         <source>Spatial search</source>
         <translation>Búsqueda espacial</translation>
     </message>
@@ -14,7 +14,7 @@
         <translation>Buscar</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="734"/>
+        <location filename="../openicgc.py" line="737"/>
         <source>Background maps</source>
         <translation>Mapas de fondo</translation>
     </message>
@@ -29,12 +29,12 @@
         <translation>Trasparencia</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="487"/>
+        <location filename="../openicgc.py" line="490"/>
         <source>Reload Open ICGC</source>
         <translation>Recargar Open ICGC</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="623"/>
+        <location filename="../openicgc.py" line="626"/>
         <source>Error, location without coordinates</source>
         <translation>Error, localización sin coordenadas</translation>
     </message>
@@ -125,7 +125,7 @@
         <translation>Ayuda</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="774"/>
+        <location filename="../openicgc.py" line="777"/>
         <source>Select download folder</source>
         <translation>Selección de carpeta de descargas</translation>
     </message>
@@ -270,12 +270,12 @@
         <translation>OrtoXpres NDVI %s (rectificación al vuelo)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="852"/>
+        <location filename="../openicgc.py" line="855"/>
         <source>Download</source>
         <translation>Descargas</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="507"/>
+        <location filename="../openicgc.py" line="510"/>
         <source>Download %s raster data</source>
         <translation>Descargar %s datos raster</translation>
     </message>
@@ -295,22 +295,22 @@
         <translation>Desaturar capa raster</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="735"/>
+        <location filename="../openicgc.py" line="738"/>
         <source>Reference %s</source>
         <translation>Referencia %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="782"/>
+        <location filename="../openicgc.py" line="785"/>
         <source>Download map area</source>
         <translation>Descargar área de mapa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="807"/>
+        <location filename="../openicgc.py" line="810"/>
         <source>Minimum download rect side not reached (%d m)</source>
         <translation>Tamaño mínimo de descarga no alcanzado (%d m por lado)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="811"/>
+        <location filename="../openicgc.py" line="814"/>
         <source>Maximum download area reached (%d m%s)</source>
         <translation>Máxima área de descarga alcanzada (%d m%s)</translation>
     </message>
@@ -320,27 +320,27 @@
         <translation>Cambiar estilo de geoPackage / base de datos</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="899"/>
+        <location filename="../openicgc.py" line="902"/>
         <source>Download %s</source>
         <translation>Descargar %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="505"/>
+        <location filename="../openicgc.py" line="508"/>
         <source>Download %s vectorial data</source>
         <translation>Descargar %s datos vectoriales</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="867"/>
+        <location filename="../openicgc.py" line="870"/>
         <source>Error downloading file or selection is out of reference area</source>
         <translation>Error descargando el fitchero o la selección está fuera del área de referencia</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="600"/>
+        <location filename="../openicgc.py" line="603"/>
         <source>You must write any text</source>
         <translation>Debes escribir algun texto</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="821"/>
+        <location filename="../openicgc.py" line="824"/>
         <source>Data type:
    %s (%s)
 Rectangle:
@@ -363,7 +363,7 @@ Carpeta de descargas:
 Nombre de archivo (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="827"/>
+        <location filename="../openicgc.py" line="830"/>
         <source>Data type:
    %s (%s)
 Point:
@@ -386,7 +386,7 @@ Carpeta de descargas:
 Nombre de archivo (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="833"/>
+        <location filename="../openicgc.py" line="836"/>
         <source>Data type:
    %s (%s)
 Point:
@@ -409,7 +409,7 @@ Carpeta de descargas:
 Nombre de archivo (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="848"/>
+        <location filename="../openicgc.py" line="851"/>
         <source>Error, can&apos;t find product as available to download</source>
         <translation>Error, no se ha encontrado el producto a descargar</translation>
     </message>
@@ -429,27 +429,27 @@ Nombre de archivo (%s):</translation>
         <translation>Comarca</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="835"/>
+        <location filename="../openicgc.py" line="838"/>
         <source>Catalonia</source>
         <translation>Cataluña</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="835"/>
+        <location filename="../openicgc.py" line="838"/>
         <source>Available data</source>
         <translation>Datos disponibles</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="692"/>
+        <location filename="../openicgc.py" line="695"/>
         <source>Download tool</source>
         <translation>Herramienta de descarga</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="782"/>
+        <location filename="../openicgc.py" line="785"/>
         <source>Download point</source>
         <translation>Descarga puntual</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="836"/>
+        <location filename="../openicgc.py" line="839"/>
         <source>Data type:
    %s (%s)
 Zone:
@@ -468,7 +468,7 @@ Carpeta de descargas:
 Archivo (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="668"/>
+        <location filename="../openicgc.py" line="671"/>
         <source>Select the type of download and then use the download tool
 to mark a point or area of interest
 
@@ -489,17 +489,17 @@ Tipo de descarga:</translation>
         <translation>Cortes cartográficos</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="681"/>
+        <location filename="../openicgc.py" line="684"/>
         <source>Select an area</source>
         <translation>Selecciona un área</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="683"/>
+        <location filename="../openicgc.py" line="686"/>
         <source>Select municipality</source>
         <translation>Selecciona un municipio</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="685"/>
+        <location filename="../openicgc.py" line="688"/>
         <source>Select county</source>
         <translation>Selecciona una comarca</translation>
     </message>
@@ -514,17 +514,17 @@ Tipo de descarga:</translation>
         <translation>Ortofoto superexpédita infrarroja %s (rectificación sin correcciones)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="876"/>
+        <location filename="../openicgc.py" line="879"/>
         <source>Unknow, service unavailable</source>
         <translation>Desconocido, servicio no accesible</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="905"/>
+        <location filename="../openicgc.py" line="908"/>
         <source>Available products list</source>
         <translation>Lista de productos disponibles</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="904"/>
+        <location filename="../openicgc.py" line="907"/>
         <source>Linkable products:
 - %s
 
@@ -552,7 +552,7 @@ Productos descargables:
         <translation>Añadir resaltado de alturas</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="892"/>
+        <location filename="../openicgc.py" line="895"/>
         <source>Height highlighting</source>
         <translation>Resaltado de alturas</translation>
     </message>
@@ -562,7 +562,7 @@ Productos descargables:
         <translation>Atención:</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="923"/>
+        <location filename="../openicgc.py" line="926"/>
         <source>QGIS version warnings</source>
         <translation>Alertas de la versión de QGIS</translation>
     </message>
@@ -589,7 +589,7 @@ Productos descargables:
  disponible: v%s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="892"/>
+        <location filename="../openicgc.py" line="895"/>
         <source>You can modify the brightness of the &quot;Height hightlghting&quot; layer to adjust the display to your background layer</source>
         <translation>Puedes modificar el brillo de la capa  &quot;Resaltado de alturas&quot; para ajustar la visualización a tu capa de fondo</translation>
     </message>
@@ -624,7 +624,7 @@ Productos descargables:
         <translation>Cubiertas del suelo</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="923"/>
+        <location filename="../openicgc.py" line="926"/>
         <source>Your QGIS version is %s.
 
 In versions of QGIS lower than 3.10.4 http files may not load correctly. Affected products will be disabled.
@@ -639,12 +639,12 @@ En versiones de QGIS inferiores a 3.4.0 los archivos geopackage pueden no cargar
 Actualiza tu versión de QGIS si es posible.</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="659"/>
+        <location filename="../openicgc.py" line="662"/>
         <source>EPSG warning</source>
         <translation>Alerta EPSG</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="659"/>
+        <location filename="../openicgc.py" line="662"/>
         <source>ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.
 
 Do you want change the project coordinate system to EPSG 25831?</source>
@@ -656,6 +656,16 @@ Do you want change the project coordinate system to EPSG 25831?</source>
         <location filename="../openicgc.py" line="334"/>
         <source>What&apos;s new</source>
         <translation>Novedades</translation>
+    </message>
+    <message>
+        <location filename="../openicgc.py" line="334"/>
+        <source>Land cover (temporal serie)</source>
+        <translation>Cubiertas del suelo (serie temporal)</translation>
+    </message>
+    <message>
+        <location filename="../openicgc.py" line="334"/>
+        <source>[TS] Land cover</source>
+        <translation>[ST] Cubiertas del suelo</translation>
     </message>
 </context>
 </TS>

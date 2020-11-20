@@ -28,10 +28,17 @@ email=openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.1
-changelog=v1.0.1 (2020-10-29)
+version=1.0.2
+changelog=v1.0.2 (2020-11-18)
+	- Added land cover time series product
+	- Added geological 250m product
+	- Added geowork6 product
+	- Fixed problem opening PluginManager when a new version is detected
+	- Fixed problem enabling/disabling time series dialog changing active layer
+
+	v1.0.1 (2020-10-29)
 	- Added EPSG warning on projects with EPSG other than 25831
-	- Added deactivation of products not compatible with the QGIS version
+	- Added deactivation of products not compatibles with the QGIS version
 	- Added what's new dialog
 	- Fixed problem loading plugin when ICGC http servers are down (disable unavailable http products)
 	- Removed reload plugin button

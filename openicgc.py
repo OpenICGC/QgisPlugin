@@ -257,14 +257,14 @@ class OpenICGC(PluginBase):
 
     def unload(self):
         """ Release of resources """
-        # Parent PluginBase class release all GUI resources created with their functions
-        super().unload()
-
         # Unmap signals
         self.iface.layerTreeView().currentLayerChanged.disconnect(self.on_change_current_layer)
         self.combobox.activated.disconnect()
 
-    def initGui(self, check_qgis_updates=True, check_icgc_updates=True, debug=False):
+        # Parent PluginBase class release all GUI resources created with their functions
+        super().unload()
+
+    def initGui(self, check_qgis_updates=True, check_icgc_updates=False, debug=False):
         """ GUI initializacion """
         # Plugin registration in the plugin manager
         self.gui.configure_plugin()
@@ -322,7 +322,7 @@ class OpenICGC(PluginBase):
         download_vector_submenu = self.get_download_menu(fme_services_list, False)
 
         # Check plugin update
-        new_icgc_plugin_version = False #self.check_plugin_update() if check_icgc_updates else None
+        new_icgc_plugin_version = self.check_plugin_update() if check_icgc_updates else None
         new_qgis_plugin_version = self.metadata.get_qgis_new_version_available() if check_qgis_updates else None
 
         # Check QGIS version problems
@@ -372,8 +372,8 @@ class OpenICGC(PluginBase):
                 (self.tr("Geological 1:250,000"),
                     lambda:self.layers.add_wms_layer(self.tr("Geological 1:250,000"), "http://siurana.icgc.cat/arcgis/services/Base/MGC_MapaBase/MapServer/WMSServer", ["1"], ["default"], "image/png", 25831, "referer=ICGC", group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_geo250k.png")),
-                (self.tr("Land cover"),
-                    lambda:self.layers.add_wms_layer(self.tr("Land cover"), "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms", ["cobertes_2009"], ["default"], "image/png", 25831, "referer=ICGC", group_name, only_one_map_on_group=False, set_current=True),
+                (self.tr("Land cover (temporal serie)"),
+                    lambda:self.layers.add_wms_t_layer(self.tr("[TS] Land cover"), "http://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms", "serie_temporal", "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_landcover.png")),
                 "---",
                 ] + [(self.tr("DTM %s") % dtm_name,
@@ -406,7 +406,7 @@ class OpenICGC(PluginBase):
                     lambda:self.layers.add_wms_t_layer(self.tr("[TS] Color orthophoto"), historic_ortho_wms_url, ortho_color_current_time, "default", "image/jpeg", ortho_color_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                 (self.tr("Satellite color orthophoto (temporal serie)"),
-                    lambda:self.layers.add_wms_t_layer(self.tr("[TS] Satellite color orthophoto"), "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2rgb", "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", group_name, only_one_map_on_group=False, set_current=True),
+                    lambda:self.layers.add_wms_t_layer(self.tr("[TS] Satellite color orthophoto"), "http://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2rgb", "", "image/jpeg", None, 25831, "", group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                 "---",
                 ] + ([(self.tr("Infrared ortoXpres %s (rectification on the fly)") % ortoxpres_infrared_year,
@@ -1062,4 +1062,4 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         elif update_type == UpdateType.qgis_web:
             self.show_help_file("plugin_qgis") # from QGIS plugins repository
         else:
-            self.iface.pluginManagerInterface().showPluginManager(1) # from plugins manager
+            self.iface.actionManagePlugins().trigger()

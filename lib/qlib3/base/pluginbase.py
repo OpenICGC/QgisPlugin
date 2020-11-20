@@ -36,8 +36,9 @@ import zipfile
 from osgeo import ogr
 
 from PyQt5.QtCore import Qt, QSize, QTimer, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton, QSlider, QFileDialog, QWidgetAction, QWidget, QComboBox
-from PyQt5.QtGui import QPainter, QCursor, QIcon, QPixmap, QColor
+from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton, QSlider
+from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QWidget, QComboBox, QDockWidget, QShortcut
+from PyQt5.QtGui import QPainter, QCursor, QIcon, QPixmap, QColor, QKeySequence
 from PyQt5.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionTreeWidget
@@ -147,7 +148,7 @@ class GuiBase(object):
     ###########################################################################
     # Toolbars & Menús
     #
-    def configure_GUI(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None, append_if_exist=True):
+    def configure_GUI(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None, append_if_exist=True, add_separator=True):
         """ Crea menús i toolbars equivalents simultànicament. Veure funció: __parse_entry
             Atenció: els elements de tipus "control" només es poden utilitzar un cop, per tant es crearàn només a la toolbar i no al menú
             ---
@@ -155,9 +156,9 @@ class GuiBase(object):
             Warning: elements of "control" type only can be used one time, it will be created only on toolbar and not on menu
             """
         # Creem la toolbar
-        toolbar = self.configure_toolbar(title, names_callbacks, toolbar_droplist_name, toolbar_droplist_icon, position)
+        toolbar = self.configure_toolbar(title, names_callbacks, toolbar_droplist_name, toolbar_droplist_icon, position, add_separator)
         # Creem el menú
-        menu = self.configure_menu(title, names_callbacks, parent_menu, parent_menu_pos, menu_icon, position, append_if_exist)
+        menu = self.configure_menu(title, names_callbacks, parent_menu, parent_menu_pos, menu_icon, position, append_if_exist, add_separator)
         return menu, toolbar
 
     def insert_at_GUI(self, menu_or_toolbar, position, names_callbacks):
@@ -401,7 +402,7 @@ class GuiBase(object):
     ###########################################################################
     # Menus
     #
-    def configure_menu(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, position=None, append_if_exist=True):
+    def configure_menu(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, position=None, append_if_exist=True, add_separator=True):
         """ Crea o amplia un menús segons la llista de <callbacks>. Veure funció: __parse_entry
             ---
             Create or expand menus according to the <callbacks> list. See function: __parse_entry
@@ -431,10 +432,10 @@ class GuiBase(object):
             # Li associem les seves entrades
             if position != None:
                 is_separator = len(menu.actions()) == 0 or menu.actions()[0].isSeparator()
-                self.insert_at_menu(menu, position, names_callbacks if is_separator else names_callbacks + ["---"])
+                self.insert_at_menu(menu, position, names_callbacks if is_separator or not add_separator else names_callbacks + ["---"])
             else:
                 is_separator = len(menu.actions()) == 0 or menu.actions()[-1].isSeparator()
-                self.add_to_menu(menu, names_callbacks if is_separator else ["---"] + names_callbacks)
+                self.add_to_menu(menu, names_callbacks if is_separator or not add_separator else ["---"] + names_callbacks)
 
         return menu
 
@@ -475,7 +476,7 @@ class GuiBase(object):
     ###########################################################################
     # Toolbars
     #
-    def configure_toolbar(self, title, names_callbacks, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None):
+    def configure_toolbar(self, title, names_callbacks, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None, add_separator=True):
         """ Crea o amplia una toolbar segons la llista de <callbacks>. Veure funció: __parse_entry
             ---
             Create or expand a toolbar according to the <callbacks> list. See function: __parse_entry
@@ -492,10 +493,10 @@ class GuiBase(object):
         else:
             if position != None:
                 is_separator = len(toolbar.actions()) == 0 or toolbar.actions()[0].isSeparator()
-                self.insert_at_toolbar(toolbar, position, names_callbacks if is_separator else names_callbacks + ["---"])
+                self.insert_at_toolbar(toolbar, position, names_callbacks if is_separator or not add_separator else names_callbacks + ["---"])
             else:
                 is_separator = len(toolbar.actions()) == 0 or toolbar.actions()[-1].isSeparator()
-                self.add_to_toolbar(toolbar, names_callbacks if is_separator else ["---"] + names_callbacks)
+                self.add_to_toolbar(toolbar, names_callbacks if is_separator or not add_separator else ["---"] + names_callbacks)
         self.toolbars.append(toolbar)
         return toolbar
 
@@ -695,7 +696,11 @@ class GuiBase(object):
             ---
             shortcuts_callbacks_list: [(<description>, <keyseq>, <callback>)]
             """
-        for description, keyseq, callback in shortcuts_callbacks_list:
+        for shortcut_info in shortcuts_callbacks_list:
+            if shortcut_info == "---":
+                description, keyseq, callback = shortcut_info, None, None
+            else:
+                description, keyseq, callback = shortcut_info
             self.add_shortcut(description, keyseq, callback)
 
     def add_shortcut(self, description, keyseq, callback):
@@ -703,21 +708,21 @@ class GuiBase(object):
             ---
             Map a new shortcut to QGIS and return it
             """
-        if description is None or keyseq is None or callback is None:
+        if keyseq is None or callback is None:
             shortcut = None
         else:
             shortcut = QShortcut(QKeySequence(keyseq), self.iface.mainWindow())
             shortcut.activated.connect(callback)
-            self.shortcuts.append((description, keyseq, shortcut))
+        self.shortcuts.append((description, keyseq, shortcut))
         return shortcut
 
-    def get_all_shortcuts_description(self, this_plugin_not_all_plugins=False, show_plugin_name=False, show_plugin_newline=True):
+    def get_all_shortcuts_description(self, this_plugin_not_all_plugins=True, show_plugin_name=False, show_plugin_newline=True):
         """ Retorna un text amb informació de tots els shortcuts mapejats
             ---
             Returns a text with information about all the mapped shortcuts
             """
         if this_plugin_not_all_plugins:
-            plugin_info_list = [u'Self', self]
+            plugin_info_list = [(u'Self', self.parent)]
         else:
             plugin_info_list = plugins.items()
 
@@ -725,7 +730,10 @@ class GuiBase(object):
         prefix = "   " if show_plugin_name else ""
         for plugin_name, plugin in plugin_info_list:
             # Excloem els shotcuts sense descripció, Incloem els "espais": shortcut a None
-            shortcut_info_list = [(description, keyseq, shortcut) for (description, keyseq, shortcut) in plugin.__dict__.get('shortcuts', []) if description or not shortcut]
+            if plugin.__dict__.get('gui'):
+                shortcut_info_list = [(description, keyseq, shortcut) for (description, keyseq, shortcut) in plugin.gui.shortcuts if description or not shortcut]
+            else:
+                shortcut_info_list = []
             if show_plugin_name and shortcut_info_list:
                 shortcut_description += "Plugin: %s\n" % plugin_name
             for description, keyseq, shortcut in shortcut_info_list:
@@ -737,6 +745,12 @@ class GuiBase(object):
                 shortcut_description += "\n"
 
         return shortcut_description
+
+    def show_shortcuts(self, checked=None, title="Tecles d'accesos directes"): # I add checked param, because the mapping of the signal triggered passes a parameter
+        """ Mostra ajuda sobre shortcuts HTML """
+        shortcuts_info = self.get_all_shortcuts_description()
+        QMessageBox.information(self.iface.mainWindow(), title, shortcuts_info)
+
 
     ###########################################################################
     # Tools
@@ -1146,7 +1160,7 @@ class LayersBase(object):
                 else:
                     layer.selectAll()
                     selected_features = layer.selectedFeatures()[:max_items]
-                    layer.setSelectedFeatures([])
+                    self.set_selection(layer, [])
                 ##print(layer_idprefix, layer, layer.name(), layer.selectedFeatures())
                 # Obtenim la selecció de la capa fields_name_or_list (acceptem llista o valor)
                 # Validem el tipus de dades de
@@ -1261,7 +1275,7 @@ class LayersBase(object):
         if unselect:
             self.set_selection(layer, [])
         layer.triggerRepaint()
-        self.refresh_legend(layer);
+        self.refresh_legend(layer)
         self.refresh_map()
 
     def set_selection_by_id(self, layer_idprefix, values_list, field_name=None, pos=0):
@@ -1289,12 +1303,12 @@ class LayersBase(object):
 
         # Si ens passem camps buits, deseleccionem tot
         if not values_list or len(values_list) == 0:
-            layer.setSelectedFeatures([])
+            layer.selectByIds([])
             return True
 
         # Si no tenim camp indicat, suposem que la llista és de ids i fem la crida "normal"
         if not field_name:
-            layer.setSelectedFeatures(values_list)
+            layer.selectByIds(values_list)
             return True
 
         # Obtenim els camps de la capa
@@ -1316,7 +1330,7 @@ class LayersBase(object):
                 selected_features.append(feature.id())
 
         # Seleccionem els elements filtrats
-        layer.setSelectedFeatures(selected_features)
+        layer.selectByIds(selected_features)
         return True
 
     def zoom_to_selection_by_id(self, layer_idprefix, scale=None, pos=0):
@@ -2438,12 +2452,6 @@ class LayersBase(object):
         # Canviem les propiedats de la capa
         self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, saturation, set_current, properties_dict_list[i] if properties_dict_list else None)
 
-        #if ICGC_custom_ED50:
-        #    # Si tenim una capa ED50 i el projecte no és ED50, posem ED50 ICC a la capa
-        #    if str(self.layerEPSG2(rl)) == "23031" and self.parent.project.get_epsg() != "23031":
-        #        custom_epsg = self.productICCED50EPSG()
-        #        rl.setCrs(QgsCoordinateReferenceSystem(int(custom_epsg), QgsCoordinateReferenceSystem.InternalCrsId))
-
         # Si he mogut la capa dins un grup, no volem que s'expandeix el grup que hi havia seleccionat
         if group_name:
             if collapsed_parent_group:
@@ -2868,56 +2876,63 @@ class LayersBase(object):
             """
         # Obtenim la llista de capes temporals i la registrem associada a la url
         if time_series_list:
-            default_layer = layer_id
             default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
+            default_layer = layer_id
+            url_time = url
         else:
             time_series_list, default_time = self.get_wms_t_time_series(url, layer_id)
             if not time_series_list:
                 return None
             default_layer = dict(time_series_list)[default_time]
-        # Obtenim el nom del temps per defecte
+            is_question_mark = url.find("?") >= 0
+            url_time = "%s%stime=%s&IgnoreGetMapUrl=1" % (url, "%26" if is_question_mark else "?", default_time)
+
+        # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
+        layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style], image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
-        # Registrem les capes temporals de la url
-        self.time_series_dict[url] = time_series_list
+        # Registrem les capes temporals de la url i refresquem la capa activa
+        self.time_series_dict[layer] = time_series_list
+        self.iface.layerTreeView().currentLayerChanged.emit(layer)
 
-        # Obrim la capa
-        return self.add_wms_layer(time_layer_name, url, [default_layer], [style], image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, set_current)
+        return layer
+
+    def parse_wms_t_layer(self, layer):
+        # Obté la URL base i la capa / temps de la URL d'una capa
+        if layer.dataProvider().dataSourceUri().find("%26") >= 0:
+            # Cas especial on la url ja té un ? i s'ha afegit el paràmetre time amb "%26"
+            reg_ex = r"url=([\w\d\-\?_:./=]+)(?:\%26time=([\d\-/:]+))*.+layers=([\w\d\-_]+)"
+        else:
+            reg_ex = r"url=([\w\d\-_:./=]+)(?:\?time=([\d\-/:]+))*.+layers=([\w\d\-_]+)"
+        found = re.search(reg_ex, layer.dataProvider().dataSourceUri(), flags=re.IGNORECASE)
+        if not found:
+            return None, None, None
+        url, current_time, current_layer = found.groups()
+        return url, current_layer, current_time
 
     def is_wms_t_layer(self, layer):
-        # Obtenim la URL de la capa wms-t i la capa seleccionada
-        reg_ex = r"url=([\w:./]+).+layers=(\w+)"
-        found = re.search(reg_ex, layer.dataProvider().dataSourceUri())
-        if not found:
-            return False
-        url, current_layer = found.groups()
-
         # Obtenim el nom de la capa associada al temps escollit
-        time_series_list = self.time_series_dict.get(url, [])
+        time_series_list = self.time_series_dict.get(layer, [])
         return len(time_series_list) > 0
 
-    def update_wms_t_layer_current_time(self, layer, current_time):
+    def update_wms_t_layer_current_time(self, layer, wms_time):
         """ Actualitza la capa a llegir d'un servidor WMS
             ---
             Update WMS layer to read
             """
-        # Obtenim la URL de la capa wms-t i la capa seleccionada
-        reg_ex = r"url=([\w:./]+).+layers=(\w+)"
-        found = re.search(reg_ex, layer.dataProvider().dataSourceUri())
-        if not found:
-            return
-        url, current_layer = found.groups()
-
         # Obtenim el nom de la capa associada al temps escollit
-        layer_id = dict(self.time_series_dict[url])[current_time]
+        time_series_list = self.time_series_dict.get(layer, [])
+        if not time_series_list:
+            return
+        layer_id = dict(time_series_list)[wms_time]
 
         # Actualitzem la capa
-        print("update wms-t time", current_time, layer_id)
-        self.update_wms_layer(layer, layer_id)
+        ##print("update wms-t time", layer_id, wms_time)
+        self.update_wms_layer(layer, layer_id, wms_time)
 
         # Canviem el nom de la capa
         base_name = layer.name().split(' [')[0]
-        new_name = "%s [%s]" % (base_name, current_time)
+        new_name = "%s [%s]" % (base_name, wms_time)
         layer.setName(new_name)
 
     def get_wms_t_time_series(self, url, layer_id, version="1.1.1", timeout_seconds=5, retries=3):
@@ -2935,22 +2950,23 @@ class LayersBase(object):
         default_time = None
 
         # Llegim el capabilities del servei
-        capabilities_request = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, version)
+        is_question_mark = url.find("?") >= 0
+        capabilities_request = "%s%sREQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, "&" if is_question_mark else "?", version)
         ##print("request", capabilities_request)
+        capabilities_xml = None
         while retries:
             try:
-                response = None
                 response = urllib.request.urlopen(capabilities_request, timeout=timeout_seconds)
+                capabilities_xml = response.read()
                 retries = 0
             except socket.timeout:
                 retries -= 1
                 print("retries", retries)
-        if response:
-            capabilities_xml = response.read()
-            ##capabilities_xml = capabilities_xml.decode('utf-8')
+        if not capabilities_xml:
+            return [], None
         ##print("xml", capabilities_xml)
 
-        # Cerquem les capes amb el camp "Dimension" tipus "time"
+        # Cerquem les capes amb el camp "Dimension" tipus "time" o "Dimension" + "Extent" tipus "time"
         root = ElementTree.fromstring(capabilities_xml)
         layers = root.find('Capability').find("Layer")
         for layer in layers.findall('Layer'):
@@ -2958,21 +2974,38 @@ class LayersBase(object):
                 continue
             ##print("layer", layer_id)
 
-            #<Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
-            #2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
-            #</Dimension>
             dimension = layer.find("Dimension")
             if dimension is None or dimension.get("name") != "time":
                 continue
-            ##print("dimensions", layer_id, dimension.text)
+            if dimension.text:
+                #<Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
+                #2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
+                #</Dimension>
+                dimension_text = dimension.text
+                default_time = dimension.get("default")
+            else:
+                #<Extent name="time" default="2018" nearestValue="0">#2015-12,...</Extent>
+                extent = layer.find("Extent")
+                if extent is None or extent.get("name") != "time" or not extent.text:
+                    continue
+                dimension_text = extent.text
+                default_time = extent.get("default")
+            #print("Dimensions", layer_id, dimension_text, default_time)
 
-            # Recuperem les dimension
-            time_series_list = [(time, "%s_%s" % (layer_id, time.replace('-', ''))) for time in dimension.text.split(',')]
+            # Recuperem les dimension (de tipus llista d1,d2... o de tipus rang d1/d2 o d1-d2)
+            # Els rangs de moment només funcionen per anys!
+            time_series_list = []
+            if dimension_text.find(',') > 0:
+                time_series_list = [(time.strip(), layer_id) for time in dimension_text.split(',')]
+            else:
+                for range_separator in ['/', '-']:
+                    if dimension_text.find(range_separator) > 0:
+                        time_begin, time_end = dimension_text.split(range_separator)[0:2]
+                        if time_begin.isdigit() and time_end.isdigit():
+                            time_series_list = [(str(time), layer_id) for time in range(int(time_begin), int(time_end) + 1)]
+                            break
             ##print("time series", time_series_list)
-
-            default_time = dimension.get("default")
             ##print("Default time", default_time)
-
             break
 
         return time_series_list, default_time
@@ -3005,9 +3038,10 @@ class LayersBase(object):
         if not epsg:
             epsg = self.parent.project.get_epsg()
 
-        uri = "url=%s&crs=EPSG:%s&format=%s&layers=%s&styles=%s" % (url, epsg, image_format, "&layers=".join(layers_list), "&styles".join(styles_list))
+        uri = "url=%s&crs=EPSG:%s&format=%s&styles=%s&layers=%s" % (url, epsg, image_format, ",".join(styles_list), ",".join(layers_list))
         if extra_tags:
             uri += "&%s" % extra_tags
+
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
     def add_wms_url_query_layer(self, layer_name, url_query, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
@@ -3020,23 +3054,24 @@ class LayersBase(object):
         uri = "url=%s" % url_query.lower().replace("epsg:", "epsg:").replace("srs=", "crs=").replace("?", "&")
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
-    def update_wms_layer(self, layer, layer_id):
+    def update_wms_layer(self, layer, wms_layer, wms_time=None):
         """ Actualitza la capa a llegir d'un servidor WMS
             ---
             Update WMS layer to read
             """
-        print("udpate wms layer", layer_id)
+        ##print("update wms layer", wms_layer, wms_time)
 
         # Obtenim la capa actual carregada
-        uri = layer.dataProvider().dataSourceUri()
-        reg_ex = r"url=([\w:./]+).+layers=(\w+)"
-        found = re.search(reg_ex, uri)
-        if not found:
+        url, current_layer, current_time = self.parse_wms_t_layer(layer)
+        if not url:
             return
-        url, current_layer = found.groups()
 
         # Actualitzem la capa a carregar
-        new_uri = uri.replace("layers=%s" % current_layer, "layers=%s" % layer_id)
+        new_uri = layer.dataProvider().dataSourceUri()
+        new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
+        if wms_time:
+            new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
+
         layer.dataProvider().setDataSourceUri(new_uri)
         layer.triggerRepaint()
 
@@ -4030,8 +4065,11 @@ class DebugBase(object):
         self.timestamps = []
 
         # Obtenim el timestamp d'inici de QGIS
-        timestamp_text = os.environ.get(timestamp_env, '').replace(',', '.')
-        timestamp = datetime.datetime.strptime(timestamp_text, timestamp_format) if timestamp_text else None
+        timestamp_text = os.environ.get(timestamp_env, '.').split('.')[1]
+        try:
+            timestamp = datetime.datetime.strptime(timestamp_text, timestamp_format) if timestamp_text else None
+        except Exception as e:
+            timestamp = None
         if timestamp:
             self.add_timestamp(description if description else "QGIS ini", timestamp)
 
@@ -4055,13 +4093,13 @@ class DebugBase(object):
             ---
             Prints console information for existing timestamps
             """
-        print(self.get_timestamps(info))
+        print(self.get_timestamps_info(info))
 
 
 class ToolsBase(object):
     # Components a desactivar de QGIS per defecte
     disable_menus_ids = [u'mProjectMenu', u'mEditMenu', u'mViewMenu', u'mLayerMenu', u'mSettingsMenu', u'mPluginMenu', u'mVectorMenu',
-        u'mRasterMenu', u'processing', u'mHelpMenu'
+        u'mRasterMenu', u'processing', u'mHelpMenu', u'mDatabaseMenu', u'mWebMenu', u'mMeshMenu'
         ]
     #disable_menus_titles = [
     #    u'P&roject', u'&Edit', u'&View', u'&Layer', u'&Settings', u'&Plugins', u'Vect&or',
@@ -4077,7 +4115,8 @@ class ToolsBase(object):
         # u'mDigitizeToolBar',
         u'mAdvancedDigitizeToolBar',
         # u'mMapNavToolBar', u'mAttributesToolBar',
-        u'mPluginToolBar', u'mHelpToolBar', u'mRasterToolBar', u'mLabelToolBar', u'mVectorToolBar', u'mDatabaseToolBar', u'mWebToolBar'
+        u'mPluginToolBar', u'mHelpToolBar', u'mRasterToolBar', u'mLabelToolBar', u'mVectorToolBar', u'mDatabaseToolBar', u'mWebToolBar',
+        u'mSnappingToolBar', u'mDataSourceManagerToolBar', u'mShapeDigitizeToolBar'
         ]
     #disable_toolbars_titles = [
     #    u'File', u'Manage Layers', u'Digitizing', u'Advanced Digitizing',
@@ -4129,6 +4168,7 @@ class ToolsBase(object):
 
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
+        QgsProject.instance().layerRemoved.connect(self.on_layer_removed)
 
     def remove(self):
         """ Desmapeja l'event de canvi de capa activa
@@ -4136,6 +4176,7 @@ class ToolsBase(object):
             Unmap changes current layer event
             """
         self.iface.layerTreeView().currentLayerChanged.disconnect(self.on_change_current_layer)
+        QgsProject.instance().layerRemoved.disconnect(self.on_layer_removed)
         if self.time_series_dialog:
             self.time_series_dialog.close()
         if self.transparency_dialog:
@@ -4147,14 +4188,14 @@ class ToolsBase(object):
             Add a shortcut to show / hide QGIS menus / toolbars
             """
         #Creem un shortcut per activer les opcions per defecte de QGIS
-        self.add_shortcut(description, keyseq, self.toggle_QGIS_options)
+        self.parent.gui.add_shortcut(description, keyseq, self.toggle_QGIS_options)
 
     def toggle_QGIS_options(self, hide_not_remove = None):
         """ Mostra / Oculta els menús / toolbars de QGIS (canvia l'estat previ)
             ---
             Show / Hide QGIS menus / toolbars (change previous state)
             """
-        actions_name = [a.text() for a in self.iface.mainWindow().menuBar().actions()]
+        actions_name = [a.text() for a in self.iface.mainWindow().menuBar().actions() if a.isVisible()]
         is_plugins_menu = self.iface.pluginMenu().title() in actions_name
         # Gestionem les opcions per defecte de QGIS
         if is_plugins_menu:
@@ -4248,23 +4289,28 @@ class ToolsBase(object):
             ---
             Add a shortcut to organize the QGIS toolbar
             """
-        self.add_shortcut(description, keyseq, self.parent.gui.organize_toolbars)
+        self.parent.gui.add_shortcut(description, keyseq, self.parent.gui.organize_toolbars)
 
     def add_shortcut_console(self, description = "Consola python", keyseq = "Ctrl+Alt+F9"):
         """ Afegeix un shortcut per mostrar la consola de QGIS
             ---
             Add a shortcut to display the QGIS console
             """
-        self.add_shortcut(description, keyseq, self.parent.debug.toggle_console)
+        self.parent.gui.add_shortcut(description, keyseq, self.parent.debug.toggle_console)
 
-    def add_tool_console(self, tool_name = "&Consola de Python", toolbar_and_menu_name = "&Manteniment"):
+    def add_tool_console(self, tool_name="&Consola de Python", toolbar_name="&Manteniment", menu_name="&Manteniment", add_separator=True):
         """ Afegeix un botó per mostrar la consola de QGIS
             ---
             Add a button to display the QGIS console
             """
-        self.parent.gui.configure_GUI(toolbar_and_menu_name, [
-            (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
-            ])
+        if toolbar_name:
+            self.parent.gui.configure_toolbar(toolbar_name, [
+                (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
+                ], add_separator=add_separator)
+        if menu_name:
+            self.parent.gui.configure_menu(menu_name, [
+                (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
+                ], add_separator=add_separator)
 
     def add_tool_reload_plugins(self, tool_name = "&Recarregar plugins ICGC", toolbar_and_menu_name = "&Manteniment", plugins_id_wildcard = "qp*"):
         """ Afegeix eina per recarregar els plugins que coincideixin amb el wildcard
@@ -4312,23 +4358,21 @@ class ToolsBase(object):
         self.show_transparency_dialog(title, layer, transparency, not self.transparency_dialog.isVisible() if self.transparency_dialog else True)
 
     def show_time_series_dialog(self, layer, title=None, current_prefix="", show=True):
-        if show:
-            # Obtenim la url de la capa i la capa seleccionada
-            reg_ex = r"url=([\w:./]+).+layers=(\w+)"
-            found = re.search(reg_ex, layer.dataProvider().dataSourceUri())
-            if not found:
-                return
-            url, current_layer = found.groups()
-            # Obtenim la llista de capes temporal del diccionari de sèries temporals
-            time_series_tuple_list = self.parent.layers.time_series_dict.get(url, None)
-            if not time_series_tuple_list:
-                return
-            # Obtenim el nom de la capa actual dins de la time serie
-            current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
-            time_series_list = [name for name, layer_id in time_series_tuple_list]
-
         # Mostrem o ocultem el diàleg de sèries temporals
         if show:
+            # Obtenim la url de la capa i la capa seleccionada
+            url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
+            if not url:
+                return
+            # Obtenim la llista de capes temporal del diccionari de sèries temporals
+            time_series_tuple_list = self.parent.layers.time_series_dict.get(layer, [])
+            if not time_series_tuple_list:
+                return
+            # Obtenim el nom de la capa actual dins de la time serie (per wms-t fake)
+            if not current_time:
+                current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
+            time_series_list = [name for name, layer_id in time_series_tuple_list]
+
             # Si no tenim el diàleg el creem i el mostrem
             update_callback = lambda current_time: self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
             if not self.time_series_dialog:
@@ -4336,6 +4380,11 @@ class ToolsBase(object):
                     layer.name().replace(" [%s]" % current_time, ""), update_callback,
                     title, current_prefix, True, self.iface.mainWindow())
                 self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.time_series_dialog)
+                # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
+                # algun botó si cal... en principi això està implementat en l'event de canvi de capa
+                # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè
+                # s'executi
+                self.time_series_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
             else:
                 # Configurem el diàleg
                 if title:
@@ -4354,17 +4403,25 @@ class ToolsBase(object):
         self.show_time_series_dialog(layer, title, current_prefix, not self.time_series_dialog.isVisible() if self.time_series_dialog else True)
 
     def on_change_current_layer(self, layer):
-        """ Activa o desactiva les opcions de sèries temporals segons la capa seleccionada
+        """ Activa o desactiva les opcions de sèries temporals / transparència segons la capa seleccionada
             ---
-            Enable disable time series options according to the selected layer
+            Enable disable time series options / transparency according to the selected layer
             """
         # Disable time series dialog or refresh it
-        if not self.time_series_dialog:
-            return
-        is_wms_t = layer is not None and self.parent.layers.is_wms_t_layer(layer)
-        self.time_series_dialog.set_enabled(is_wms_t)
-        #if is_wms_t:
-        #    self.show_time_series_dialog(layer)
+        if self.time_series_dialog:
+            is_wms_t = layer is not None and self.parent.layers.is_wms_t_layer(layer)
+            self.time_series_dialog.set_enabled(is_wms_t)
+            if is_wms_t and self.time_series_dialog.isVisible():
+                self.show_time_series_dialog(layer)
+        # Refresh transparence dialog
+        if self.transparency_dialog:
+            if self.transparency_dialog.isVisible():
+                self.show_transparency_dialog(layer=layer)
+
+    def on_layer_removed(self, layer):
+        time_series_list = self.parent.layers.time_series_dict.get(layer, [])
+        if time_series_list:
+            self.parent.layers.time_series_dict.pop(layer)
 
     #def is_selected_db_styled_layers(self):
     #    """ Obtenim hi ha alguna capa seleccionada amb estil de bbdd, incloent grups

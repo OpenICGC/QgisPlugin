@@ -56,7 +56,7 @@ services_list = [
 
     # Pending revision of symbology
     #("mg50m", "Mapa Geològic 1:50.000", None, None, ["cat", "tot"], "mg50m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mg50m&Codi=%s", None),
-    #("mg250m", "Mapa Geològic 1:250.000", None, None, ["cat", "tot"], "mg250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mg250m&Codi=%s", None),
+    ("mg250m", "Mapa Geològic 1:250.000", None, None, ["cat", "tot"], "mg250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mg250m&Codi=%s", None),
 
     #("gt1", "GeoTreball 1 1:25.000", None, 1250000000, ["", "mu", "co"], "gt1.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt1&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_I", "", "image/png")),
@@ -68,8 +68,8 @@ services_list = [
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_IV", "", "image/png")),
     #("gt5", "GeoTreball 5 1:25.000", None, 1250000000, ["", "mu", "co", "cat", "tot"], "gt5.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt5&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_V", "", "image/png")),
-    #("gt6", "GeoTreball 6 1:25.000", None, 1250000000, ["", "mu", "co", "cat", "tot"], "gt6.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt6&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_VI", "", "image/png")),
+    ("gt6", "GT VI. Mapa per a la prevenció dels riscos geològics 1:25.000", None, 1250000000, ["", "mu", "co", "cat", "tot"], "gt6.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt6&Codi=%s",
+        ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_VI", "", "image/png")),
 
     #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, ["cat", "tot"], "mah250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mah250m&Codi=%s", None),
     ]
