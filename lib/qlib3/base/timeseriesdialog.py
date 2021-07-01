@@ -116,8 +116,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.update_callback = update_callback
 
         # Actualitzem el títol amb el nom de la capa
-        title = self.windowTitle().split(":")[0]
-        self.setWindowTitle("%s: %s" % (title, layer_name))
+        self.set_title(layer_name)
 
         self.time_series_list = time_series_list
         # Assignem les etiquetes
@@ -130,6 +129,10 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(len(time_series_list) - 1)
         self.set_current_time(current_time)
+
+    def set_title(self, layer_name):
+        title = self.windowTitle().split(":")[0]
+        self.setWindowTitle("%s: %s" % (title, layer_name))
 
     def set_current_time(self, current_time):
         # Canviem el valor quan és diferent de l'actual
@@ -150,7 +153,9 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         if not self.horizontalSlider.isSliderDown():
             # Modifiquem la capa referenciada
             if self.update_callback:
-                self.update_callback(self.get_current_time())
+                new_layer_name = self.update_callback(self.get_current_time())
+                if new_layer_name:
+                    self.set_title(new_layer_name)
 
     def set_enabled(self, enable=True):
         # Activa o desactiva la barra temporal

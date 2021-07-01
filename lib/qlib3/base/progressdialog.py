@@ -3,7 +3,7 @@
 *******************************************************************************
 Mòdul amb funcions i classes fer gestionar diàlegs amb progress o working bars
 ---
-Module with functions and classes to manage dialogs with progress or working 
+Module with functions and classes to manage dialogs with progress or working
 bars
                              -------------------
         begin                : 2019-01-18
@@ -40,7 +40,7 @@ class ProgressDialog(object):
         Dialog class with progressbar, % and end time estimate
         """
 
-    def __init__(self, label, num_steps, title="Processing...", cancel_button_text=None, autoclose=True, time_info="Elapsed %s. Remaining %s", parent=None):
+    def __init__(self, label, num_steps, title="Processing...", cancel_button_text=None, autoclose=False, time_info="Elapsed %s. Remaining %s", parent=None):
         """ Inicialitza un diàleg amb una progressbar a dins, cal indicar etiqueta a mostrar i nombre de passos de la barra.
             Opcionalment es pot especificar:
             - title: Títol del diàleg
@@ -58,7 +58,7 @@ class ProgressDialog(object):
             - parent: parent window of the dialog
             """
         self.time_info = time_info
-        self.app = QApplication.instance()        
+        self.app = QApplication.instance()
         self.parent = parent if parent else get_main_window()
         self.parent_was_enabled = self.parent.isEnabled() if self.parent else True
         self.autoclose = autoclose
@@ -75,24 +75,24 @@ class ProgressDialog(object):
                     else:
                         ##print("restore")
                         parent.setWindowState(Qt.WindowNoState)
-                elif event.type() == event.Close:
-                    ##print("close")
-                    pass
-                elif event.type() == event.Hide:
-                    ##print("hide")
-                    pass
-            def closeEvent(self, event):
-                ##print("close2")
-                pass
-            def reject(self):
-                ##print("reject")
-                pass
-            def cancel(self):
-                ##print("cancel")
-                pass
-            def canceled(self):
-                ##print("canceled")
-                pass
+            #    elif event.type() == event.Close:
+            #        ##print("close")
+            #        pass
+            #    elif event.type() == event.Hide:
+            #        ##print("hide")
+            #        pass
+            #def closeEvent(self, event):
+            #    ##print("close2")
+            #    pass
+            #def reject(self):
+            #    ##print("reject")
+            #    pass
+            #def cancel(self):
+            #    ##print("cancel")
+            #    pass
+            #def canceled(self):
+            #    ##print("canceled")
+            #    pass
         self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent, Qt.Dialog | Qt.WindowTitleHint | Qt.WindowMinimizeButtonHint)
         self.dlg.resize(400, self.dlg.height())
 
@@ -107,7 +107,7 @@ class ProgressDialog(object):
         self.bar = [c for c in self.dlg.children() if type(c) == QProgressBar][0]
 
         # Mostrem el diàleg
-        self.show();
+        self.show()
 
     def __enter__(self):
         return self
@@ -131,7 +131,7 @@ class ProgressDialog(object):
         self.app.processEvents()
 
     def close(self):
-        """ Tanca el diàleg 
+        """ Tanca el diàleg
             ---
             Close the dialog
             """
@@ -166,8 +166,11 @@ class ProgressDialog(object):
         self.update_time()
         self.app.processEvents()
         # Quan es tanca sol el diàleg de progress ens podem deixar el programa bloquejat, això ho evitarà
-        if self.autoclose and not self.dlg.isVisible():
-            self.__post_close__()
+        if self.autoclose:
+           if not self.dlg.isVisible():
+               self.__post_close__()
+           #if self.dlg.value() == self.dlg.maximum():
+           #  self.close()
 
     def get_value(self):
         """ Retorna la posició actual de progress bar
@@ -177,22 +180,29 @@ class ProgressDialog(object):
         return self.dlg.value()
 
     def step_it(self, steps=1):
-        """ Avança la posició de la progressbar "steps" vegades 
+        """ Avança la posició de la progressbar "steps" vegades
             ---
             Move progressbar position "steps" times
             """
-        self.set_value(self.get_value() + steps)
+        self.set_value(min(self.get_value() + steps, self.dlg.maximum()))
 
     def set_label(self, label):
-        """ Canvia la etiqueta informativa del diàleg 
+        """ Canvia la etiqueta informativa del diàleg
             ---
             Change informative dialog label
             """
-        self.dlg.setLabelText("%s\n%s" % (label, self.get_time_info()))
+        self.dlg.setLabelText("%s\n%s %s" % (label, self.get_position_info(), self.get_time_info()))
         self.app.processEvents()
 
+    def get_position_info(self):
+        """ Retorna informació de la poció de la progresbar ens trobem
+            ---
+            Return progressbar position info
+            """
+        return ("(%d/%d) " % (self.get_value(), self.dlg.maximum())) if self.dlg.maximum() else ""
+
     def get_label(self):
-        """ Retorna la etiqueta informativa del diàleg 
+        """ Retorna la etiqueta informativa del diàleg
             ---
             Get informative dialog label text
             """
@@ -200,7 +210,7 @@ class ProgressDialog(object):
         return full_label[:full_label.rfind('\n')]
 
     def was_canceled(self):
-        """ Retorna si s'ha apretat el botó de cancelar 
+        """ Retorna si s'ha apretat el botó de cancelar
             ---
             Returns if the cancel button has been pressed
             """
@@ -216,7 +226,7 @@ class ProgressDialog(object):
         self.set_label(self.get_label()) # Força actualitzar el temps
 
     def get_begin_time(self):
-        """ Retorna el temps d'inici de procés 
+        """ Retorna el temps d'inici de procés
             ---
             Returns the start time of the process
             """
@@ -230,7 +240,7 @@ class ProgressDialog(object):
         return self.time_last
 
     def get_elapsed_time(self):
-        """ Retorna el temps transcorregut des de l'inici de procés 
+        """ Retorna el temps transcorregut des de l'inici de procés
             ---
             Returns the time elapsed since the beginning of the process
             """
@@ -257,7 +267,7 @@ class ProgressDialog(object):
         return self.get_average_time() * (self.dlg.maximum() - self.get_value())
 
     def get_time_info(self):
-        """ Retorna informació del temps transcorregut i temps restant 
+        """ Retorna informació del temps transcorregut i temps restant
             ---
             Returns information about the time elapsed and the remaining time
             """
@@ -268,7 +278,7 @@ class ProgressDialog(object):
             return self.time_info.split("%s")[0]+"%s" % (self.get_delta_info(self.get_elapsed_time()))
 
     def get_delta_info(self, delta):
-        """ Formateja una diferència de temps 
+        """ Formateja una diferència de temps
             ---
             Format a time difference
             """
@@ -329,7 +339,7 @@ class WorkingDialog(ProgressDialog):
         self.bar.setTextVisible(False)
 
 def execute_fx_with_workingbar(fx, label, title = u"Processant...", cancel_button_text = None):
-    """ Executa una funció obrint prèviament un working dialog i tancant-lo al finalitzar 
+    """ Executa una funció obrint prèviament un working dialog i tancant-lo al finalitzar
         ---
         Run a function by opening a working dialog and closing it at the end
         """
@@ -345,7 +355,7 @@ def execute_fx_with_workingbar(fx, label, title = u"Processant...", cancel_butto
         while t1.is_alive() and not progress.was_canceled():
             progress.step_it()
             time.sleep(0.05)
-    
+
     return fx_return.return_value
 
 

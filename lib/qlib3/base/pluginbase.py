@@ -35,17 +35,18 @@ import zipfile
 #import ogr
 from osgeo import ogr
 
-from PyQt5.QtCore import Qt, QSize, QTimer, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton, QSlider
-from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QWidget, QComboBox, QDockWidget, QShortcut
-from PyQt5.QtGui import QPainter, QCursor, QIcon, QPixmap, QColor, QKeySequence
+from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
+from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
+from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
+from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence
 from PyQt5.QtXml import QDomDocument
 
-from qgis.gui import QgsProjectionSelectionTreeWidget
+from qgis.gui import QgsProjectionSelectionTreeWidget, QgsAttributeDialog
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsContrastEnhancement
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
-from qgis.core import QgsLayerDefinition, QgsReadWriteContext
-from qgis.core import QgsSymbol, QgsRendererCategory, QgsCategorizedSymbolRenderer
+from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap
+from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext
+from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -79,6 +80,58 @@ reload(download)
 from .download import DownloadManager
 
 
+###############################################################################
+# Overwrite QGIS function than it don't works in QGIS3.18/windows
+from qgis.PyQt.QtCore import QLocale, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+def showPluginHelp(packageName: str = None, filename: str = "index", section: str = ""):
+    """Open help in the user's html browser. The help file should be named index-ll_CC.html or index-ll.html or index.html.
+
+    :param str packageName: name of package folder, if None it's using the current file package. Defaults to None. Optional.
+    :param str filename: name of file to open. It can be a path like 'doc/index' for example. Defaults to 'index'.
+    :param str section: URL path to open. Defaults to empty string.
+    """
+    try:
+        source = ""
+        if packageName is None:
+            import inspect
+
+            source = inspect.currentframe().f_back.f_code.co_filename
+        else:
+            source = sys.modules[packageName].__file__
+    except:
+        return
+    path = os.path.dirname(source)
+    locale = str(QLocale().name())
+    helpfile = os.path.join(path, filename + "-" + locale + ".html")
+    if not os.path.exists(helpfile):
+        helpfile = os.path.join(path, filename + "-" + locale.split("_")[0] + ".html")
+    if not os.path.exists(helpfile):
+        helpfile = os.path.join(path, filename + "-en.html")
+    if not os.path.exists(helpfile):
+        helpfile = os.path.join(path, filename + "-en_US.html")
+    if not os.path.exists(helpfile):
+        helpfile = os.path.join(path, filename + ".html")
+    if os.path.exists(helpfile):
+        #url = "file://" + helpfile
+        #if section != "":
+        #    url = url + "#" + section
+        #QDesktopServices.openUrl(QUrl(url))
+        url = QUrl.fromLocalFile(helpfile)
+        if section != "":
+            url.setFragment(section)
+        QDesktopServices.openUrl(url)
+###############################################################################
+
+
+class WaitCursor:
+    def __enter__(self):
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+
+    def __exit__(self, type, value, traceback):
+        QApplication.restoreOverrideCursor()
+
+
 class GuiBase(object):
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare i a l'iface.
@@ -93,6 +146,7 @@ class GuiBase(object):
         # Inicialitzem les llistes d'elements de la GUI que gestionem
         self.toolbars = []
         self.menus = []
+        self.disable_unmapped_gui = False # Desactiva les opcions de menú / toolbar que no tinguin callback o submenús
         self.shortcuts = []
         self.action_plugin = None # Entrada al menú de plugins
         self.actions = [] # Parelles (menu, acció)
@@ -246,8 +300,9 @@ class GuiBase(object):
                 else:
                     # Submenú
                     submenu = QMenu()
-                    action.setMenu(submenu)
                     self.add_to_menu(submenu, subentries_list)
+                    # Guardem el submenu (si no, si està buit, dóna problemes afegint-lo a un menú)
+                    self.menus.append(submenu)
                     # Depenent de si tenim toolbar o menu pare, fem una cosa o un altre
                     if type(menu_or_toolbar) == QToolBar:
                         toolButton = QToolButton()
@@ -262,15 +317,20 @@ class GuiBase(object):
                             subaction = menu_or_toolbar.addWidget(toolButton)
                     # Depenent de si tenim toolbar o menu pare, fem una cosa o un altre
                     elif type(menu_or_toolbar) == QMenu:
-                        submenu.setTitle(name)
-                        if icon:
-                            submenu.setIcon(icon)
+                        action.setMenu(submenu)
+                        #submenu.setTitle(name)
+                        #if icon:
+                        #    submenu.setIcon(icon)
                         if ref_action:
                             subaction = menu_or_toolbar.insertMenu(ref_action, submenu)
                         else:
                             subaction = menu_or_toolbar.addMenu(submenu)
-                    # Guardem el submenu (si no, si està buit, dóna problemes afegint-lo a un menú)
-                    self.menus.append(submenu)
+                    if id:
+                        subaction.setObjectName(id)
+                    if not enabled:
+                        subaction.setEnabled(False)
+                    if checkable:
+                        subaction.setCheckable(True)
                     self.actions.append((menu_or_toolbar, subaction))
 
             # Activem / desactivem, checkable o no
@@ -310,17 +370,17 @@ class GuiBase(object):
             Exemple2:
                 [
                     ("&Ortofoto color",
-                        lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "http://mapcache.icc.cat/map/bases/service", ["orto"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
+                        lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service", ["orto"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")),
                     ("Ortofoto &infraroja",
-                        lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "http://shagrat.icc.cat/lizardtech/iserv/ows", ["ortoi5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
+                        lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "https://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["ortoi5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
                     ("Ortofoto &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), [ # Subnivell
                         ("&Ortofoto 1:5.000 vol americà sèrie B blanc i negre",
-                            lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie B 1:5.000 BN", "http://historics.icc.cat/lizardtech/iserv/ows",  ["ovab5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
+                            lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie B 1:5.000 BN", "https://geoserveis.icgc.cat/icc_ortohistorica/wms/service",  ["ovab5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
                             QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                         ("&Ortofoto 1:10.000 vol americà sèrie A blanc i negre (1945-1946)",
-                            lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie A 1:10.000 BN", "http://historics.icc.cat/lizardtech/iserv/ows", ["ovaa10m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
+                            lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie A 1:10.000 BN", "https://geoserveis.icgc.cat/icc_ortohistorica/wms/service", ["ovaa10m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
                             QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                         ]), # Fi de subnivell
                     "---", # Separador
@@ -384,7 +444,10 @@ class GuiBase(object):
                                         if len(entry) > 6:
                                             if type(entry[6]) == list:
                                                 subentries_list = entry[6]
-
+        # Si la entradano té callback (i no és un control) la desactivem
+        if self.disable_unmapped_gui and not separator and not label and not action and not control and not callback \
+            and not toggle_callback and not subentries_list:
+            enabled = False
         return separator, label, action, control, name, callback, toggle_callback, icon, enabled, checkable, id, subentries_list
 
     def find_action(self, id, actions_list=None):
@@ -395,9 +458,22 @@ class GuiBase(object):
         if not actions_list:
             actions_list = [action for menu_or_toolbar, action in self.actions]
         for action in actions_list:
-            if action.objectName() == id:
+            if action and action.objectName() == id:
                 return action
         return None
+
+    def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True):
+        """ Activa una llista d'items pel seu id d'una toolbar
+            --- 
+            Activates toolbars items by id
+            """
+        actions_list = [action for action in menu_or_toolbar.actions() if action.objectName() in items_id_list]
+        for action in actions_list:
+            if type(action) == QWidgetAction:
+                action.defaultWidget().defaultAction().setEnabled(enable)
+            else:
+                action.setEnabled(enable)
+        return len(actions_list)
 
     ###########################################################################
     # Menus
@@ -453,6 +529,16 @@ class GuiBase(object):
             """
         self.insert_at_GUI(menu, position, names_callbacks)
 
+    def clear_menu(self, menu):
+        """ Esborra els items d'un menu
+            ---
+            Clear menu items
+            """
+        # Desregistrem les accions del menú existents
+        self.actions = list(set(self.actions) - set([(menu, action) for action in menu.actions()]))
+        # Esborrem els items del menú
+        menu.clear()
+
     def get_menus(self):
         """ Retorna la llista del menus visibles a la GUI
             ---
@@ -472,6 +558,19 @@ class GuiBase(object):
             return menus[pos]
         else:
             return None
+
+    def enable_menu_items(self, menu, items_id_list, enable=True):
+        return self.enable_gui_items(menu, items_id_list, enable)
+
+    def enable_menu_items_by_name(self, menu_name, items_id_list, enable=True):
+        """ Activa una llista d'items pel seu id d'una toolbar pel seu nom
+            --- 
+            Activates toolbars items by id and toolbar_name
+            """
+        menu = self.get_menu_by_name(menu_name)
+        if not menu:
+            return 0
+        return self.enable_menu_items(menu, items_id_list, enable)
 
     ###########################################################################
     # Toolbars
@@ -602,6 +701,8 @@ class GuiBase(object):
         action = self.find_action(item_id)
         if not action:
             return False
+        if type(action) == QWidgetAction:
+            action = action.defaultWidget().defaultAction()
         action.setIcon(icon)
         if tooltip_text is not None:
             action.setToolTip(tooltip_text)
@@ -616,6 +717,8 @@ class GuiBase(object):
         action = self.find_action(item_id)
         if not action:
             return False
+        if type(action) == QWidgetAction:
+            action = action.defaultWidget().defaultAction()
         action.setCheckable(True)
         if check is None:
             check = not action.isChecked()
@@ -632,6 +735,8 @@ class GuiBase(object):
         action = self.get_toolbar_action_by_item_name(toolbar, item_name, item_pos)
         if not action:
             return False
+        if type(action) == QWidgetAction:
+            action = action.defaultWidget().defaultAction()
         action.setCheckable(True)
         if check is None:
             check = not action.isChecked()
@@ -668,6 +773,19 @@ class GuiBase(object):
         if not toolbar:
             return False
         return self.enable_toolbar_item_by_item_name(toolbar, item_name, enable, item_pos)
+
+    def enable_toolbar_items_by_name(self, toolbar_name, items_id_list, enable=True):
+        """ Activa una llista d'items pel seu id d'una toolbar pel seu nom
+            --- 
+            Activates toolbars items by id and toolbar_name
+            """
+        toolbar = self.get_toolbar_by_name(toolbar_name)
+        if not toolbar:
+            return 0
+        return self.enable_toolbar_items(toolbar, items_id_list, enable)
+
+    def enable_toolbar_items(self, toolbar, items_id_list, enable=True):
+        return self.enable_gui_items(toolbar, items_id_list, enable)
 
     def organize_toolbars(self):
         """ Organitza les toolbars dins l'espai disponible
@@ -902,7 +1020,7 @@ class LayersBase(object):
             ---
             Refresh the content of the map, if it is specified that you wait, the function does not return until the end event is received
             """
-        self.iface.mapCanvas().refresh()
+        self.iface.mapCanvas().refreshAllLayers()
         if wait_refreshed:
             # Espera a que es refresqui el mapa
             self.map_refreshed = False
@@ -997,6 +1115,24 @@ class LayersBase(object):
             Returns a list with the specified attributes of the elements of the indicated layer
             """
         return self.__get_attributes([layer], fields_name_list, False, None, None, max_items)
+
+    def get_attribute_by_id(self, layer_idprefix, field_name, max_items=None, pos=0):
+        """ Retorna una llista amb l¡atribut especificat dels elements de la capa indicada a partir del seu id
+            ---
+            Returns a list with the specified attribute of the elements of the indicated layer based on its id
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return []
+        return self.get_attribute(layer, field_name, max_items)
+
+    def get_attribute(self, layer, field_name, max_items=None):
+        """ Retorna una llista amb l'atribut especificat dels elements de la capa indicada
+            ---
+            Returns a list with the specified attribute of the elements of the indicated layer
+            """
+        attributes_tuple_list = self.get_attributes(layer, [field_name], max_items)
+        return [attributes_tuple[0] for attributes_tuple in attributes_tuple_list]
 
     def get_attribute_selection_by_id(self, layer_idprefix, field_name, error_function=None, error_message=None, max_items=None):
         """ Retorna una llista amb l'atribut especificat dels elements seleccionats a QGIS de la capa indicada
@@ -1630,7 +1766,7 @@ class LayersBase(object):
             ---
             Collapse or expand a layer for id
             """
-        return self.expand_by_id(layer_base, not collapse, pos)
+        return self.expand_by_id(layer_basename, not collapse, pos)
 
     def collapse(self, layer, collapse=True):
         """ Colapsa o expandeix una capa
@@ -1658,7 +1794,10 @@ class LayersBase(object):
         self.root.findLayer(layer.id()).setExpanded(expand)
 
     def is_expanded_by_id(self, layer_basename, pos=0):
-        """ Retorna si una capa està expandida per id """
+        """ Retorna si una capa està expandida per id 
+            ---
+            Returns if a layer is expanded by id
+            """
         layer = self.get_by_id(layer_basename, pos)
         if not layer:
             return None
@@ -1667,54 +1806,159 @@ class LayersBase(object):
     def is_expanded(self, layer):
         """ Informa de si una capa està expandida
             ---
-            Returns if a layer is expanded by id
+            Returns if a layer is expanded
             """
-        self.root.findLayer(layer.id()).isExpanded()
+        return self.root.findLayer(layer.id()).isExpanded()
 
-    def classification_by_id(self, layer_basename, values_list, color_list=None, transparency_list=None, width_list=None, pos=0):
-        """ Classifica els valors d'una capa per id segons la llista de valors.
+    def enable_feature_count_by_id(self, layer_basename, enable=True, pos=0):
+        """ Activa o desactiva el comptador d'elements d'una capa per id
+            ---
+            Enable or disable layer item's counter from id
+            """
+        layer = self.get_by_id(layer_basename, pos)
+        if not layer:
+            return False
+        return self.enable_feature_count(layer, enable)
+
+    def enable_feature_count(self, layer, enable=True):
+        """ Activa o desactiva el comptador d'elements d'una capa
+            ---
+            Enable or disable layer item's counter
+            """
+        root = QgsProject.instance().layerTreeRoot()
+        layer_node = root.findLayer(layer.id())
+        if not layer_node:
+            return False
+        layer_node.setCustomProperty("showFeatureCount", enable)
+        return True
+
+    def get_category_nodes_by_id(self, layer_basename, pos=0):
+        """ Obté les categories d'una capa per id
+            ---
+            Gets layer categories by id
+            """
+        layer = self.get_by_id(layer_basename, pos)
+        if not layer:
+            return []
+        return self.get_category_nodes(layer)
+
+    def get_category_nodes(self, layer):
+        """ Obté les categories d'una capa
+            ---
+            Gets layer categories
+            """
+        root = QgsProject.instance().layerTreeRoot()
+        layer_node = root.findLayer(layer.id())
+        model = self.iface.layerTreeView().model().sourceModel()
+        cat_nodes_list = model.layerLegendNodes(layer_node)
+        return cat_nodes_list
+
+    #def classification_by_id(self, layer_basename, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0):
+    #    """ Classifica els valors d'una capa per id segons la llista de valors.
+    #        Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
+    #        (si és més curta que el nombre de valors, es repetiran colors utilitzant l'operador de mòdul)
+    #        ---
+    #        Classify the values of a layer by id according to the list of values.
+    #        Additionally you can pass a list of colors to apply, transparency or width
+    #        (if it is shorter than the number of values, colors will be repeated using module operator)
+    #        """
+    #    layer = self.get_by_id(layer_basename, pos)
+    #    if not layer:
+    #        return False
+    #    self.classification(layer, values_list, color_list, border_color_list, transparency_list, width_list)
+    #    return True
+
+    #def classification(self, layer, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None):
+    #    """ Classifica els valors d'una capa segons la llista de valors.
+    #        Addicionalment se li pot passar una llista de colors, transparència o amplada a aplicar
+    #        (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+    #        ---
+    #        Classify the values of a layer according to the list of values.
+    #        Additionally you can pass a list of colors to apply, transparency or width
+    #        (if it is shorter than the number of values, colors will be repeated using module operator)
+    #        """
+    #    # Esborrem la classificació per categories prèvia
+    #    renderer = layer.renderer()
+    #    renderer.deleteAllCategories()
+    #    # Afegim un categoria per cada data
+    #    for i, value in enumerate(values_list):
+    #        symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+    #        if color_list:
+    #            color = color_list[i % len(color_list)]
+    #            symbol.setColor(color)
+    #        if border_color_list:
+    #            color = border_color_list[i % len(border_color_list)]
+    #            symbol.symbolLayer(0).setStrokeColor(color)
+    #        if transparency_list:
+    #            transparency = transparency_list[i % len(transparency_list)]
+    #            symbol.setOpacity(transparency)
+    #        if width_list:
+    #            width = width_list[i % len(width_list)]
+    #            if type(symbol) == QgsMarkerSymbol:
+    #                symbol.setSize(width)
+    #            else:
+    #                symbol.setWidth(width)
+    #        cat = QgsRendererCategory(value, symbol, value)
+    #        renderer.addCategory(cat)
+    #
+    #    # Activem la capa i refresquem la seva llegenda
+    #    show = self.is_visible(layer)
+    #    if not show:
+    #        self.set_visible(layer, True)
+    #    self.refresh_legend(layer)
+    #    if not show:
+    #        self.set_visible(layer, False)
+
+    def classification_ranges_by_id(self, layer_basename, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0):
+        """ Classifica els valors d'una capa per id segons la llista de rang de valors.
             Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant l'operador de mòdul)
             ---
-            Classify the values of a layer by id according to the list of values.
+            Classify the values of a layer by id according to the list of value ranges.
             Additionally you can pass a list of colors to apply, transparency or width
             (if it is shorter than the number of values, colors will be repeated using module operator)
             """
         layer = self.get_by_id(layer_basename, pos)
         if not layer:
             return False
-        self.classification(layer, values_list, color_list, transparency_list, width_list)
+        self.classification_ranges(layer, class_attribute, ranges_list, color_list, border_color_list, transparency_list, width_list)
         return True
 
-    def classification(self, layer, values_list, color_list=None, transparency_list=None, width_list=None):
-        """ Classifica els valors d'una capa segons la llista de valors.
+    def classification_ranges(self, layer, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None):
+        """ Classifica els valors d'una capa segons la llista de rang de valors.
             Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
             ---
-            Classify the values of a layer according to the list of values.
+            Classify the values of a layer according to the list of value ranges.
             Additionally you can pass a list of colors to apply, transparency or width
             (if it is shorter than the number of values, colors will be repeated using module operator)
             """
-        # Esborrem la classificació per categories prèvia
-        renderer = layer.renderer()
-        renderer.deleteAllCategories()
         # Afegim un categoria per cada data
-        for i, value in enumerate(values_list):
+        renderers_list = []
+        for i, (begin_value, end_value) in enumerate(ranges_list):
             symbol = QgsSymbol.defaultSymbol(layer.geometryType())
             if color_list:
                 color = color_list[i % len(color_list)]
                 symbol.setColor(color)
+            if border_color_list:
+                color = border_color_list[i % len(border_color_list)]
+                symbol.symbolLayer(0).setStrokeColor(color)
             if transparency_list:
                 transparency = transparency_list[i % len(transparency_list)]
                 symbol.setOpacity(transparency)
             if width_list:
                 width = width_list[i % len(width_list)]
-                symbol.setWidth(width)
+                if type(symbol) == QgsMarkerSymbol:
+                    symbol.setSize(width)
+                else:
+                    symbol.setWidth(width)
+            renderers_list.append(QgsRendererRange(begin_value, end_value, symbol, "%f - %f" % (begin_value, end_value)))
 
-            cat = QgsRendererCategory(value, symbol, value)
-            renderer.addCategory(cat)
+        # Assignem la visualització per rangs a la capa
+        renderer = QgsGraduatedSymbolRenderer(class_attribute, renderers_list)
+        layer.setRenderer(renderer)
 
-        # Activem la capa de canvis de protocostures i refresquem la seva llegenda
+        # Activem la capa i refresquem la seva llegenda
         show = self.is_visible(layer)
         if not show:
             self.set_visible(layer, True)
@@ -1722,50 +1966,89 @@ class LayersBase(object):
         if not show:
             self.set_visible(layer, False)
 
-    def classify_by_id(self, layer_idprefix, class_attribute, values_list=None, color_list=None, expand=None, width=None, alpha=None, use_current_symbol=False, base_symbol=None, pos=0):
+    def classify_by_id(self, layer_idprefix, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, alpha=None, use_current_symbol=True, base_symbol=None, pos=0, label_function=None, alpha_fill=None):
         """ Classifica els valors d'una capa per id segons la llista de valors i un camp de la capa.
             Addicionalment se li pot passar una llista de colors a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
+            label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
+            alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
             ---
             Classify the values of a layer by id according to the values list and a layer field.
             Additionally you can pass a list of colors to apply
             (if it is shorter than the number of values, colors will be repeated using module)
+            class_attribute: if not given, the old categories will be used as a starting point
+            label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
+            alpha_fill: set opacity only to the fill (e.g.: highlight borders when footprints have transparency)
             """
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        self.classify(layer, class_attribute, values_list, color_list, expand, width, alpha, use_current_symbol, base_symbol)
+        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, alpha, use_current_symbol, base_symbol, label_function, alpha_fill)
         return True
 
-    def classify(self, layer, class_attribute, values_list=None, color_list=None, expand=None, width=None, alpha=None, use_current_symbol=False, base_symbol=None):
+    def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False):
         """ Classifica els valors d'una capa segons la llista de valors i un camp de la capa.
             Addicionalment se li pot passar una llista de colors a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
+            label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
+            alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
             ---
             Classify the values of a layer, according to the values list and a layer field.
             Additionally you can pass a list of colors to apply
             (if it is shorter than the number of values, colors will be repeated using module)
+            class_attribute: if not given, the old categories will be used as a starting point
+            label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
+            alpha_fill: set opacity only to the fill (e.g.: highlight borders when footprints have transparency)
             """
-        # Esborrem la classificació per categories prèvia
-        renderer = QgsCategorizedSymbolRenderer(class_attribute, [])
+        # Guardo l'estat de la capa (de vegades en reclassificar es perd)
+        layer_is_expanded = self.is_expanded(layer)
 
-        # Si hem d'aprofitar simbols, en guardem un base_symbol
-        if use_current_symbol:
-            base_symbol = layer.renderer().symbols()[0]
+        # Recupera el renderer o crea un de nou
+        if hasattr(layer.renderer(), 'categories'):
+            # Aprofita el renderer antic (així conservem propietats com el base_symbol)
+            renderer = layer.renderer()
+            if class_attribute:
+                # Inicialitza una nova classificació amb el camp que ens passen
+                renderer.deleteAllCategories()
+                renderer.setClassAttribute(class_attribute)
+            else:
+                # Parteix de la classificació antiga tal qual (després afegirem o eliminarem classes)
+                class_attribute = renderer.classAttribute()
+        else:
+            # Crea un nou renderer des de zero (l'antic no era tipus Categorized)
+            renderer = QgsCategorizedSymbolRenderer(class_attribute, [])
 
-        # Si no tenim dades, ja hem acabat
+        # Si no tenim llista de valors, la generem
         if not values_list:
-            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             field_pos = layer.fields().indexFromName(class_attribute)
-            values_list = sorted(list(set([f.attributes()[field_pos] for f in layer.getFeatures() if f.attributes()[field_pos]])))
-            QApplication.restoreOverrideCursor()
+            values_list = list(set([f.attributes()[field_pos] for f in layer.getFeatures() if f.attributes()[field_pos]]))
 
-        # Si no tenim llista de colors, generarem una llista aleatoria de colors
+        # Partim de la classificació existent i mirem si falten o sobren categories
+        delete_list = []
+        if len(renderer.categories()):
+            old_categories_list = [c.value() for c in renderer.categories()]
+            delete_list = [c for c in old_categories_list if not c in values_list] # Categories que sobren (les eliminarem)
+            values_list = [v for v in values_list if not v in old_categories_list] # Categories que falten (les crearem)
+
+        # Si hem d'aprofitar símbols, ens guardem un base symbol. Cal clonar-lo ara, si no de vegades QGIS peta vilment
+        if use_current_symbol:
+            # Prioritzem el símbol base de la capa. Si no està definit, agafem el de la primera categoria
+            #if renderer.sourceSymbol() and False:
+            #    base_symbol = renderer.sourceSymbol().clone()
+            if len(renderer.symbols(QgsRenderContext())):
+                base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
+
+        # Detectem si els color d'omplir i el de border són el mateix
+        linked_colors = base_symbol and not border_color_list and base_symbol.color().rgb() == base_symbol.symbolLayer(0).strokeColor().rgb()
+
+        # Si no tenim llista de colors, generarem una llista aleatòria
         if not color_list:
-            colors = []
-            color = None
+            # Recupero els colors de la classificació antiga (si n'hi ha)
+            used_colors = [QColor(category.symbol().color()) for category in renderer.categories()]
 
-        # Afegim un categoria per cada data
+        # Afegim una categoria per cada valor nou
         for i, value in enumerate(values_list):
             # Obtenim el color a aplicar
             if color_list:
@@ -1773,30 +2056,187 @@ class LayersBase(object):
                 color = color_list[i % len(color_list)]
             else:
                 # Calculem un color random no repetit
-                while color in colors or not color:
+                color = None
+                while color in used_colors or not color:
                     color = QColor.fromRgb(random.randint(0,255), random.randint(0,255), random.randint(0,255)) # Color aleatori
-                colors.append(color)
-            # Generem el símbol
-            if base_symbol:
-                symbol = base_symbol.clone()
+                used_colors.append(color)
+            # Obtenim el color de borde
+            if border_color_list:
+                border_color = border_color_list[i % len(border_color_list)]
+            elif linked_colors:
+                border_color = QColor(color)
             else:
-                symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+                border_color = None           
+            
+            # Recupera la transparència del color d'emplenament original (en crear un nou color es perd)
+            if base_symbol:
+                color.setAlpha(base_symbol.color().alpha())
+
+            # Generem el símbol
+            symbol = base_symbol.clone() if base_symbol else QgsSymbol.defaultSymbol(layer.geometryType())
             symbol.setColor(color)
-            symbol.symbolLayer(0).setStrokeColor(color)
-            if alpha:
+
+            # Aplica estils opcionals al símbol
+            # pinta les línies
+            if border_color:
+                symbol.symbolLayer(0).setStrokeColor(border_color)
+            if alpha is not None:
+                # aplica transparència al símbol sencer
                 symbol.setOpacity(alpha)
-            if width:
-                symbol.setWidth(width)
+            if alpha_fill is not None:
+                # aplica transparència a l'emplenament
+                color.setAlpha(alpha_fill*100)
+                symbol.symbolLayer(0).setFillColor(color)
+            if width is not None:
+                if type(symbol) == QgsFillSymbol:
+                    symbol.symbolLayer(0).setStrokeWidth(width)
+                else:
+                    symbol.setWidth(width)
+
+            # Generem l'etiqueta a partir del valor
+            label = label_function(value) if label_function else value
+
             # Creem la categoria
-            cat = QgsRendererCategory(value, symbol, unicode(value))
+            cat = QgsRendererCategory(value, symbol, unicode(label))
             renderer.addCategory(cat)
+
+        # Eliminem categories sense dades
+        if len(delete_list):
+            for value in delete_list:
+                index = renderer.categoryIndexForValue(value)
+                renderer.deleteCategory(index)
+
+        # Ordenem categories. Cal guardar l'estat de les caselles de renderització (en ordenar es perd)
+        if sort:
+            state_dict = {c.value(): c.renderState() for c in renderer.categories()}
+            renderer.sortByLabel()
+            for category in renderer.categories():
+                index = renderer.categoryIndexForValue(category.value())
+                renderer.updateCategoryRenderState(index, state_dict[category.value()])
 
         # Refresquem la capa
         layer.setRenderer(renderer)
         layer.triggerRepaint()
 
         # Refresquem la llegenda
-        self.refresh_legend(layer, expanded = expand if expand else self.is_expanded(layer))
+        self.refresh_legend(layer, expanded = expand if expand is not None else layer_is_expanded)
+
+    def delete_categories_by_id(self, layer_idprefix, values_list, pos=0):
+        """ Elimina les categories d'una capa per id segons la llista de valors i un camp de la capa.
+            Per exemple, elimina un rang de dates d'una capa de fotogrames categoritzats per data de vol
+            ---
+            Delete the categories of a layer by id according to the values list and a layer field.
+            For instance, delete a range of dates from a photograms layer categorized by flight date
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return
+        self.delete_categories(layer, values_list)
+
+    def delete_categories(self, layer, values_list):
+        """ Elimina les categories d'una capa segons la llista de valors i un camp de la capa.
+            Per exemple, elimina un rang de dates d'una capa de fotogrames categoritzats per data de vol
+            ---
+            Delete the categories of a layer according to the values list and a layer field.
+            For instance, delete a range of dates from a photograms layer categorized by flight date
+            """
+        # Partim de la classificació existent
+        renderer = layer.renderer()
+
+        # Eliminem les categories de la llista
+        for value in values_list:
+            index = renderer.categoryIndexForValue(value)
+            if index < 0:
+                continue
+            renderer.deleteCategory(index)
+
+        # Refresquem la capa
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
+
+        # Refresquem la llegenda
+        self.refresh_legend(layer, expanded=self.is_expanded(layer))
+
+    def get_classification_field_by_id(self, layer_idprefix, pos=0):
+        """ Retorna el camp de la classificació actual a partir d'un id de capa
+            ---
+            Given a layer id return the current classification field
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return None
+        return self.get_classification_field(layer)
+
+    def get_classification_field(self, layer):
+        """ Retorna el camp de la classificació actual
+            ---
+            Return the current classification field
+            """
+        if not hasattr(layer.renderer(), 'classAttribute'):
+            return None
+        return layer.renderer().classAttribute()
+
+    def set_categories_visible_by_id(self, layer_idprefix, categories_list=None, enable=True, pos=0):
+        """ Fa visibles o invisibles les categories de la llista a partir d'un id de capa
+            Si no es passa cap llista, s'actualitzaran totes les categories
+            ---
+            Given a layer id make a list of categories visible or invisible
+            If no list is given, all categories will be updated
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return
+        self.set_categories_visible(layer, categories_list=categories_list, enable=enable)
+
+    def set_categories_visible(self, layer, categories_list=None, enable=True):
+        """ Fa visibles o invisibles les categories de la llista
+            Si no es passa cap llista, s'actualitzaran totes les categories
+            ---
+            Given a layer id make a list of categories visible or invisible
+            If no list is given, all categories will be updated
+            """
+        renderer = layer.renderer()
+
+        # Si no ens passen cap llista de categories la generem
+        if not categories_list:
+            categories_list = [c.value() for c in renderer.categories()]
+
+        # Activa/desactiva la visibilitat de les categories de la llista
+        for category_name in categories_list:
+            index = renderer.categoryIndexForValue(category_name)
+            if index < 0:
+                continue
+            renderer.updateCategoryRenderState(index, enable)
+
+        # Refresca la capa
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
+
+        # Refresca la llegenda
+        self.refresh_legend(layer, expanded=self.is_expanded(layer))
+
+    #def enable_categories_by_id(self, layer_basename, enable=True, categories_filter_list=[], pos=0):
+    #    """ Activa o desactiva les categories d'una capa per id
+    #        ---
+    #        Enable or disable layer categories by id
+    #        """
+    #    layer = self.get_by_id(layer_basename, pos)
+    #    if not layer:
+    #        return False
+    #    return self.layerEnableCategories2(layer, enable, categories_filter_list)
+
+    #def enable_categories(self, layer, enable=True, categories_filter_list=[]):
+    #    """ Activa o desactiva les categories d'una capa
+    #        ---
+    #        Enable or disable layer categories
+    #        """
+    #    cat_nodes_list = self.get_category_nodes(layer)
+    #    label_filter_list = [str(c) for c in categories_filter_list]
+    #    check = Qt.Checked if enable else Qt.Unchecked
+    #    for node in cat_nodes_list:
+    #        if label_filter_list and node.data(Qt.DisplayRole).split(' [')[0] not in label_filter_list:
+    #            continue
+    #        node.setData(check, Qt.CheckStateRole)
 
     def zoom_to_full_extent_by_id(self, layer_idprefix, buffer=0, pos=0):
         """ Fa zoom a tot el contingut d'una capa per id. Opcionalment se li pot afegir una orla "buffer"
@@ -1863,7 +2303,7 @@ class LayersBase(object):
         return self.iface.layerTreeView().selectedLayers()
 
     def get_group_layers(self, group):
-        return self.get_group_layers_by_id(group.id())
+        return self.get_group_layers_by_id(group.name())
 
     def get_group_layers_by_id(self, group_id):
         """ Retorna les capes d'un grup
@@ -1873,7 +2313,18 @@ class LayersBase(object):
         group = self.root.findGroup(group_id)
         if not group:
             return None
-        return [l.layer() for l in group.children()]
+        return [l.layer() for l in group.children() if type(l) == QgsLayerTreeLayer]
+
+    def get_group_layer_by_id(self, group_id, layer_id):
+        """ Retorna les capes d'un grup
+            ---
+            Return group's layers
+            """
+        layers_list = self.get_group_layers_by_id(group_id)
+        for layer in layers_list:
+            if layer.id().startswith(layer_id):
+                return layer
+        return None
 
     def set_current_layer_by_id(self, idprefix, pos=0):
         """ Selecciona la capa indicada per id
@@ -2053,7 +2504,7 @@ class LayersBase(object):
         else:
             layer.setContrastEnhancement(QgsContrastEnhancement.NoEnhancement)
 
-    def set_nodata_by_id(self, idprefix, nodata, pos=0):
+    def set_nodata_by_id(self, idprefix, no_data, pos=0):
         """ Assigna un valor no data a una capa raster per id
             ---
             Assign a no data value to a raster layer by id
@@ -2061,10 +2512,10 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_nodata(layer, nodata)
+        self.set_nodata(layer, no_data)
         return True
 
-    def set_nodata(self, layer, nodata):
+    def set_nodata(self, layer, no_data):
         """ Assigna un valor no data a una capa raster
             ---
             Assign a no data value to a raster layer
@@ -2096,7 +2547,7 @@ class LayersBase(object):
         else:
             layer.renderer().setOpacity(opacity)
 
-    def set_custom_properties(self, idprefix, properties_dict, pos=0):
+    def set_custom_properties_by_id(self, idprefix, properties_dict, pos=0):
         """ Canvia propietats custom d'una capa per id
             ---
             Change custom properties of a layer for id
@@ -2104,10 +2555,10 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_custom_properties_by_id(layer, nodata)
+        self.set_custom_properties_by_id(layer, properties_dict)
         return True
 
-    def set_custom_properties_by_id(self, layer, properties_dict):
+    def set_custom_properties(self, layer, properties_dict):
         """ Canvia propietats custom d'una capa
             ---
             Change custom properties of a layer
@@ -2175,7 +2626,7 @@ class LayersBase(object):
             """
         # Canviem la visiblitat per escala si cal
         if min_scale != None and max_scale != None:
-            self.set_scale_base_visibility(min_scale, max_scale)
+            self.set_scale_based_visibility(layer, min_scale, max_scale)
         # Canviem la transparència si cal
         if transparency is not None:
             self.set_transparency(layer, transparency)
@@ -2184,7 +2635,7 @@ class LayersBase(object):
             self.set_saturation(layer, saturation)
         # Canviem propiestats custom
         if properties_dict is not None:
-            self.set_custom_properties(properties_dict)
+            self.set_custom_properties(layer, properties_dict)
         # Vellugem la capa dins un grup si cal
         if group_name:
             group = self.parent.legend.get_group_by_name(group_name)
@@ -2238,6 +2689,18 @@ class LayersBase(object):
             """
         # Si ens passen un arxiu comprimit, mirem si a dins hi ha un QLR
         filename, ext = os.path.splitext(os.path.basename(qlr_pathname.lower()))
+
+        # Obtenim la referència del grup on carregar l'arxiu QLR (el creem si cal)
+        if group_name:
+            group = self.parent.legend.get_group_by_name(group_name)
+            if not group:
+                group = self.parent.legend.add_group(group_name, group_pos=group_pos)
+        else:
+            group = QgsProject.instance().layerTreeRoot()
+        if create_qlr_group:
+            group = self.parent.legend.add_group(filename, group_parent_name=group_name) # Crea el pare si cal
+
+        # Carreguem el QLR
         is_zipped_file = (ext == ".zip")
         qlr_data = None
         if is_zipped_file:
@@ -2255,8 +2718,7 @@ class LayersBase(object):
                 qlr_pathname = pathnames_list[0]
                 # Carreguem les capes del QLR a partir del fitxer QLR descomprimit
                 print("Arxiu: %s" % (qlr_pathname))
-                layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_pathname)
-                ##layers_list = QgsLayerDefinition.loadLayerDefinition(qlr_pathname, QgsProject.instance(), QgsProject.instance().layerTreeRoot())
+                status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
             else:
                 # ATENCIÓ!! Treballar amb QLRs dins de zips sense descomprimir fa que els shapes associats no siguin editables
                 # Generem una llista amb tots els shapes dins el zip
@@ -2275,38 +2737,34 @@ class LayersBase(object):
                 qlr_data = qlr_data.replace('./', '/vsizip/%s/' % qlr_pathname)
                 qlr_data = qlr_data.replace('\ufeff', '') # Elimina codificació BOM (en UTF8)
 
-                # Carreguem les capes del QLR a partir de les dades XML modificades
+                # Generem un document amb les capes del QLR a partir de les dades XML modificades
                 qlr_doc = QDomDocument()
                 qlr_doc.setContent(qlr_data)
                 context = QgsReadWriteContext()
-                layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_doc, context)
+                
+                # Carreguem el QLR
+                #layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_doc, context)
+                ##print("QLR layers %s" % [layer.name() for layer in layers_list])
+                #QgsProject.instance().addMapLayers(layers_list, False)
+                ## Afegim les capes a QGIS dins el grup que calgui
+                #for layer in layers_list:
+                #    group.addLayer(layer)
+                #status = layers_list != []
+                status, error = QgsLayerDefinition().loadLayerDefinition(qlr_doc, QgsProject.instance(), group, context)
         else:
             # Carreguem les capes del QLR a partir del fitxer QLR
             print("Arxiu: %s" % (qlr_pathname))
-            layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_pathname)
-        #print("QLR layers %s" % [layer.name() for layer in layers_list])
-        QgsProject.instance().addMapLayers(layers_list, False)
+            status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
+        
+        return status
 
-        # Obtenim la referència del grup on carregar l'arxiu QLR (el creem si cal)
-        if group_name:
-            group = self.parent.legend.get_group_by_name(group_name)
-            if not group:
-                group = self.parent.legend.add_group(group_name, group_pos=group_pos)
-        else:
-            group = QgsProject.instance().layerTreeRoot()
-        if create_qlr_group:
-            group = self.parent.legend.add_group(filename, group_parent_name=group_name) # Crea el pare si cal
-        # Afegim les capes a QGIS dins el grup que calgui
-        for layer in layers_list:
-            group.addLayer(layer)
-
-        return layers_list != []
-
-    def add_raster_files(self, files_list, group_name=None, group_pos=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
-        """ Afegeix una llista de capes raster a partir dels seus fitxers. Opcionament se li pot especificar:
+    def add_raster_files(self, files_list, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
+        """ ATENCIÓ, TÉ UNA REIMPLEMENTACIÓ A pluginicgcbase
+            Afegeix una llista de capes raster a partir dels seus fitxers. Opcionament se li pot especificar:
             - group_name: Crea o utilitza un grup on posar totes les capes
             - group_pos: Crea el grup en la posició indicada (si és None, al final)
             - ref_layer: Capa de referencia de la qual ens copiem la visualització per escala
+            - epsg: Especifica el sistema de coordenades de la imatge (epsg int)
             - min_scale, max_scala: Activa la visualització per escala
             - no_data: Especifica valor per nodata
             - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
@@ -2324,9 +2782,10 @@ class LayersBase(object):
             Adds a list of raster layers from your files. Options can be specified:
             - group_name: Create or use a group where to put all the layers
             - group_pos: Create group on specific position (if None then to the end)
+            - epsg: Specifies coordinates system of image (epsg int)
             - ref_layer: Reference layer from which we copied the view by scale
             - min_scale, max_scale: Activates the scale view
-            - no_data: Specify value for nodata
+            - no_data: Specifies value for nodata
             - layer_name: Specifies the name of the layer, the default is the same as the file name
             - color_default_expansion: Enables automatic color expansion
             - visible: Load the layer by leaving it visible or not
@@ -2354,7 +2813,7 @@ class LayersBase(object):
                     max_scale = ref_layer.maximumScale()
 
         # Afegim totes les ortos que ens passen
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        layers_list = []
         last_layer = None
         error_files = []
         for i, filename in enumerate(files_list):
@@ -2375,12 +2834,12 @@ class LayersBase(object):
                 continue
 
             # Si no existeix la capa l'afegim
-            last_layer = self.add_raster_layer(name, filename, group_name, group_pos, ref_layer, min_scale=min_scale, max_scale=max_scale, no_data=no_data, layer_name=layer_name, color_default_expansion=color_default_expansion, visible=visible, expanded=expanded, transparency=transparency, saturation=saturation, set_current=set_current, style_file=style_file, properties_dict_list=properties_dict_list, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
+            properties_dict = properties_dict_list[i] if properties_dict_list else None
+            last_layer = self.add_raster_layer(name, filename, group_name, group_pos, epsg, ref_layer, min_scale=min_scale, max_scale=max_scale, no_data=no_data, color_default_expansion=color_default_expansion, visible=visible, expanded=expanded, transparency=transparency, saturation=saturation, resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic, set_current=set_current, style_file=style_file, properties_dict=properties_dict, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
             if not last_layer:
                 error_files.append(filename)
                 continue
-
-        QApplication.restoreOverrideCursor()
+            layers_list.append(last_layer)
 
         # Mostrem errors
         if len(error_files) > 0:
@@ -2393,15 +2852,15 @@ class LayersBase(object):
         self.iface.setActiveLayer(active_layer)
 
         # Retornem la última imatge processada
-        return last_layer
+        return layers_list
 
-    def add_raster_layer(self, name, filename, group_name=None, group_pos=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
+    def add_raster_layer(self, name, filename, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True):
         """ Afegeix una capa raster a partir d'un nom de capa i un fitxer. Opcionament se li pot especificar:
             - group_name: Crea o utilitza un grup on posar totes les capes
             - ref_layer: Capa de referencia de la qual ens copiem la visualització per escala
+            - epsg: Especifica el sistema de coordenades de la imatge (epsg int)
             - min_scale, max_scala: Activa la visualització per escala
             - no_data: Especifica valor per nodata
-            - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
             - color_default_expansion: Activa la expansió de colors automàtica
             - visible: Carrega la capa deixant-la visible o no
             - expanded: Espandeix la llegenda de la capa
@@ -2409,16 +2868,16 @@ class LayersBase(object):
             - saturation: Canvia el valor de saturació de la imatge
             - set_current: Selecciona la capa com l'activa
             - style_file: Especifica un fitxer d'estil .qgs a carregar amb les propietats de la capa
-            - properties_dict_list: defineix propietats particulars d'usuari per cada capa carregada
+            - properties_dict: defineix propietats particulars d'usuari
             - only_one_map_on_group: Indica que només pot haver una imatge en el grup, la última imatge esborra les capes anterior
             - only_one_visible_map_on_group: Especifica que només tindrem una única capa visible dins el grup
             ---
             Adds a raster layer from layer name an file. Options can be specified:
             - group_name: Create or use a group where to put all the layers
             - ref_layer: Reference layer from which we copied the view by scale
+            - epsg: Specifies coordinates system of image (epsg int)
             - min_scale, max_scale: Activates the scale view
-            - no_data: Specify value for nodata
-            - layer_name: Specifies the name of the layer, the default is the same as the file name
+            - no_data: Specifies value for nodata
             - color_default_expansion: Enables automatic color expansion
             - visible: Load the layer by leaving it visible or not
             - expanded: Expand the legend of the layer
@@ -2426,7 +2885,7 @@ class LayersBase(object):
             - saturation: Changes saturation value
             - set_current: Set layer as current selected layer
             - style_file: Specifies a .qgs style file to load with the properties of the layer
-            - properties_dict_list: define custom properties for each loaded layer
+            - properties_dict: define custom properties
             - only_one_map_on_group: Indicates that there can only be an image in the group, the last image deletes the previous layers
             - only_one_visible_map_on_group: Specifies that we will only have one visible layer in the group
             """
@@ -2440,6 +2899,9 @@ class LayersBase(object):
         if not layer:
             return None
 
+        # Assignem l'EPSG de la capa
+        if epsg:
+            layer.setCrs(layer.crs().fromEpsgId(epsg))
         # Canviem l'estil de la capa si cal
         if style_file:
             self.load_style(layer, style_file, refresh=True)
@@ -2449,8 +2911,24 @@ class LayersBase(object):
         # Desactivem la expansió de colors si cal
         if not color_default_expansion:
             self.enable_color_expansion(layer, False)
+        # Obtenim el min i max escala de visualitzacio
+        if not min_scale or not max_scale:
+            if ref_layer:
+                if not min_scale:
+                    min_scale = ref_layer.minimumScale()
+                if not max_scale:
+                    max_scale = ref_layer.maximumScale()
+        # Ajustem el mostreig si cal
+        if resampling_bilinear:
+            resample_filter = layer.resampleFilter()
+            resample_filter.setZoomedInResampler(QgsBilinearRasterResampler())
+            resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())        
+        if resampling_cubic:
+            resample_filter = layer.resampleFilter()
+            resample_filter.setZoomedInResampler(QgsCubicRasterResampler())
+            resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())        
         # Canviem les propiedats de la capa
-        self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, saturation, set_current, properties_dict_list[i] if properties_dict_list else None)
+        self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, saturation, set_current, properties_dict)
 
         # Si he mogut la capa dins un grup, no volem que s'expandeix el grup que hi havia seleccionat
         if group_name:
@@ -2493,12 +2971,16 @@ class LayersBase(object):
 
         return download_folder
 
-    def open_download_path(self, select_folder_text=None):
-        """ Obre la carpeta de descàrregues i opcionalment (select_folder_text<>None) la pregunta si no està definida o no existeix
+    def open_download_path(self, select_folder_text=None, filename=None):
+        """ Obre l'arxiu especificat o la carpeta de descàrregues i opcionalment (select_folder_text<>None) 
+            la pregunta si no està definida o no existeix
             ---
-            Open the download folder and optionally (select_folder_text <> None) asks if it is not defined or does not exist
+            Open specified file or the download folder and optionally (select_folder_text <> None) 
+            asks if it is not defined or does not exist
         """
         download_folder = self.get_download_path(select_folder_text)
+        if filename:
+            download_folder = os.path.join(download_folder, filename)
         if download_folder and os.path.exists(download_folder):
             if sys.platform == "win32":
                 os.startfile(download_folder)
@@ -2600,7 +3082,7 @@ class LayersBase(object):
     #    progress.set_value(current_size)
     #    pass
 
-    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
             ---
@@ -2611,9 +3093,9 @@ class LayersBase(object):
         local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text)
         # Carreguem el fitxer
         if local_pathname:
-            self.add_raster_files([local_pathname], group_name, group_pos, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            self.add_raster_files([local_pathname], group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
 
-    def add_remote_raster_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_raster_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
             ---
@@ -2625,7 +3107,7 @@ class LayersBase(object):
             local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text)
             # Carreguem el fitxer
             if local_pathname:
-                self.add_raster_files([local_pathname], group_name, group_pos, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+                self.add_raster_files([local_pathname], group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
 
     def add_vector_files(self, files_list, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
         """ Afegeix capes vectorials a partir d'una llista de fitxers. Opcionament se li pot especificar:
@@ -2663,7 +3145,6 @@ class LayersBase(object):
         ##layers_list = self.get_group_layers_id(group_name) if group_name else []
 
         # Afegim totes les imatges que ens passin
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         error_files = []
         last_layer = None
         for i, filename in enumerate(files_list):
@@ -2684,14 +3165,12 @@ class LayersBase(object):
                 continue
 
             # Creem la capa (alguns arxius multicapa, no retornen la capa)
-            last_layer = self.add_vector_layer(name, filename, group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            last_layer = self.add_vector_layer(name, filename, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
             #if not last_layer:
             #    group = self.parent.legend.get_group_by_name(name)
             #    if not group:
             #        error_files.append(filename)
             #    continue
-
-        QApplication.restoreOverrideCursor()
 
         # Mostrem errors
         if len(error_files) > 0:
@@ -2706,12 +3185,12 @@ class LayersBase(object):
         # Retornem la última capa inserida
         return last_layer
 
-    def add_vector_layer(self, name, pathname, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
+    def add_vector_layer(self, name, pathname, group_name=None, group_pos=None, min_scale=None, max_scale=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
         """ Afegeix una cape vectorial a partir d'un nom de capa i un fitxer. Opcionament se li pot especificar:
+            - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
             - group_name: Crea o utilitza un grup on posar totes les capes
             - group_pos: Crea el grup en la posició indicada (si és None, al final)
             - min_scale, max_scala: Activa la visualització per escala
-            - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
             - visible: Carrega la capa deixant-la visible o no
             - expanded: Espandeix la llegenda de la capa
             - transparency: Activa factor de transparència
@@ -2722,10 +3201,10 @@ class LayersBase(object):
             - only_one_map_on_group: Indica que només pot haver una imatge en el grup, la última imatge esborra les capes anterior
             ---
             Adds a vector layer from a layer name and file. Options can be specified:
+            - layer_name: Specifies the name of the layer, the default is the same as the file name
             - group_name: Create or use a group where to put all the layers
             - group_pos: Create group on specific position (if None then to the end)
             - min_scale, max_scale: Activates the scale view
-            - layer_name: Specifies the name of the layer, the default is the same as the file name
             - visible: Load the layer by leaving it visible or not
             - expanded: Expand the legend of the layer
             - transparency: Activate transparency factor
@@ -2764,7 +3243,7 @@ class LayersBase(object):
                                 return index
                         return 9999
                     pathnames_list.sort(key=sort_file_index, reverse=True)
-            pathnames_list = [(pathname, None) for pathname in pathnames_list]
+            pathnames_list = [(pathname, name) for pathname in pathnames_list]
         elif is_geopackage_file:
             # Generem una llista amb totes les capes dins el geopackage
             layers_list = [layer.GetName() for layer in ogr.Open(pathname)]
@@ -2774,7 +3253,7 @@ class LayersBase(object):
                 ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             styles_dict = None
         else:
-            pathnames_list = [(pathname, None)]
+            pathnames_list = [(pathname, name)]
             styles_dict = None
         if is_zipped_file or is_geopackage_file:
             # Creem una carpeta amb el nom del zip (dins d'una carpeta contenidora si cal)
@@ -2790,7 +3269,7 @@ class LayersBase(object):
         # Obrim el fixer vectorial (pot ser N capes en cas d'arxius comprimits)
         for i, (vector_pathname, layer_name) in enumerate(pathnames_list):
             #print("Arxiu:", vector_pathname)
-            layer = self.iface.addVectorLayer(vector_pathname, name, "ogr")
+            layer = self.iface.addVectorLayer(vector_pathname, layer_name, "ogr")
             if layer:
                 # Canviem el nom de la capa si cal
                 if layer_name:
@@ -2819,7 +3298,7 @@ class LayersBase(object):
                         else:
                             layer_name = name
                         for style_regex, style_qml in regex_styles_list:
-                            if re.match(style_regex, layer_name):
+                            if re.match(style_regex, filename):
                                 if style_qml:
                                     regex_style_file = style_qml
                                 else:
@@ -2867,7 +3346,7 @@ class LayersBase(object):
             if local_pathname:
                 self.add_vector_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -2876,20 +3355,35 @@ class LayersBase(object):
             """
         # Obtenim la llista de capes temporals i la registrem associada a la url
         if time_series_list:
-            default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
-            default_layer = layer_id
-            url_time = url
+            if url:
+                default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
+                default_layer = layer_id
+                url_time = url
+            else:
+                default_time = layer_id
+                default_layer = layer_id
+                url_time = dict(time_series_list)[default_layer]
         else:
             time_series_list, default_time = self.get_wms_t_time_series(url, layer_id)
             if not time_series_list:
                 return None
+            if not default_time:
+                default_time = time_series_list[-1][0]
             default_layer = dict(time_series_list)[default_time]
             is_question_mark = url.find("?") >= 0
             url_time = "%s%stime=%s&IgnoreGetMapUrl=1" % (url, "%26" if is_question_mark else "?", default_time)
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
-        layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style], image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, set_current)
+        if url:
+            layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style], 
+                image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, 
+                collapsed, visible, transparency, saturation, set_current)
+        else:
+            layer = self.add_raster_layer(time_layer_name, url_time, group_name, group_pos, epsg,
+                color_default_expansion=True, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation, 
+                resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic,
+                set_current=set_current, only_one_map_on_group=only_one_map_on_group)
 
         # Registrem les capes temporals de la url i refresquem la capa activa
         self.time_series_dict[layer] = time_series_list
@@ -2934,6 +3428,7 @@ class LayersBase(object):
         base_name = layer.name().split(' [')[0]
         new_name = "%s [%s]" % (base_name, wms_time)
         layer.setName(new_name)
+        return new_name
 
     def get_wms_t_time_series(self, url, layer_id, version="1.1.1", timeout_seconds=5, retries=3):
         """ Obté informació temporal d'una capa d'un servidor WMS-T
@@ -2962,6 +3457,9 @@ class LayersBase(object):
             except socket.timeout:
                 retries -= 1
                 print("retries", retries)
+            except Exception as e:
+                retries = 0
+                print("Error WMS-T: %s" % e)
         if not capabilities_xml:
             return [], None
         ##print("xml", capabilities_xml)
@@ -3035,10 +3533,19 @@ class LayersBase(object):
             - collapsed: Indicates whether we want to load the layer with collapsed legend
             - visible: Indicates whether we want to load the layer by leaving it visible or not
             """
+        # Si no tenim EPSG agafem el del projecte
         if not epsg:
             epsg = self.parent.project.get_epsg()
-
-        uri = "url=%s&crs=EPSG:%s&format=%s&styles=%s&layers=%s" % (url, epsg, image_format, ",".join(styles_list), ",".join(layers_list))
+        # Cal tenir el mateix nombre d'estils que de capes
+        if not styles_list:
+            styles_list = []
+        if len(styles_list) != len(layers_list):
+            if len(styles_list) == 1:
+                styles_list = styles_list * len(layers_list)
+            else:
+                styles_list += [""] * (len(layers_list) - len(styles_list))
+        # Preparem la connexió
+        uri = "url=%s&crs=EPSG:%s&format=%s&styles=%s&layers=%s" % (url, epsg, image_format, "&styles=".join(styles_list), "&layers=".join(layers_list))
         if extra_tags:
             uri += "&%s" % extra_tags
 
@@ -3063,16 +3570,21 @@ class LayersBase(object):
 
         # Obtenim la capa actual carregada
         url, current_layer, current_time = self.parse_wms_t_layer(layer)
-        if not url:
-            return
 
-        # Actualitzem la capa a carregar
-        new_uri = layer.dataProvider().dataSourceUri()
-        new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
-        if wms_time:
-            new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
+        if url and current_layer:
+            # Actualitzem la capa a WMS carregar (pot ser un canvi de capa (fals WMS-T) o un canvi de temps)
+            new_uri = layer.dataProvider().dataSourceUri()
+            new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
+            if wms_time:
+                new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
+            layer.dataProvider().setDataSourceUri(new_uri)
+        else:
+            # Si tenim un fals WMS-T amb link a arxius raster, cal fer més refrescos...
+            new_uri = wms_layer
+            layer.dataProvider().setDataSourceUri(new_uri)
+            layer.dataProvider().reloadData()
+            layer.reload()
 
-        layer.dataProvider().setDataSourceUri(new_uri)
         layer.triggerRepaint()
 
     def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
@@ -3091,7 +3603,7 @@ class LayersBase(object):
         self.set_properties(layer, visible, collapsed, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, transparency=transparency, saturation=saturation, set_current=set_current)
         return layer
 
-    def add_wms_ortoxpres_layer(self, year, gsd, layer_prefix="ortoXpres", url="http://www.ortoxpres.cat/server/sgdwms.dll/WMS", styles_list=["default"], image_format="image/jpeg", epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map=False):
+    def add_wms_ortoxpres_layer(self, year, gsd, layer_prefix="ortoXpres", url="https://www.ortoxpres.cat/server/sgdwms.dll/WMS", styles_list=["default"], image_format="image/jpeg", epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map=False):
         """ Afegeix una capa tipus WMS ICGC ortoXpres a partir d'un any i GSD. Retorna la capa.
             Opcionalment es pot especificar un grup on afegir la capa i si volem només tenir una capa dins el grup alhora.
             ---
@@ -3121,7 +3633,7 @@ class LayersBase(object):
         uri = QgsDataSourceUri()
         uri.setConnection(host, str(port), dbname, user, password)
         if geometry_column:
-            uri.setSrid(str(epsg));
+            uri.setSrid(str(epsg))
             uri.setWkbType(wkbtype)
         uri.setDataSource(schema, table, geometry_column, filter, key_column)
         # afegim la capa
@@ -3253,7 +3765,7 @@ class LayersBase(object):
             """
         layer = self.get_by_id(idprefix, pos)
         if not layer:
-            return False
+            return None
         return self.get_attributes_table(layer)
 
     def get_attributes_table(self, layer):
@@ -3265,18 +3777,18 @@ class LayersBase(object):
         dialogs_list = [d for d in QApplication.instance().allWidgets() if d.objectName() == 'QgsAttributeTableDialog' and d.windowTitle().split(' - ')[1].split(' :: ')[0] == layer.name()]
         return dialogs_list[0] if len(dialogs_list) > 0 else None
 
-    def refresh_legend_by_id(self, layer_id, visible=None, expanded=None):
+    def refresh_legend_by_id(self, idprefix, visible=None, expanded=None, pos=0):
         """ Refresca la llegenda d'una capa a partir del seu id.
             Pot actualitzar la visibilitat i expansió de la llegenda de la capa
             ---
             Refresh the legend of a layer by id.
             You can update the visibility and expansion of the layer's legend
             """
-        self.iface.layerTreeView().refreshLayerSymbology(layer_id)
-        if visible is not None:
-            self.set_visible_by_id(layer_id, visible)
-        if expanded is not None:
-            self.expand_by_id(layer_id, expanded)
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return False
+        self.refresh_legend(layer, visible, expanded)
+        return True
 
     def refresh_legend(self, layer, visible=None, expanded=None):
         """ Refresca la llegenda d'una capa
@@ -3285,7 +3797,12 @@ class LayersBase(object):
             Refresh the legend of a layer by id.
             You can update the visibility and expansion of the layer's legend
             """
-        self.refresh_legend_by_id(layer.id(), visible, expanded)
+        layer.setDataSource(layer.source(), layer.name(), layer.providerType(), layer.dataProvider().ProviderOptions()) # Force layer counter update:
+        self.iface.layerTreeView().refreshLayerSymbology(layer.id())
+        if visible is not None:
+            self.set_visible(layer, visible)
+        if expanded is not None:
+            self.expand(layer, expanded)
 
     def configure_edition_dialog_by_id(self, layer_idprefix, config_list, pos=0):
         """ Configura el diàleg d'edició d'una capa.
@@ -3772,12 +4289,14 @@ class LegendBase(object):
             self.iface.mapCanvas().refresh()
 
     def refresh_legend(self):
-        """ Refresca tots els elements de la llegenda
+        """ Refresca tots els elements de la llegenda (excepte capes ràster)
             ---
-            Refresh all the elements of the legend
+            Refresh all the elements of the legend (except raster layers)
             """
-        for layer in self.iface.mapCanvas().layers():
-            self.parent.layers.refresh_legend(layer)
+        #for layer in self.iface.mapCanvas().layers():
+        for layer in QgsProject.instance().mapLayers().values():
+            if not isinstance(layer, QgsRasterLayer):
+                self.parent.layers.refresh_legend(layer)
 
 
 class ComposerBase(object):
@@ -3789,20 +4308,20 @@ class ComposerBase(object):
         self.parent = parent
         self.iface = parent.iface
 
-    def get_composer_item_by_id(self, composer_items, item_id):
+    def get_composer_item_by_id(self, composer_view, item_id):
         """ Obté un item del composer a partir de l'id
             ---
             Gets a composer item by id
             """
-        selected_items = [item for item in composer_items if hasattr(item, 'id') and item.id() == item_id]
-        return selected_items[0] if (selected_items) > 0 else None
+        selected_items = [item for item in composer_view.items() if hasattr(item, 'id') and item.id() == item_id]
+        return selected_items[0] if len(selected_items) > 0 else None
 
-    def get_composer_map_item_by_pos(self, composer_items, map_pos):
+    def get_composer_map_item_by_pos(self, composer_view, map_pos=0):
         """ Obté un item de tipus mapa del composer a partir de la seva posició
             ---
             Gets a map item of the composer from its position
             """
-        selected_items = [item for item in composer_items if type(item) == QgsComposerMap]
+        selected_items = [item for item in composer_view.items() if type(item) == QgsLayoutItemMap]
         return selected_items[map_pos] if len(selected_items) > map_pos else None
 
     def get_composer_view(self, title):
@@ -3810,8 +4329,9 @@ class ComposerBase(object):
             ---
             Get the composer's view by title
             """
-        selected_composers = [view for view in self.iface.activeComposers() if view.composerWindow().windowTitle() ==  title]
-        return selected_composers[0] if len(selected_composers) > 0 else None
+        layouts_list = QgsProject.instance().layoutManager().layouts()
+        selected_layout_list = [layout for layout in layouts_list if layout.name() == title]
+        return selected_layout_list[0] if len(selected_layout_list) > 0 else None
 
     #def get_composer_view(self, composer_name):
     #    composer_views = self.iface.activeComposers()
@@ -3820,6 +4340,13 @@ class ComposerBase(object):
     #        return None
     #    composer_view = composer_views[composer_titles.index(composer_name)]
     #    return composer_view
+
+    def show_composer_view(self, composer_view):
+        """ Mostra el diàleg de composició d'informes
+            ---
+            Show composer report dialog
+            """
+        self.iface.openLayoutDesigner(composer_view)
 
     def get_composition(self, report_pathname, open_composer=True):
         """ Carrega un compositor a partir d'un fitxer i retorna l'objecte
@@ -4029,15 +4556,16 @@ class DebugBase(object):
     ###########################################################################
     # Recàrrega de plugins
     #
-    def reload_plugins(self, plugins_id_wildcard = "qp*"):
+    def reload_plugins(self, plugins_list=None, plugins_id_wildcard="qp*"):
         """ Recarrega els plugins que coincideixin amb el wildcard
             ---
             Reload the plugins that match the wildcard
             """
         # Recarreguem els plugins
-        selected_plugins = [plugin_id for plugin_id in plugins.keys() if fnmatch.fnmatch(plugin_id, plugins_id_wildcard)]
-        with ProgressDialog('Llegint geometries...', len(selected_plugins), "Recarregant plugins", cancel_button_text = "Cancel·lar", autoclose = True) as progress:
-            for plugin_id in selected_plugins:
+        if not plugins_list:
+            plugins_list = [plugin_id for plugin_id in plugins.keys() if fnmatch.fnmatch(plugin_id, plugins_id_wildcard)]
+        with ProgressDialog('Llegint geometries...', len(plugins_list), "Recarregant plugins", cancel_button_text = "Cancel·lar", autoclose = True) as progress:
+            for plugin_id in plugins_list:
                 progress.set_label("Recarregant %s" % plugin_id)
                 self.reload_plugin(plugin_id)
                 if progress.was_canceled():
@@ -4050,9 +4578,10 @@ class DebugBase(object):
             Reload the plugin indicated by the id
             """
         print("Reload:", plugin_id)
-        reloadPlugin(plugin_id)
+        with WaitCursor():
+            reloadPlugin(plugin_id)
         # Restaurem el cursor, per si algún plugin l'ha deixat penjat
-        QApplication.setOverrideCursor(QCursor(Qt.ArrowCursor))
+        QApplication.restoreOverrideCursor()
 
     ###########################################################################
     # Gestió de timestamps
@@ -4064,14 +4593,21 @@ class DebugBase(object):
             """
         self.timestamps = []
 
-        # Obtenim el timestamp d'inici de QGIS
-        timestamp_text = os.environ.get(timestamp_env, '.').split('.')[1]
+        # Obtenim el timestamp d'inici de QGIS, si no en tenim no fem res més
+        timestamp_text = os.environ.get(timestamp_env, None)
+        if not timestamp_text:
+            return
+
+        # Registrem la data d'ini del QGIS
         try:
+            # Eliminem el dia de la setmana i dobles espais
+            timestamp_text = " ".join([v for v in timestamp_text.split()[1:] if v])
+            # Obtenim la data i la hora
             timestamp = datetime.datetime.strptime(timestamp_text, timestamp_format) if timestamp_text else None
         except Exception as e:
             timestamp = None
         if timestamp:
-            self.add_timestamp(description if description else "QGIS ini", timestamp)
+            self.add_timestamp(description if description else "QGIS ini\t", timestamp)
 
     def add_timestamp(self, description, timestamp = None):
         """ Afegeix una timestamp a la llista de timestamps a mostrar
@@ -4080,15 +4616,18 @@ class DebugBase(object):
             """
         self.timestamps.append((description, datetime.datetime.now() if timestamp is None else timestamp))
 
-    def get_timestamps_info(self, info = "Load times:"):
+    def get_timestamps_info(self, info = "Load times"):
         """ Obté informació dels timestamps existents
             ---
             Get information about existing timestamps
             """
-        times_list = ["%s\t%s (%s) (%s)" % (description, timestamp, (timestamp - self.timestamps[i-1][1] if i > 0 else None), (timestamp - self.timestamps[0][1] if i > 0 else None)) for i, (description, timestamp) in enumerate(self.timestamps)]
-        return "%s\n   " % info + "\n   ".join(times_list)
+        times_list = ["%s\t%s %s %s" % (description, timestamp, \
+            ("(%s)" % (timestamp - self.timestamps[i-1][1]) if i > 0 else ""), \
+            ("(%s)" % (timestamp - self.timestamps[0][1]) if i > 0 else "")) \
+            for i, (description, timestamp) in enumerate(self.timestamps)]
+        return "%s:\n   %s\nTotal: %s" % (info, "\n   ".join(times_list), self.timestamps[-1][1] - self.timestamps[0][1])
 
-    def print_timestamps_info(self, info = "Load times:"):
+    def print_timestamps_info(self, info = "Load times"):
         """ Mostra per consola informació dels timestamps existents
             ---
             Prints console information for existing timestamps
@@ -4360,15 +4899,16 @@ class ToolsBase(object):
     def show_time_series_dialog(self, layer, title=None, current_prefix="", show=True):
         # Mostrem o ocultem el diàleg de sèries temporals
         if show:
-            # Obtenim la url de la capa i la capa seleccionada
-            url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
-            if not url:
-                return
             # Obtenim la llista de capes temporal del diccionari de sèries temporals
             time_series_tuple_list = self.parent.layers.time_series_dict.get(layer, [])
             if not time_series_tuple_list:
                 return
-            # Obtenim el nom de la capa actual dins de la time serie (per wms-t fake)
+            # Obtenim la url de la capa i la capa seleccionada
+            url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
+            # Obtenim el nom de la capa actual (per wms-t fake tipus arxiu http)
+            if not current_layer:
+                current_layer = layer.dataProvider().dataSourceUri()
+            # Obtenim el nom de la capa actual dins de la time serie (per wms-t fake tipus wms)
             if not current_time:
                 current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
             time_series_list = [name for name, layer_id in time_series_tuple_list]
@@ -4419,9 +4959,10 @@ class ToolsBase(object):
                 self.show_transparency_dialog(layer=layer)
 
     def on_layer_removed(self, layer):
-        time_series_list = self.parent.layers.time_series_dict.get(layer, [])
-        if time_series_list:
-            self.parent.layers.time_series_dict.pop(layer)
+        if self.parent and self.parent.layers and self.parent.layers.time_series_dict:
+            time_series_list = self.parent.layers.time_series_dict.get(layer, [])
+            if time_series_list:
+                self.parent.layers.time_series_dict.pop(layer)
 
     #def is_selected_db_styled_layers(self):
     #    """ Obtenim hi ha alguna capa seleccionada amb estil de bbdd, incloent grups
@@ -4638,7 +5179,7 @@ class MetadataBase(object):
         return found.groups()[0] if found else None
 
     def get_qgis_repository_plugin_version(self, plugin_tag=None, \
-            repository_plugin_template="http://plugins.qgis.org/plugins/%s", \
+            repository_plugin_template="https://plugins.qgis.org/plugins/%s", \
             regex_version_template="\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS
             ---
@@ -4658,7 +5199,7 @@ class MetadataBase(object):
         return repo_version if repo_version > current_version else None
 
     def get_github_repository_plugin_version(self, plugin_tag=None, \
-            repository_plugin_template="http://raw.githubusercontent.com/%s/master/metadata.txt", \
+            repository_plugin_template="https://raw.githubusercontent.com/%s/master/metadata.txt", \
             regex_version_template="version=(.+)\s", timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori GitHub
             ---
@@ -4735,7 +5276,7 @@ class TranslationBase(object):
             ---
             Returns the active language in the QGIS. Pex: ca_ES, es
             """
-        return QSettings().value('locale/userLocale').split('_')[0]
+        return self.parent.settings.value('locale/userLocale', '').split('_')[0]
 
 class PluginBase(QObject):
     # Inicialització de la classe
@@ -4808,7 +5349,7 @@ class PluginBase(QObject):
             """
         self.debug.reload_plugin(self.plugin_id)
 
-    def show_about(self, checked=None, title=None): # I add checked param, because the mapping of the signal triggered passes a parameter
+    def show_about(self, checked=None, title=None, pixmap=None): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Show plugin information (about dialog) """
         # About dialog configuration
         if not self.about_dlg:
@@ -4821,7 +5362,7 @@ class PluginBase(QObject):
                 else:
                     title = "About"
             self.about_dlg = AboutDialog(self.metadata.get_name(), self.metadata.get_info(), self.metadata.get_icon(),
-                title, False, parent=self.iface.mainWindow())
+                pixmap, title, False, parent=self.iface.mainWindow())
         # Show about
         self.about_dlg.do_modal()
 

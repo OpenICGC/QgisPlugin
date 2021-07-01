@@ -28,8 +28,23 @@ email=openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.2
-changelog=v1.0.2 (2020-11-18)
+version=1.0.4
+changelog=v1.0.4 (2021-06-23)
+	- Added NDVI temporal series (raw and colored) map layers
+	- Added topografia-territorial download in cad formats (dgn, dwg)
+	- Added auto-show temporal series dialog on load temporal series layers
+	- Updated ortofoto temporal series map layers submenu
+	- Updated topographic 1:5,000 data
+	- Updated administrative divisions data
+	- Fixed problems with QGIS 3.18
+
+	v1.0.3 (2021-03-16)
+	- Added protection against failures of geoservices access
+	- Fixed download menu translation
+	- Fixed ICGC URLs services
+	- Fixed access to QGIS locale settings from macOS
+
+	v1.0.2 (2020-11-18)
 	- Added land cover time series product
 	- Added geological 250m product
 	- Added geowork6 product

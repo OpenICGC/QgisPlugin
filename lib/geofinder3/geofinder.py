@@ -24,7 +24,7 @@ class GeoFinder(object):
 
     ###########################################################################
     # Web service management
-    
+
     ## Web Service Cadastre (alternative)
     #cadastral_streets_client = None
     #def get_cadastral_streets_client(self):
@@ -32,28 +32,28 @@ class GeoFinder(object):
     #        # SOAP client configuration
     #        # Available functions: [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
     #        self.cadastral_streets_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx?wsdl") # [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
-    #    return self.cadastral_streets_client    
-    
+    #    return self.cadastral_streets_client
+
     # Web Service Cadastre. Available functions to call: client.wsdl.services[0].ports[0].methods.keys()
-    cadastral_coordinates_client = None 
+    cadastral_coordinates_client = None
     def get_cadastral_coordinates_client(self):
         if not self.cadastral_coordinates_client:
             # SOAP client configuration
             # Available functions: [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
             self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl")
-        return self.cadastral_coordinates_client    
-    
+        return self.cadastral_coordinates_client
+
     # ICGC Web Service. ICGC Web service requires a md5 / base64 encoded security header
     icgc_geoencoder_client = None
     def get_icgc_geoencoder_client(self):
         if not self.icgc_geoencoder_client:
-            # Configure connection security 
+            # Configure connection security
             wsse_security = Security()
             username_digest_token = UsernameDigestToken('QGIS', 'QGIS')
             wsse_security.tokens.append(username_digest_token)
-            # SOAP client configuration with Password Digest 
+            # SOAP client configuration with Password Digest
             # Available functions: [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
-            self.icgc_geoencoder_client = Client(url="http://www.icc.cat/geocodificador/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3) 
+            self.icgc_geoencoder_client = Client(url="http://www.icc.cat/geocodificador/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
         return self.icgc_geoencoder_client
 
     def __init__(self):
@@ -67,7 +67,7 @@ class GeoFinder(object):
             Show results in a dialog and center the map on the item selected by the user """
 
         print(u"Find: %s" % user_text)
-        
+
         # Find text and return a list of dictionaries with results
         dict_list = self.find_data(user_text, default_epsg)
         print(u"Found %d: %s %s" % (len(dict_list), ", ".join([data_dict['nom'] for data_dict in dict_list[:10]]), "..." if len(dict_list) > 10 else ""))
@@ -76,14 +76,14 @@ class GeoFinder(object):
     def find_data(self, text, default_epsg, find_all=False, recursive=True):
         """ Returns a list of dictionaries with the sites found from the indicated text """
 
-        # Let's see if we pass a ground rectangle 
+        # Let's see if we pass a ground rectangle
         west, north, east, south, epsg = self.get_rectangle_coordinate(text)
-        if west and north and east and south: 
+        if west and north and east and south:
             return self.find_rectangle_coordinates(west, north, east, south, epsg if epsg else default_epsg)
 
         # We detect if we pass a ground coordinate
         x, y, epsg = self.get_point_coordinate(text)
-        if x and y: 
+        if x and y:
             return self.find_point_coordinate(x, y, epsg if epsg else default_epsg)
 
         # Let's see if we pass a road
@@ -111,15 +111,15 @@ class GeoFinder(object):
 
     def get_rectangle_coordinate(self, text):
         """ Detects a coordinate rectangle from the text
-            Accept texts with 4 reals and optionally an epsg code        
+            Accept texts with 4 reals and optionally an epsg code
             For example: 1.0 2.0 3.0 4.0 EPSG:0
-                         EPSG:0 1.0 2.0 3.0 4.0 
-                         1.0 2.0 3.0 4.0 
-            Return west, north, east, south, epsg """        
+                         EPSG:0 1.0 2.0 3.0 4.0
+                         1.0 2.0 3.0 4.0
+            Return west, north, east, south, epsg """
 
         # We detect 4 reals (and EPSG code) with a regular expression
         # [EPSG:<int>] <real> <real> <real> <real> [EPSG:<int>]
-        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s*(?:\s+EPSG:(\d+))?\s*$" 
+        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s([+-]?[0-9]*[.,]?[0-9]+)\s*(?:\s+EPSG:(\d+))?\s*$"
         found = re.search(expression, text, re.IGNORECASE)
         if found:
             epsg1, west, north, east, south, epsg2 = found.groups()
@@ -144,7 +144,7 @@ class GeoFinder(object):
 
         # We detect 2 reals (and EPSG code) with a regular expression
         # [EPSG:<int>] <real> <real> [EPSG:<int>]
-        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s*([+-]?[0-9]*[.,]?[0-9]+)(?:\s+EPSG:(\d+))?\s*$" 
+        expression = r"^\s*(?:EPSG:(\d+)\s+)?([+-]?[0-9]*[.,]?[0-9]+)\s*([+-]?[0-9]*[.,]?[0-9]+)(?:\s+EPSG:(\d+))?\s*$"
         found = re.search(expression, text, re.IGNORECASE)
         if found:
             epsg1, x, y, epsg2 = found.groups()
@@ -177,7 +177,7 @@ class GeoFinder(object):
     def get_crossing(self, text):
         """ Detects a crossword from the text
             Accept information of crossroads (municipality, street, street)
-            For example: Barcelona, Muntaner, C/ Aragó 
+            For example: Barcelona, Muntaner, C/ Aragó
             return municipality, type1, name1, type2, name2 """
 
         # We use regular expression
@@ -185,10 +185,10 @@ class GeoFinder(object):
         expression = r"\s*(\D+)\s*,\s*([\w]+[./])?\s*(\D+)\s*,\s*([\w]+[./])?\s*(\D+)\s*"
         found = re.search(expression, text, re.IGNORECASE)
         if found:
-            municipality, type1, street1, type2, street2 = found.groups()        
+            municipality, type1, street1, type2, street2 = found.groups()
         else:
             municipality, type1, street1, type2, street2 = None, None, None, None, None
-        
+
         return municipality, type1, street1, type2, street2
 
     def get_address(self, text):
@@ -221,9 +221,9 @@ class GeoFinder(object):
                  13 077 A 018 00039 0000 FP
                  13077A018000390000FP (also works with the first 14 digits)
             return cadastra_ref """
-        
+
         # No spaces should occupy 14 or 20 alphanumeric characters
-        cleaned_text = text.replace(' ', '')        
+        cleaned_text = text.replace(' ', '')
         if len(cleaned_text) not in (14, 20):
             return None
         # Validate that there are at least 8 digits
@@ -231,17 +231,17 @@ class GeoFinder(object):
             return None
         # Validate that it do not have symbols with a regular expression
         expression = r'(\w+)'
-        found = re.search(expression, cleaned_text, re.IGNORECASE)  
-        if found:           
+        found = re.search(expression, cleaned_text, re.IGNORECASE)
+        if found:
             cadastral_ref = found.groups()[0]
         else:
             cadastral_ref = None
-        
+
         return cadastral_ref
 
     def find_rectangle_coordinates(self, west, north, east, south, epsg):
         """ Returns a list with a dictionary with the coordinates of the rectangle """
-        
+
         print(u"Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, epsg))
         dicts_list = [{
             'nom':'Rectangle (%s %s %s %s)' % (west, north, east, south),
@@ -259,7 +259,7 @@ class GeoFinder(object):
         print(u"Coordinate: %s %s EPSG:%s" % (x, y, epsg))
 
         # We convert the coordinates to ETRS89 UTM31N to do the query
-        nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg), 
+        nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
         query_x, query_y = self.transform_point(x, y, epsg, 25831)
 
         # We execute the query
@@ -271,18 +271,18 @@ class GeoFinder(object):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        
+
         # We convert the result to a unique format
         dicts_list = [{
             'nom': ("%s (%s)" % (res_dict['Descripcio'], nom)) if 'Descripcio' in res_dict
                 else ("%s, %s %s %s-%s" % (res_dict['municipi']['nom'], res_dict['via']['Tipus'], res_dict['via']['Nom'], res_dict['portalParell'], res_dict['portalSenar'])) if ('portalParell' in res_dict and 'portalSenar' in res_dict)
                 else ("%s, %s %s %s" % (res_dict['municipi']['nom'], res_dict['via']['Tipus'], res_dict['via']['Nom'], res_dict['portalParell'] if 'portalParell' in res_dict else res_dict['portalSenar'])) if ('portalParell' in res_dict or 'portalSenar' in res_dict)
                 else ("%s, %s %s" % (res_dict['municipi']['nom'], res_dict['via']['Tipus'], res_dict['via']['Nom'])),
-            'idTipus': u'', 
-            'nomTipus': u'Adreça', 
+            'idTipus': u'',
+            'nomTipus': u'Adreça',
             'nomMunicipi': res_dict['municipi']['nom'],
             'nomComarca': res_dict['comarca']['nom'],
-            'x': x, 
+            'x': x,
             'y': y,
             'epsg': epsg
             } for label_adrecaInversa, res_dict in res_tuple_list if res_dict and label_adrecaInversa == 'adrecaInversa']
@@ -306,21 +306,21 @@ class GeoFinder(object):
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaPK(
-                nomCarretera = road, 
+                nomCarretera = road,
                 KM = km
                 )
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        
+
         # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['PkXY'],
-            'idTipus': '', 
-            'nomTipus': u'Via', 
-            'nomMunicipi': u'', 
-            'nomComarca': u'', 
-            'x': float(res_dict['coordenadesETRS89UTM']['X']) if 'coordenadesETRS89UTM' in res_dict else None, 
+            'idTipus': '',
+            'nomTipus': u'Via',
+            'nomMunicipi': u'',
+            'nomComarca': u'',
+            'x': float(res_dict['coordenadesETRS89UTM']['X']) if 'coordenadesETRS89UTM' in res_dict else None,
             'y': float(res_dict['coordenadesETRS89UTM']['Y']) if 'coordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
@@ -335,22 +335,22 @@ class GeoFinder(object):
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaCruilla(
-                Poblacio = municipality, 
-                Vies = [{'Tipus':type1, 'Nom':street1}, 
+                Poblacio = municipality,
+                Vies = [{'Tipus':type1, 'Nom':street1},
                 {'Tipus':type2, 'Nom':street2}],
                 TrobaTots = ("SI" if find_all else "NO"))
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        
+
         # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['CruillaXY'],
-            'idTipus': '', 
-            'nomTipus': u'Cruilla', 
-            'nomMunicipi': res_dict['Cruilla']['Poblacio'], 
-            'nomComarca': res_dict['Cruilla']['Comarca']['nom'], 
-            'x': float(res_dict['CoordenadesETRS89UTM'][0]['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'idTipus': '',
+            'nomTipus': u'Cruilla',
+            'nomMunicipi': res_dict['Cruilla']['Poblacio'],
+            'nomComarca': res_dict['Cruilla']['Comarca']['nom'],
+            'x': float(res_dict['CoordenadesETRS89UTM'][0]['X']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'y': float(res_dict['CoordenadesETRS89UTM'][0]['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
@@ -365,27 +365,27 @@ class GeoFinder(object):
         print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaAdreca(
-                Poblacio = municipality, 
-                Via = {'Tipus':type, 'Nom':street}, 
-                Portal = null(), 
-                CodiPostal = "NO", 
-                Llogaret = null(), 
-                Comarca = null(), 
-                InePoblacio = null(), 
-                TrobaTots = ("SI" if find_all else "NO"), 
+                Poblacio = municipality,
+                Via = {'Tipus':type, 'Nom':street},
+                Portal = null(),
+                CodiPostal = "NO",
+                Llogaret = null(),
+                Comarca = null(),
+                InePoblacio = null(),
+                TrobaTots = ("SI" if find_all else "NO"),
                 PortalTextual = number)
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        
+
         # We convert the result to a unique format
         dicts_list = [{
             'nom': "%s" % res_dict['AdrecaXY'],
-            'idTipus': '', 
-            'nomTipus': 'Adreça', 
-            'nomMunicipi': res_dict['Adreca']['Poblacio'], 
-            'nomComarca': res_dict['Adreca']['Comarca']['nom'], 
-            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'idTipus': '',
+            'nomTipus': 'Adreça',
+            'nomMunicipi': res_dict['Adreca']['Poblacio'],
+            'nomComarca': res_dict['Adreca']['Comarca']['nom'],
+            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'y': float(res_dict['CoordenadesETRS89UTM']['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
@@ -401,7 +401,7 @@ class GeoFinder(object):
                         res_dict['x'] = alternative_res_dict['x']
                         res_dict['y'] = alternative_res_dict['y']
         return dicts_list
-        
+
     def find_cadastral_ref(self, cadastral_ref):
         """ Returns a list with a dictionary with the indicated cadastral reference """
 
@@ -416,9 +416,9 @@ class GeoFinder(object):
         clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
         try:
             res_dict = self.get_cadastral_coordinates_client().service.Consulta_CPMRC(
-                Provincia = "", 
-                Municipio = "", 
-                SRS = "EPSG:%s" % 25831, 
+                Provincia = "",
+                Municipio = "",
+                SRS = "EPSG:%s" % 25831,
                 RefCat = clean_cadastra_ref) ##Provincia, municipio, srs, ref catastral
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_cadastral_coordinates_client().last_sent()))
@@ -436,7 +436,7 @@ class GeoFinder(object):
             found = re.search(expression, adress, re.IGNORECASE)
         if not found:
             expression = r"(.+)()\(([\D]+)\)"
-            found = re.search(expression, adress, re.IGNORECASE)        
+            found = re.search(expression, adress, re.IGNORECASE)
         if found:
             street, municipality1, municipality2 = found.groups()
         else:
@@ -446,17 +446,17 @@ class GeoFinder(object):
 
         # We convert the result to a unique format
         dicts_list = [{
-            'nom': "%s%s (%s)" % (res_dict['coordenadas']['coord']['pc']['pc1'], res_dict['coordenadas']['coord']['pc']['pc2'], street), 
-            'idTipus': '', 
-            'nomTipus': u'Referència Cadastral', 
-            'nomMunicipi': municipality1, 
-            'nomComarca': municipality2, 
-            'x': float(res_dict['coordenadas']['coord']['geo']['xcen']), 
+            'nom': "%s%s (%s)" % (res_dict['coordenadas']['coord']['pc']['pc1'], res_dict['coordenadas']['coord']['pc']['pc2'], street),
+            'idTipus': '',
+            'nomTipus': u'Referència Cadastral',
+            'nomMunicipi': municipality1,
+            'nomComarca': municipality2,
+            'x': float(res_dict['coordenadas']['coord']['geo']['xcen']),
             'y': float(res_dict['coordenadas']['coord']['geo']['ycen']),
             'epsg': int(res_dict['coordenadas']['coord']['geo']['srs'].replace('EPSG:', ''))
-            }]        
+            }]
         return dicts_list
-   
+
     def find_placename(self, text):
         """ Returns a list of dictionaries with the toponyms found with the indicated nomenclature """
 
@@ -471,15 +471,15 @@ class GeoFinder(object):
         except Exception as e:
             print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
             raise e
-        
+
         # We convert the result to a unique format
         dicts_list = [{
             'nom': res_dict['Nom'],
-            'idTipus': int(res_dict['IdTipus']), 
-            'nomTipus': res_dict['NomTipus'], 
-            'nomMunicipi': res_dict['NomMunicipi'] if 'NomMunicipi' in res_dict else u'', 
-            'nomComarca': res_dict['NomComarca']if 'NomComarca' in res_dict else u'', 
-            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None, 
+            'idTipus': int(res_dict['IdTipus']),
+            'nomTipus': res_dict['NomTipus'],
+            'nomMunicipi': res_dict['NomMunicipi'] if 'NomMunicipi' in res_dict else u'',
+            'nomComarca': res_dict['NomComarca']if 'NomComarca' in res_dict else u'',
+            'x': float(res_dict['CoordenadesETRS89UTM']['X']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'y': float(res_dict['CoordenadesETRS89UTM']['Y']) if 'CoordenadesETRS89UTM' in res_dict else None,
             'epsg': 25831
             } for res_dict in res_dicts_list]
@@ -547,7 +547,7 @@ class GeoFinder(object):
         east = dict_list[0]['east']
         south = dict_list[0]['south']
         epsg = dict_list[0]['epsg']
-        
+
         return west, north, east, south, epsg
 
     def get_point(self, dict_list, selection):

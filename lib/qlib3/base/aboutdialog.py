@@ -29,7 +29,7 @@ class AboutDialog(QDialog, ui_about):
         Class to display basic information of plugin and ICGC logo
         """
 
-    def __init__(self, app_name, app_info, app_icon=None, title="Sobre", autoshow=True, new_line="  ", parent=None):
+    def __init__(self, app_name, app_info, app_icon=None, app_pixmap=None, title="Sobre", autoshow=True, new_line="  ", parent=None):
         """ Inicialització del diàleg "about", cal informar de:
             - app_name: Títol del diàleg
             - app_icon: Icona del diàleg
@@ -51,7 +51,7 @@ class AboutDialog(QDialog, ui_about):
              - parent: Specifies the parent window of the dialog
             """
         QDialog.__init__(self, parent)
-        self.setupUi(self)        
+        self.setupUi(self)
         self.ui = self # Per compatibilitat QGIS2/3
 
         # Canviem el títol i la icona
@@ -64,7 +64,9 @@ class AboutDialog(QDialog, ui_about):
         # Escalem la imatge de logo mantenint proporcions
         self.label_banner.setScaledContents(False)
         self.label_banner.setAlignment(Qt.AlignCenter)
-        self.pixmap_banner = QPixmap(self.label_banner.pixmap())
+        if not app_pixmap:
+            app_pixmap = QPixmap(self.label_banner.pixmap())
+        self.pixmap_banner = app_pixmap
         self.resize_banner()
 
         # Carreguem la informació

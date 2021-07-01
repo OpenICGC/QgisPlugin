@@ -14,11 +14,13 @@ Module with management functions and reports of errors
 
 import os
 import traceback
+import functools
 import console # Consola QGIS
 import qgis # Accés a QGIS
+from qgis.core import Qgis, QgsMessageLog
 from importlib import reload
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QPushButton
 
 from . import loginfodialog
 reload(loginfodialog)
@@ -31,12 +33,12 @@ class ErrorReportManager():
         Error message manager class for exceptions
         """
 
-    def __init__(self, dialog_title=u"Error", 
-        email_subject=u"Error", email_to="", email_cc="", 
-        console_last_lines=20, 
+    def __init__(self, dialog_title=u"Error",
+        email_subject=u"Error", email_to="", email_cc="",
+        console_last_lines=20,
         width=350, height=250, parent=None):
         """ Inicialització de la classe de gestió d'errors, cal especificar com serà el diàleg
-            d'errors i si es permet enviar emails i a qui. 
+            d'errors i si es permet enviar emails i a qui.
             - dialog_title: Títol del diàleg d'errors
             - email_subject: Títol dels emails d'informe d'errors
             - email_to: destinataris dels informes d'errors
@@ -68,6 +70,13 @@ class ErrorReportManager():
         self.dialog_title = dialog_title
         self.parent = parent
 
+    def set_parent(self, parent=None):
+        """ Configura el pare del diàleg d'errors
+            ---
+            Configure dialog parent window
+            """
+        self.parent = parent
+
     def set_size(self, width, height):
         """ Configura la mida del diàleg
             ---
@@ -80,7 +89,7 @@ class ErrorReportManager():
         """ Configura els emails d'informe d'errors
             ---
             Configure error report emails
-            """        
+            """
         self.email_subject = email_subject
         self.email_to = email_to
         self.email_cc = email_cc
@@ -109,12 +118,12 @@ class ErrorReportManager():
         layer = qgis.utils.iface.mapCanvas().currentLayer()
         layer_name = layer.name() if layer else None
         selected_features = (u", ".join([unicode(feature.id()) for feature in layer.selectedFeatures()])) if layer and 'selectedFeatures' in dir(layer) else None
-        layer_info = u"layer: %s, selection obj id: %s" % (layer_name, selected_features) if layer else None        
+        layer_info = u"layer: %s, selection obj id: %s" % (layer_name, selected_features) if layer else None
 
         return traceback_info, console_info, db_info, layer_info
 
     def manage_exception(self, e):
-        """ Obté informació de l'excepció produïda i mostra un diàleg amb les dades de l'error 
+        """ Obté informació de l'excepció produïda i mostra un diàleg amb les dades de l'error
             ---
             Gets information about the exception produced and displays a dialog with the error data
             """
@@ -128,17 +137,17 @@ class ErrorReportManager():
         """ Mostra un diàleg amb les dades de l'error, amb la possibilitat d'enviar informes per email
             ---
             Shows a dialog with the error data, with the possibility to send reports by email
-            """        
+            """
         # Obtenim informació de l'error
         trace_back_info, console_info, db_info, layer_info = self.get_error_info()
-        
+
         # Preparem un missatge d'error per mostrar a pantalla
         extra_info = "[ERROR:]\n%s\n\n[TRACE:]\n%s\n\n[QGIS CONSOLE:]\n%s" % (message, trace_back_info, console_info.strip())
         if(db_info):
             extra_info += "\n\n[DB:]\n%s" % db_info
         if layer_info:
             extra_info += "\n\n[LAYER:]\n%s" % layer_info
-        
+
         # Preparem un missatge d'error per l'email
         email_info = """
             <B>ERROR:</B><BR/>
@@ -151,15 +160,33 @@ class ErrorReportManager():
             email_info += "<BR/><B>DB:</B><BR/>%s<BR/>" % db_info
         if layer_info:
             email_info += "<BR/><B>LAYER:</B><BR/>%s<BR/>" % layer_info
-        
+
         # Mostrem un diàleg amb la informació
         dlg = LogInfoDialog(
             message, extrainfo_or_tupleextrainfolist = extra_info, extrainfohtml_or_tupleextrainfohtmllist = email_info,
-            title = self.dialog_title, mode = LogInfoDialog.mode_error, 
+            title = self.dialog_title, mode = LogInfoDialog.mode_error,
             buttons = LogInfoDialog.buttons_ok, save_button_text = u"Guardar",
             email_button_text = u"Reportar", email_subject = self.email_subject, email_to = self.email_to, email_cc = self.email_cc,
             width = self.width, height = self.height, parent = self.parent
             )
+
+    def generic_handle_error(self, func):
+        """ Funció que decora la gestió d'errors de manera genèrica
+            ---
+            Function that decorates error management in a generic way
+            """
+        def handle_error(*args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                QApplication.restoreOverrideCursor()
+                self.manage_exception(e)
+        return handle_error
+
+
+###############################################################################
+# Gestió d'error global, si es fan servir en dos plugins potser que
+# matxaquin les adreces d'email o el destinatari del emails
 
 error_report_manager = ErrorReportManager()
 
@@ -172,21 +199,119 @@ def generic_handle_error(func):
     def handle_error(*args, **kwargs):
         try:
             func(*args, **kwargs)
-        except Exception as e:     
-            QApplication.restoreOverrideCursor()       
+        except Exception as e:
+            QApplication.restoreOverrideCursor()
             #iface = args[0].iface if args and args[0].__dict__.get('iface', None) else None
             error_report_manager.manage_exception(e)
 
     return handle_error
 
 
+###############################################################################
+# Gestió d'errors específica per QGIS
+# Mostra la informació als panells de QGIS (MessageBar, StatusBar i MessageLog)
+
+class QgisError(Exception):
+    """ Classe d'error predefinida per mostrar missatge al MessageBar de QGIS
+            message: missatge explicant la causa de l'error
+            level: segons la gravetat (Qgis.Info, Qgis.Warning, Qgis.Critical)
+            duration: temps que es mostra el missatge en segons. Per defecte no expira (0)
+    """
+    def __init__(self, message, level=Qgis.Critical, duration=0):
+        self._message = message
+        self._level = level
+        self._duration = duration
+    
+    @property
+    def message(self):
+        return self._message
+    
+    @property
+    def level(self):
+        return self._level
+    
+    @property
+    def duration(self):
+        return self._duration
+    
+
+class CancelError(QgisError):
+    """ L'usuari ha abortat intencionadament """
+    def __init__(self, message="Operació cancel·lada per l'usuari."):
+        super().__init__(message, level=Qgis.Info, duration=2)
+    
+class InputError(QgisError):
+    """ L'usuari ha entrat dades invàlides """
+    def __init__(self, message="Error de les dades d'entrada."):
+        super().__init__(message, level=Qgis.Warning, duration=5)
+    
+class ProcessError(QgisError):
+    """ Algun procés ha acabat malament (scripts gdal, qgis processing, subprocess...)"""
+    def __init__(self, message="Error de procés."):
+        super().__init__(message, level=Qgis.Critical, duration=0)
+
+class DatabaseError(QgisError):
+    """ Error llegint/escrivint a base de dades """
+    def __init__(self, message="Error de base de dades."):
+        super().__init__(message, level=Qgis.Critical, duration=0)
+
+
+def qgis_show_traceback(parent, function, error_message, traceback_info):
+    """ Mostra un missatge d'error no controlat al MessageBar.
+        Afegeix un botó per si l'usuari vol printar el traceback a la consola
+    """
+    def on_button_pressed():
+        """ Callback que printa el traceback a la consola de QGIS """
+        parent.debug.show_console()
+        print(traceback_info)
+        
+    # Crea la barra amb el missatge d'error
+    widget = parent.iface.messageBar().createMessage(function, error_message)
+    
+    # Afegeix un botó a la barra per cridar el callback
+    button = QPushButton(widget)
+    button.setText("Vull veure més informació!")
+    button.pressed.connect(on_button_pressed)
+    widget.layout().addWidget(button)
+    
+    # Mostra la barra
+    parent.iface.messageBar().pushWidget(widget, Qgis.Critical)
+    
+    
+def qgis_handle_error(function):
+    """ Decorador per gestionar excepcions d'un plugin de QGIS i informar de l'inici/final
+    """
+    @functools.wraps(function)
+    def handle_error(*args, **kwargs):
+        try:
+            QgsMessageLog.logMessage(f"Procés '{function.__name__}' iniciat", 'Missatges', level=Qgis.Info)
+            function(*args, **kwargs)
+            status_message = f"Procés '{function.__name__}' finalitzat amb èxit."
+        except QgisError as e:
+            # Error controlat (InputError, ProcessError...)
+            title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')
+            args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
+            status_message = e.message
+        except Exception as e:
+            # Error inesperat (amb l'opció d'imprimir el traceback a posteriori)
+            qgis_show_traceback(args[0], function.__name__, f"{type(e).__name__}: {e}", traceback.format_exc())
+            status_message = f"Error inesperat a: '{function.__name__}'"
+        finally:
+            # Informem que el procés ha acabat
+            args[0].iface.statusBarIface().showMessage(f"AtQ: {status_message}")
+            QgsMessageLog.logMessage(f"Procés '{function.__name__}' finalitzat", 'Missatges', level=Qgis.Info)
+        
+    return handle_error
+    
+
+
 if __name__ == '__main__':
+    # Test
     ermanager = ErrorReportManager()
     ermanager.set_email("Prova exception manager", "albert.adell@icgc.cat")
-
     try:
         1/0
-    except Exception as e:        
+    except Exception as e:
         #message, trace_back_info, console_info = get_exception_info(e)
         #print "Message:", message, "\n"
         #print "Trace:", trace_back_info, "\n"

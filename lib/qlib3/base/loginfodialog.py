@@ -25,11 +25,10 @@ try:
 except:
     email_available = False
 
-
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPalette, QColor, QFontMetrics, QFont
-from PyQt5.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication
+from PyQt5.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication, QFrame, QFileDialog, QMessageBox
 
 ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_loginfo.ui'))
 
@@ -56,14 +55,14 @@ class LogInfoDialog(QDialog, ui_loginfo):
     buttons_yesno = (buttons_yes | buttons_no)
     buttons_yesno_defno = (buttons_yes | buttons_no | buttons_defno)
 
-    def __init__(self, info_or_tupleinfolist, 
-            title=u"Informació de procés", mode=mode_info, buttons=buttons_ok, 
-            default_combo_selection=None, 
+    def __init__(self, info_or_tupleinfolist,
+            title=u"Informació de procés", mode=mode_info, buttons=buttons_ok,
+            default_combo_selection=None,
             extrainfo_or_tupleextrainfolist=None, extrainfohtml_or_tupleextrainfohtmllist=None,
             email_button_text=None, email_subject=None, email_to=None, email_cc=None,
             save_button_text=None, copy_clipboard_button_text=None,
-            autoshow=True, width=None, height=None, font_size=10, parent=None):
-        """ Inicialització del diàleg, cal especificar paràmetre amb un text d'informació o amb una 
+            autoshow=True, width=None, height=None, font_size=10, border=False, parent=None):
+        """ Inicialització del diàleg, cal especificar paràmetre amb un text d'informació o amb una
             llista de tuples amb la informació. Opcionalment es pot especificar:
             - title: Títol del diàleg
             - mode: Mode del diàleg que canvia la icona a mostrar (mode_info, mode_warning, mode_error)
@@ -102,7 +101,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             - parent: Parent window of the dialog
             """
         QDialog.__init__(self, parent)
-        self.setupUi(self)        
+        self.setupUi(self)
         self.ui = self # Per compatibilitat QGIS2/3
 
         # Canviem el títol i la icona
@@ -149,7 +148,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             self.ui.pushButton_save.setEnabled(False)
             self.ui.pushButton_save.setVisible(False)
 
-        # Motrem el botó de copiar al portapapers 
+        # Motrem el botó de copiar al portapapers
         if copy_clipboard_button_text:
             self.ui.pushButton_clipboard.setText(copy_clipboard_button_text)
             self.ui.pushButton_clipboard.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(copy_clipboard_button_text) + 20)
@@ -177,6 +176,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
         palette.setColor(QPalette.Base, QColor('transparent'))
         self.ui.plainTextEdit.setPalette(palette)
         self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size))
+        if not border:
+            self.ui.plainTextEdit.setFrameStyle(QFrame.NoFrame)
 
         # Carreguem les dades
         self.info_or_tupleinfolist = info_or_tupleinfolist
@@ -207,18 +208,19 @@ class LogInfoDialog(QDialog, ui_loginfo):
             self.ui.plainTextEdit.setPlainText(info_or_tupleinfolist)
 
         # Mostrem el diàleg
+        self.setSizeGripEnabled(True) # Mostra la marca de resize (abaix a la dreta)
         if autoshow:
             self.return_value = self.do_modal()
 
     def update(self, index):
-        """ En cas de tenir una llista d'informacions, mostra la informació associada a "index" 
+        """ En cas de tenir una llista d'informacions, mostra la informació associada a "index"
             ---
             In case you have a list of information, show the information associated with "index"
             """
         self.index = index
         self.ui.plainTextEdit.setPlainText(self.tuple_list[index][1])
 
-    def get_report_info(self, html_format=False, crlf=False):        
+    def get_report_info(self, html_format=False):
         """ Retorna un text amb la informació mostrada en el diàleg, pot ser en format
             text pla, HTML i es pot configurar els canvis de linia
             ---
@@ -239,29 +241,27 @@ class LogInfoDialog(QDialog, ui_loginfo):
                 report_info = self.extrainfo_or_tupleextrainfolist
             else:
                 report_info = self.info_or_tupleinfolist
-        
-        if crlf:
-            report_info = report_info.replace('\r\n', '\n').replace('\n', '\r\n')
+
         return report_info
 
     def save(self):
         """ Guarda la informació del diàleg en un fitxer
-            --- 
+            ---
             Saves dialog information into a file
             """
-        out_file = QDir.toNativeSeparators(QFileDialog.getSaveFileName(None, "Save log info", "log.txt", "Text files (*.txt)"))
+        out_file, _file_type = QFileDialog.getSaveFileName(None, "Save log info", "log.txt", "Text files (*.txt)")
         if not out_file:
             return
-        report_info = self.get_report_info(html_format = False, crlf = True)
+        report_info = self.get_report_info(html_format=False)
         try:
-            with open(out_file, 'w') as file:
-                file.write(report_info.encode('UTF-8'))
+            with open(out_file, 'w', encoding='utf-8') as file:
+                file.write(report_info)
         except Exception as e:
             QMessageBox.warning(None, u"Save error", u"Error saving log\n%s" % e)
 
     def copy_to_clipboard(self):
         """ Guarda la informació del diàleg en el portapapers
-            --- 
+            ---
             Saves dialog information into clipboard
             """
         if not clipboard_available:
@@ -273,7 +273,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
 
     def send_email(self):
         """ Envia la informació del diàleg per email
-            --- 
+            ---
             Send dialog information by email
             """
         if not email_available:
@@ -281,7 +281,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
         if QApplication.keyboardModifiers() == Qt.ShiftModifier:
             return self.show_extra_info()
 
-        email_info = self.get_report_info(html_format=True, crlf=False)
+        email_info = self.get_report_info(html_format=True)
         try:
             email_object = utilities.email.eMail(self.email_to, self.email_cc, self.email_subject, htmlbody = email_info, attachment_files = [])
             email_object.open()
