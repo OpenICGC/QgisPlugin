@@ -109,6 +109,7 @@ class GeoFinder(object):
         # If you do not meet any of the above, we are looking for a place name
         return self.find_placename(text)
 
+    @classmethod
     def get_rectangle_coordinate(self, text):
         """ Detects a coordinate rectangle from the text
             Accept texts with 4 reals and optionally an epsg code
@@ -134,6 +135,7 @@ class GeoFinder(object):
 
         return west, north, east, south, epsg
 
+    @classmethod
     def get_point_coordinate(self, text):
         """ Detects a coordinate from the text
             Accepts texts with 2 reals and optionally an epsg code
@@ -156,6 +158,7 @@ class GeoFinder(object):
 
         return x, y, epsg
 
+    @classmethod
     def get_road(self, text):
         """ Detects a road from the text
             Accept road / km
@@ -174,6 +177,7 @@ class GeoFinder(object):
 
         return road, km
 
+    @classmethod
     def get_crossing(self, text):
         """ Detects a crossword from the text
             Accept information of crossroads (municipality, street, street)
@@ -191,6 +195,7 @@ class GeoFinder(object):
 
         return municipality, type1, street1, type2, street2
 
+    @classmethod
     def get_address(self, text):
         """ Detects an adress from the text
             Accept information about the address of a municipality
@@ -214,6 +219,7 @@ class GeoFinder(object):
 
         return municipality, type, street, number
 
+    @classmethod
     def get_cadastral_ref(self, text):
         """ Detects a cadastral reference from the text
             Accept a cadastral reference code in the 3 official formats
@@ -263,7 +269,7 @@ class GeoFinder(object):
         query_x, query_y = self.transform_point(x, y, epsg, 25831)
 
         # We execute the query
-        print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_tuple_list = self.get_icgc_geoencoder_client().service.geocodificacioInversa(
                 puntUTMETRS89 = {'X': query_x, 'Y': query_y}
@@ -303,7 +309,7 @@ class GeoFinder(object):
         print(u"Road: %s %s" % (road, km))
 
         # We execute the query
-        print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaPK(
                 nomCarretera = road,
@@ -332,7 +338,7 @@ class GeoFinder(object):
         print(u"Crossing %s, %s %s / %s %s" % (municipality, type1, street1, type2, street2))
 
         # We execute the query
-        print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaCruilla(
                 Poblacio = municipality,
@@ -362,7 +368,7 @@ class GeoFinder(object):
         print(u"Adress: %s, %s %s %s" % (municipality, type, street, number))
 
         # We execute the query
-        print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaAdreca(
                 Poblacio = municipality,
@@ -412,7 +418,7 @@ class GeoFinder(object):
         # 13077A018000390000FP
 
         # We execute the query
-        print(u"URL: %s" % self.get_cadastral_coordinates_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_cadastral_coordinates_client().wsdl.url)
         clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
         try:
             res_dict = self.get_cadastral_coordinates_client().service.Consulta_CPMRC(
@@ -463,7 +469,7 @@ class GeoFinder(object):
         print(u"Placement: %s" % text)
 
         # We execute the query
-        print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaToponim(
                 text

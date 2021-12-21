@@ -177,7 +177,7 @@ class ErrorReportManager():
             """
         def handle_error(*args, **kwargs):
             try:
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
             except Exception as e:
                 QApplication.restoreOverrideCursor()
                 self.manage_exception(e)

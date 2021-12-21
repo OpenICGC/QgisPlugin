@@ -28,8 +28,18 @@ email=openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.4
-changelog=v1.0.4 (2021-06-23)
+version=1.0.6
+changelog=v1.0.6 (2021-12-21)
+	- Added download products from selected polygons on vector layer
+	- Added reactivation of download tool with last download configuration
+	- Fixed WMS error initializing plugin
+
+	v1.0.5 (2021-10-19)
+	- Added new topographic downloads
+	- Added download products by numeric coordinates (no interactive selection)
+	- Updated orthophotos layers organization
+
+	v1.0.4 (2021-06-23)
 	- Added NDVI temporal series (raw and colored) map layers
 	- Added topografia-territorial download in cad formats (dgn, dwg)
 	- Added auto-show temporal series dialog on load temporal series layers

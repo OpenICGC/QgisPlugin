@@ -55,10 +55,13 @@ def get_full_ortho(timeout_seconds=5, retries=3):
     wms_ex_list = [(
         layer_id,
         layer_name,
-        ("ortofoto" if re.findall("ortofoto", layer_id) else "superexpedita" if re.findall("ortoxpres.+\d{4}", layer_id) else "ortoxpres"),
+        #("ortofoto" if re.findall("ortofoto", layer_id) else "superexpedita" if re.findall("ortoxpres.+\d{4}", layer_id) else "ortoxpres"),
+        ("ortoxpres" if re.findall("provisional", layer_id) else "ortofoto"),
         ("irc" if layer_id.lower().find("infraroig") >= 0 else "rgb" if layer_id.lower().find("color") >= 0 else "bw" if layer_id.lower().find("blanc_i_negre") >= 0 else None ),
         (re.findall("(\d{4}(?:\-\d{4})*)", layer_id) + re.findall("(\d{4}(?:\-\d{4})*)", layer_name) + [None])[0]
-        ) for layer_id, layer_name in wms_list if re.findall("(^(ortoxpres)|^(ortofoto))_((color)|(infraroig)|(blanc_i_negre))", layer_id)]
+        #) for layer_id, layer_name in wms_list if re.findall("(^(ortoxpres)|^(ortofoto))_((color)|(infraroig)|(blanc_i_negre))", layer_id)]
+        ) for layer_id, layer_name in wms_list if re.findall("^(ortofoto)_((color)|(infraroig)|(blanc_i_negre))", layer_id) and
+            (re.findall("(\d{4}(?:\-\d{4})*)", layer_id) + re.findall("(\d{4}(?:\-\d{4})*)", layer_name))]
 
     # Ordenem per any
     wms_ex_list.sort(key=lambda p: int(p[4].split("-")[0]), reverse=False)

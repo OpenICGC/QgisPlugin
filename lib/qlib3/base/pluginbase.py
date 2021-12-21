@@ -35,18 +35,20 @@ import zipfile
 #import ogr
 from osgeo import ogr
 
-from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
+from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication, QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence
+from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices
 from PyQt5.QtXml import QDomDocument
 
-from qgis.gui import QgsProjectionSelectionTreeWidget, QgsAttributeDialog
+from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsContrastEnhancement
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
 from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap
-from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext
+from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
 from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler
+from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
+from qgis.core import QgsLayoutExporter
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -82,8 +84,6 @@ from .download import DownloadManager
 
 ###############################################################################
 # Overwrite QGIS function than it don't works in QGIS3.18/windows
-from qgis.PyQt.QtCore import QLocale, QUrl
-from qgis.PyQt.QtGui import QDesktopServices
 def showPluginHelp(packageName: str = None, filename: str = "index", section: str = ""):
     """Open help in the user's html browser. The help file should be named index-ll_CC.html or index-ll.html or index.html.
 
@@ -460,11 +460,15 @@ class GuiBase(object):
         for action in actions_list:
             if action and action.objectName() == id:
                 return action
+            if action.menu():
+               subaction = self.find_action(id, action.menu().actions())
+               if subaction:
+                   return subaction
         return None
 
     def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True):
         """ Activa una llista d'items pel seu id d'una toolbar
-            --- 
+            ---
             Activates toolbars items by id
             """
         actions_list = [action for action in menu_or_toolbar.actions() if action.objectName() in items_id_list]
@@ -564,7 +568,7 @@ class GuiBase(object):
 
     def enable_menu_items_by_name(self, menu_name, items_id_list, enable=True):
         """ Activa una llista d'items pel seu id d'una toolbar pel seu nom
-            --- 
+            ---
             Activates toolbars items by id and toolbar_name
             """
         menu = self.get_menu_by_name(menu_name)
@@ -776,7 +780,7 @@ class GuiBase(object):
 
     def enable_toolbar_items_by_name(self, toolbar_name, items_id_list, enable=True):
         """ Activa una llista d'items pel seu id d'una toolbar pel seu nom
-            --- 
+            ---
             Activates toolbars items by id and toolbar_name
             """
         toolbar = self.get_toolbar_by_name(toolbar_name)
@@ -920,6 +924,8 @@ class ProjectBase(object):
             ---
             Assign EPSG code to the project
             """
+        if type(epsg) == str:
+            epsg = int(epsg.upper().replace("EPSG:", ""))
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
         self.iface.mapCanvas().mapSettings().setDestinationCrs(crs)
         QgsProject.instance().setCrs(crs)
@@ -1058,7 +1064,7 @@ class LayersBase(object):
         layers_list = QgsProject.instance().mapLayers().values()
         if not layers_list or pos < 0 or pos >= len(layers_list):
             return None
-        return layers_list[pos]
+        return list(layers_list)[pos]
 
     def get_connection_string_dict_by_id(self, idprefix, pos=0):
         """ Retorna un diccionari amb el string de conexió de la capa a partir del seu id (se li passa prefix d'id)
@@ -1292,14 +1298,11 @@ class LayersBase(object):
             if layer:
                 # Obtenim els elements seleccionats
                 if only_selection:
-                    selected_features = layer.selectedFeatures()[:max_items]
+                    selected_fids = set(layer.selectedFeatureIds())
+                    selected_features = [f for f in layer.getFeatures() if f.id() in selected_fids][:max_items]
                 else:
-                    layer.selectAll()
-                    selected_features = layer.selectedFeatures()[:max_items]
-                    self.set_selection(layer, [])
-                ##print(layer_idprefix, layer, layer.name(), layer.selectedFeatures())
+                    selected_features = list(layer.getFeatures())[:max_items]
                 # Obtenim la selecció de la capa fields_name_or_list (acceptem llista o valor)
-                # Validem el tipus de dades de
                 if type(field_name_or_list) != list:
                     layer_selection = [self.get_feature_attribute(layer, feature, field_name_or_list) for feature in selected_features]
                 else:
@@ -1373,7 +1376,7 @@ class LayersBase(object):
             Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area
             """
         # Obtenim l'area a buscar, i la reprojectem si cal a coordenades de la serie50k
-        if area_epsg and self.layerEPSG2(layer) != area_epsg:
+        if area_epsg and self.get_epsg(layer) != area_epsg:
             area = self.parent.crs.transform_bounding_box(area, area_epsg, self.parent.layers.get_epsg(layer))
 
         # Cerquem elements que intersequin amb l'àrea
@@ -1794,7 +1797,7 @@ class LayersBase(object):
         self.root.findLayer(layer.id()).setExpanded(expand)
 
     def is_expanded_by_id(self, layer_basename, pos=0):
-        """ Retorna si una capa està expandida per id 
+        """ Retorna si una capa està expandida per id
             ---
             Returns if a layer is expanded by id
             """
@@ -1952,7 +1955,8 @@ class LayersBase(object):
                     symbol.setSize(width)
                 else:
                     symbol.setWidth(width)
-            renderers_list.append(QgsRendererRange(begin_value, end_value, symbol, "%f - %f" % (begin_value, end_value)))
+            label = f"{begin_value} - {end_value}"
+            renderers_list.append(QgsRendererRange(begin_value, end_value, symbol, label))
 
         # Assignem la visualització per rangs a la capa
         renderer = QgsGraduatedSymbolRenderer(class_attribute, renderers_list)
@@ -1966,49 +1970,97 @@ class LayersBase(object):
         if not show:
             self.set_visible(layer, False)
 
-    def classify_by_id(self, layer_idprefix, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, alpha=None, use_current_symbol=True, base_symbol=None, pos=0, label_function=None, alpha_fill=None):
+    def classify_by_id(self, layer_idprefix, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False, interpolate_colors=False, pos=0):
         """ Classifica els valors d'una capa per id segons la llista de valors i un camp de la capa.
-            Addicionalment se li pot passar una llista de colors a aplicar
-            (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            layer: capa a processar
             class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
+            values_list: llista de valors a utilitzar
+            colors_list, border_list: Addicionalment se li pot passar una llista de colors a aplicar (si no hi ha colors s'utilitzan colors aleatoris)
+               (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            interpolate_colors: Interpola colors entre la llista de colors inicial per aconseguir un color per categoria
+            width: amplada de les linies de la simbolització
+            use_current_symbol: utilitza la simbolització actual canviant els colors
+            base_symbol: simbol base a utilitzar canviant els colors
             label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
+            alpha: aplica transparència
             alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
+            expand: expandeix la llegenda de la capa
+            sort: ordena les categories
+            pos: index de la capa amb layer_idprefix a processar
             ---
-            Classify the values of a layer by id according to the values list and a layer field.
-            Additionally you can pass a list of colors to apply
-            (if it is shorter than the number of values, colors will be repeated using module)
+            Classify the values of a layer, according to the values list and a layer field.
+            layer: layer to process
             class_attribute: if not given, the old categories will be used as a starting point
+            values_list: list of values to use
+            colors_list, border_list: Additionally you can pass a list of colors to apply (if no colors, random colors are used)
+               (if it is shorter than the number of values, colors will be repeated using module)
+            interpolate_colors: Interpolate colors betwen initial colors list to gets one color per category
+            width: width symbol lines
+            use_current_symbol: use current symbol changing colors
+            base_symbol: use this symbol changing colors
             label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
-            alpha_fill: set opacity only to the fill (e.g.: highlight borders when footprints have transparency)
+            alpha: set transparency
+            alpha_fill: set transparency only to the fill (e.g.: highlight borders when footprints have transparency)
+            expand: expand layer legend
+            sort: sort categories
+            pos: index of layer with layer_idprefix to process
             """
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, alpha, use_current_symbol, base_symbol, label_function, alpha_fill)
+        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, size, alpha, use_current_symbol, base_symbol, label_function, alpha_fill, sort, ininterpolate_colors)
         return True
 
-    def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False):
+    def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False, interpolate_colors=False):
         """ Classifica els valors d'una capa segons la llista de valors i un camp de la capa.
-            Addicionalment se li pot passar una llista de colors a aplicar
-            (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            layer: capa a processar
             class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
+            values_list: llista de valors a utilitzar
+            colors_list, border_list: Addicionalment se li pot passar una llista de colors a aplicar (si no hi ha colors s'utilitzan colors aleatoris)
+               (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            interpolate_colors: Interpola colors entre la llista de colors inicial per aconseguir un color per categoria
+            width: amplada de les linies de la simbolització
+            size: mida per elements puntuals
+            use_current_symbol: utilitza la simbolització actual canviant els colors
+            base_symbol: simbol base a utilitzar canviant els colors
             label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
+            alpha: aplica transparència
             alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
+            expand: expandeix la llegenda de la capa
+            sort: ordena les categories
             ---
             Classify the values of a layer, according to the values list and a layer field.
-            Additionally you can pass a list of colors to apply
-            (if it is shorter than the number of values, colors will be repeated using module)
+            layer: layer to process
             class_attribute: if not given, the old categories will be used as a starting point
+            values_list: list of values to use
+            colors_list, border_list: Additionally you can pass a list of colors to apply (if no colors, random colors are used)
+               (if it is shorter than the number of values, colors will be repeated using module)
+            interpolate_colors: Interpolate colors betwen initial colors list to gets one color per category
+            width: width symbol lines
+            size: size of point features
+            use_current_symbol: use current symbol changing colors
+            base_symbol: use this symbol changing colors
             label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
-            alpha_fill: set opacity only to the fill (e.g.: highlight borders when footprints have transparency)
+            alpha: set transparency
+            alpha_fill: set transparency only to the fill (e.g.: highlight borders when footprints have transparency)
+            expand: expand layer legend
+            sort: sort categories
             """
         # Guardo l'estat de la capa (de vegades en reclassificar es perd)
         layer_is_expanded = self.is_expanded(layer)
 
+        # Si hem d'aprofitar símbols, ens guardem un base symbol. Cal clonar-lo ara, si no de vegades QGIS peta vilment
+        if use_current_symbol:
+            # Prioritzem el símbol base de la capa. Si no està definit, agafem el de la primera categoria
+            renderer = layer.renderer()
+            if hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
+                base_symbol = renderer.sourceSymbol().clone()
+            elif len(renderer.symbols(QgsRenderContext())):
+                base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
+
         # Recupera el renderer o crea un de nou
         if hasattr(layer.renderer(), 'categories'):
             # Aprofita el renderer antic (així conservem propietats com el base_symbol)
-            renderer = layer.renderer()
             if class_attribute:
                 # Inicialitza una nova classificació amb el camp que ens passen
                 renderer.deleteAllCategories()
@@ -2032,19 +2084,17 @@ class LayersBase(object):
             delete_list = [c for c in old_categories_list if not c in values_list] # Categories que sobren (les eliminarem)
             values_list = [v for v in values_list if not v in old_categories_list] # Categories que falten (les crearem)
 
-        # Si hem d'aprofitar símbols, ens guardem un base symbol. Cal clonar-lo ara, si no de vegades QGIS peta vilment
-        if use_current_symbol:
-            # Prioritzem el símbol base de la capa. Si no està definit, agafem el de la primera categoria
-            #if renderer.sourceSymbol() and False:
-            #    base_symbol = renderer.sourceSymbol().clone()
-            if len(renderer.symbols(QgsRenderContext())):
-                base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
-
         # Detectem si els color d'omplir i el de border són el mateix
         linked_colors = base_symbol and not border_color_list and base_symbol.color().rgb() == base_symbol.symbolLayer(0).strokeColor().rgb()
-
-        # Si no tenim llista de colors, generarem una llista aleatòria
-        if not color_list:
+        # Si hem d'interpolar colors, ho fem
+        if border_color_list and interpolate_colors:
+            border_color_list = self.get_interpolated_color_list(border_color_list, len(values_list))
+        if color_list:
+            # Si hem d'interpolar colors, ho fem
+            if interpolate_colors:
+                color_list = self.get_interpolated_color_list(color_list, len(values_list))
+        else:
+            # Si no tenim llista de colors, generarem una llista aleatòria
             # Recupero els colors de la classificació antiga (si n'hi ha)
             used_colors = [QColor(category.symbol().color()) for category in renderer.categories()]
 
@@ -2066,8 +2116,8 @@ class LayersBase(object):
             elif linked_colors:
                 border_color = QColor(color)
             else:
-                border_color = None           
-            
+                border_color = None
+
             # Recupera la transparència del color d'emplenament original (en crear un nou color es perd)
             if base_symbol:
                 color.setAlpha(base_symbol.color().alpha())
@@ -2077,8 +2127,8 @@ class LayersBase(object):
             symbol.setColor(color)
 
             # Aplica estils opcionals al símbol
-            # pinta les línies
             if border_color:
+                # pinta les línies
                 symbol.symbolLayer(0).setStrokeColor(border_color)
             if alpha is not None:
                 # aplica transparència al símbol sencer
@@ -2089,9 +2139,14 @@ class LayersBase(object):
                 symbol.symbolLayer(0).setFillColor(color)
             if width is not None:
                 if type(symbol) == QgsFillSymbol:
+                    # gruix del borde dels polígons
                     symbol.symbolLayer(0).setStrokeWidth(width)
                 else:
+                    # gruix per línies
                     symbol.setWidth(width)
+            if size is not None and type(symbol) == QgsMarkerSymbol:
+                # Mida dels punts
+                symbol.setSize(size)
 
             # Generem l'etiqueta a partir del valor
             label = label_function(value) if label_function else value
@@ -2120,6 +2175,46 @@ class LayersBase(object):
 
         # Refresquem la llegenda
         self.refresh_legend(layer, expanded = expand if expand is not None else layer_is_expanded)
+
+    def get_interpolated_color_list(self, base_color_list, steps):
+        """ Returns a interpolated colors list from initial n colors and a number of steps """
+        # Special cases
+        if not base_color_list or steps < 1:
+            return []
+        if len(base_color_list) == 1 or steps == 1:
+            return base_color_list[0:1] * steps
+        # Interpolate colors two by two
+        substeps = float(steps) / (len(base_color_list) - 1)
+        colors_list = []
+        for i in range(steps):
+            base_color_index = int((i * (len(base_color_list) - 1)) / steps)
+            begin_color = base_color_list[base_color_index]
+            end_color = base_color_list[base_color_index + 1]
+
+            r_factor = (end_color.red() - begin_color.red()) / substeps
+            g_factor = (end_color.green() - begin_color.green()) / substeps
+            b_factor = (end_color.blue() - begin_color.blue()) / substeps
+
+            r = begin_color.red() + (float(i) - (base_color_index * substeps)) * r_factor
+            g = begin_color.green() + (float(i) - (base_color_index * substeps)) * g_factor
+            b = begin_color.blue() + (float(i) - (base_color_index * substeps)) * b_factor
+            colors_list.append(QColor(r, g, b))
+        # Round problems can do than we don't arrive to last color, we force it
+        colors_list[-1] = base_color_list[-1]
+        return colors_list
+
+    def get_color_list(self, begin_color, end_color, steps):
+        """ Returns a colors list from initial, end color and a number of steps """
+        r_factor = float(end_color.red() - begin_color.red()) / steps
+        g_factor = float(end_color.green() - begin_color.green()) / steps
+        b_factor = float(end_color.blue() - begin_color.blue()) / steps
+        colors_list = []
+        for i in range(steps):
+            r = begin_color.red() + i * r_factor
+            g = begin_color.green() + i * g_factor
+            b = begin_color.blue() + i * b_factor
+            colors_list.append(QColor(r, g, b))
+        return colors_list
 
     def delete_categories_by_id(self, layer_idprefix, values_list, pos=0):
         """ Elimina les categories d'una capa per id segons la llista de valors i un camp de la capa.
@@ -2176,6 +2271,24 @@ class LayersBase(object):
             return None
         return layer.renderer().classAttribute()
 
+    def get_classification_colors_by_id(self, layer_idprefix, pos=0):
+        """ Retorna els colors de la classificació actual a partir d'un id de capa
+            ---
+            Given a layer id return the colors of the current classification
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return None
+        return self.get_classification_colors(layer)
+
+    def get_classification_colors(self, layer):
+        """ Retorna els colors de la classificació actual
+            ---
+            Return the colors of the current classification
+            """
+        renderer = layer.renderer()
+        return [symbol.color() for symbol in renderer.symbols(QgsRenderContext())]
+
     def set_categories_visible_by_id(self, layer_idprefix, categories_list=None, enable=True, pos=0):
         """ Fa visibles o invisibles les categories de la llista a partir d'un id de capa
             Si no es passa cap llista, s'actualitzaran totes les categories
@@ -2196,9 +2309,11 @@ class LayersBase(object):
             If no list is given, all categories will be updated
             """
         renderer = layer.renderer()
+        if type(renderer) is not QgsCategorizedSymbolRenderer:
+            return
 
         # Si no ens passen cap llista de categories la generem
-        if not categories_list:
+        if categories_list is None:
             categories_list = [c.value() for c in renderer.categories()]
 
         # Activa/desactiva la visibilitat de les categories de la llista
@@ -2254,15 +2369,17 @@ class LayersBase(object):
             Zoom in to the entire contents of a layer. Optionally you can add a "buffer"
             """
         # Obtenim l'area de la capa
-        if layer.featureCount() < 1:
+        if type(layer) is QgsVectorLayer and layer.featureCount() < 1:
             return False
         area = layer.extent()
         # Reprojectem les coordenades si cal
-        if self.get_epsg(layer) != self.parent.project.get_epsg():
+        layer_epsg = self.get_epsg(layer)
+        project_epsg = self.parent.project.get_epsg()
+        if layer_epsg and project_epsg and layer_epsg != project_epsg:
             area = self.parent.crs.transform_bounding_box(area, self.get_epsg(layer))
         # Ampliem el rectangle si cal
         if buffer:
-            area = area.buffer(buffer)
+            area = area.buffered(buffer)
         # Fem zoom a l'area
         self.iface.mapCanvas().setExtent(area)
         return True
@@ -2303,17 +2420,36 @@ class LayersBase(object):
         return self.iface.layerTreeView().selectedLayers()
 
     def get_group_layers(self, group):
-        return self.get_group_layers_by_id(group.name())
-
-    def get_group_layers_by_id(self, group_id):
         """ Retorna les capes d'un grup
             ---
             Return group's layers
             """
+        return self.get_group_layers_by_id(group.name())
+
+    def get_group_layers_by_id(self, group_id):
+        """ Retorna les capes d'un grup a partir del nom de group
+            ---
+            Return group's layers by group name
+            """
+        return self.get_group_children_by_id(group_id, True)
+
+    def get_group_children(self, group, only_layers=False):
+        """ Retorna els fills d'un grup o només els de tipus capa
+            ---
+            Return all group's children or only children type layer
+            """
+        return self.get_children_layers_by_id(group.name())
+
+    def get_group_children_by_id(self, group_id, only_layers=False, only_groups=False):
+        """ Retorna els fills d'un grup o només els de tipus capa a partir del nom de grup
+            ---
+            Return all group's children or only children type layer by group name
+            """
         group = self.root.findGroup(group_id)
         if not group:
-            return None
-        return [l.layer() for l in group.children() if type(l) == QgsLayerTreeLayer]
+            return []
+        return [c.layer() if type(c) == QgsLayerTreeLayer else c for c in group.children() \
+            if (type(c) == QgsLayerTreeLayer or not only_layers) and (type(c) == QgsLayerTreeGroup or not only_groups)]
 
     def get_group_layer_by_id(self, group_id, layer_id):
         """ Retorna les capes d'un grup
@@ -2393,6 +2529,13 @@ class LayersBase(object):
             """
         return layer.setSubsetString(sql_filter)
 
+    def add_layer(self, layer):
+        """ Afegeix una capa
+            ---
+            Add a layer
+            """
+        QgsProject.instance().addMapLayer(layer)
+
     def remove_layer_by_id(self, layer_idprefix, pos=0):
         """ Esborra una capa a partir del seu id
             ---
@@ -2411,36 +2554,37 @@ class LayersBase(object):
             """
         QgsProject.instance().removeMapLayer(layer.id())
 
-    def save_shape_file_by_id(self, idprefix, pathname, encoding="utf-8", pos=0):
+    def save_shape_file_by_id(self, idprefix, pathname, encoding="utf-8", epsg=None, pos=0):
         """ Guarda el contingut d'una capa vectorial per id com un shape
             ---
             Save the contents of a vector layer by id as a shape
             """
-        return self.save_vector_file_by_id(idprefix, pathname, "ESRI Shapefile", encoding, pos)
+        return self.save_vector_file_by_id(idprefix, pathname, "ESRI Shapefile", encoding, epsg, pos)
 
-    def save_shape_file(self, layer, pathname, encoding="utf-8"):
+    def save_shape_file(self, layer, pathname, encoding="utf-8", epsg=None):
         """ Guarda el contingut d'una capa vectorial com un shape
             ---
             Save the contents of a vector layer as a shape
             """
-        return self.save_vector_file(layer, pathname, "ESRI Shapefile", encoding)
+        return self.save_vector_file(layer, pathname, "ESRI Shapefile", encoding, epsg)
 
-    def save_vector_file_by_id(self, idprefix, pathname, format="GeoJSON", encoding="utf-8", pos=0):
+    def save_vector_file_by_id(self, idprefix, pathname, format="GeoJSON", encoding="utf-8", epsg=None, pos=0):
         """ Guarda el contingut d'una capa vectorial per id com un fitxer vectorial
             ---
             Save the contents of a vector layer by id as a vectorial file
             """
-        layer = self.layerById(idprefix, pos)
+        layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        return self.save_vector_file(layer, pathname, format, encoding)
+        return self.save_vector_file(layer, pathname, format, encoding, epsg)
 
-    def save_vector_file(self, layer, pathname, format="GeoJSON", encoding="utf-8"):
+    def save_vector_file(self, layer, pathname, format="GeoJSON", encoding="utf-8", epsg=None):
         """ Guarda el contingut d'una capa vectorial com un fitxer vectorial
             ---
             Save the contents of a vector layer as a vectorial file
             """
-        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, None, format) == QgsVectorFileWriter.NoError
+        crs = QgsCoordinateReferenceSystem(self.parent.crs.format_epsg(epsg, True) if epsg else None)
+        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, crs, format) == QgsVectorFileWriter.NoError
 
     def rename_fields_by_id(self, idprefix, rename_dict, pos=0):
         """ Reanomena camps d'una capa a partir del seu id
@@ -2463,6 +2607,46 @@ class LayersBase(object):
         layer.dataProvider().renameAttributes(new_names_dict)
         layer.updateFields()
         return True
+
+    def set_field_alias_by_id(self, layer_idprefix, field_index, field_alias, pos=0):
+        """ Assigna un alias a un camp d'una capa
+            ---
+            Assign an alias to a layer's field
+        """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return False
+        self.set_field_alias(layer, field_index, field_alias)
+        return True
+
+    def set_field_alias(self, layer, field_index, field_alias):
+        """ Assigna un alias a un camp d'una capa
+            ---
+            Assign an alias to a layer's field
+        """
+        layer.setFieldAlias(field_index, field_alias)
+
+    def set_fields_alias_by_id(self, idprefix, alias_dict, pos=0):
+        """ Assigna alies als camps d'una capa a partir del seu id
+            ---
+            Set alias of field layers by id
+            """
+        """ Reanomena camps d'una capa a partir del seu id
+            ---
+            Rename fields of a layer by id
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return False
+        return self.set_fields_alias(layer, alias_dict)
+
+    def set_fields_alias(self, layer, alias_dict):
+        """ Assigna alies als camps d'una capa
+            ---
+            Set alias of field layers
+            """
+        for field_name, alias in  alias_dict.items():
+            layer.setFieldAlias(layer.fields().indexFromName(field_name), alias)
 
     def delete_fields_by_id(self, idprefix, names_list, pos=0):
         """ Esborra camps d'una capa per id
@@ -2741,7 +2925,7 @@ class LayersBase(object):
                 qlr_doc = QDomDocument()
                 qlr_doc.setContent(qlr_data)
                 context = QgsReadWriteContext()
-                
+
                 # Carreguem el QLR
                 #layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_doc, context)
                 ##print("QLR layers %s" % [layer.name() for layer in layers_list])
@@ -2755,7 +2939,7 @@ class LayersBase(object):
             # Carreguem les capes del QLR a partir del fitxer QLR
             print("Arxiu: %s" % (qlr_pathname))
             status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
-        
+
         return status
 
     def add_raster_files(self, files_list, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
@@ -2814,7 +2998,6 @@ class LayersBase(object):
 
         # Afegim totes les ortos que ens passen
         layers_list = []
-        last_layer = None
         error_files = []
         for i, filename in enumerate(files_list):
             # Determinem el nom de la capa
@@ -2831,14 +3014,13 @@ class LayersBase(object):
             # Detectem si existeix el fitxer
             if not os.path.exists(filename):
                 error_files.append(filename)
-                continue
+                layers_list.append(None)
 
             # Si no existeix la capa l'afegim
             properties_dict = properties_dict_list[i] if properties_dict_list else None
             last_layer = self.add_raster_layer(name, filename, group_name, group_pos, epsg, ref_layer, min_scale=min_scale, max_scale=max_scale, no_data=no_data, color_default_expansion=color_default_expansion, visible=visible, expanded=expanded, transparency=transparency, saturation=saturation, resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic, set_current=set_current, style_file=style_file, properties_dict=properties_dict, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
             if not last_layer:
                 error_files.append(filename)
-                continue
             layers_list.append(last_layer)
 
         # Mostrem errors
@@ -2922,11 +3104,11 @@ class LayersBase(object):
         if resampling_bilinear:
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsBilinearRasterResampler())
-            resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())        
+            resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())
         if resampling_cubic:
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsCubicRasterResampler())
-            resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())        
+            resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())
         # Canviem les propiedats de la capa
         self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, saturation, set_current, properties_dict)
 
@@ -2972,10 +3154,10 @@ class LayersBase(object):
         return download_folder
 
     def open_download_path(self, select_folder_text=None, filename=None):
-        """ Obre l'arxiu especificat o la carpeta de descàrregues i opcionalment (select_folder_text<>None) 
+        """ Obre l'arxiu especificat o la carpeta de descàrregues i opcionalment (select_folder_text<>None)
             la pregunta si no està definida o no existeix
             ---
-            Open specified file or the download folder and optionally (select_folder_text <> None) 
+            Open specified file or the download folder and optionally (select_folder_text <> None)
             asks if it is not defined or does not exist
         """
         download_folder = self.get_download_path(select_folder_text)
@@ -3082,7 +3264,7 @@ class LayersBase(object):
     #    progress.set_value(current_size)
     #    pass
 
-    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
             ---
@@ -3091,9 +3273,10 @@ class LayersBase(object):
             """
         # Descarreguem el fitxer si cal
         local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text)
+        if not local_pathname:
+            return None
         # Carreguem el fitxer
-        if local_pathname:
-            self.add_raster_files([local_pathname], group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+        return self.add_raster_layer(layer_name, local_pathname, group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, color_default_expansion, visible, expanded, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, style_file, properties_dict, only_one_map_on_group, only_one_visible_map_on_group)
 
     def add_remote_raster_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
@@ -3102,12 +3285,18 @@ class LayersBase(object):
             Download http raster files in the specified folder and open them to QGIS.
             See add_raster_files for options
             """
+        layers_list = []
         for remote_file in remote_files_list:
             # Descarreguem el fitxer si cal
             local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text)
             # Carreguem el fitxer
             if local_pathname:
-                self.add_raster_files([local_pathname], group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, layer_name, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+                last_layer = self.add_raster_layer(layer_name, local_pathname, group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            else:
+                last_layer = None
+            layers_list.append(last_layer)
+        # Retorna la última capa
+        return layers_list
 
     def add_vector_files(self, files_list, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
         """ Afegeix capes vectorials a partir d'una llista de fitxers. Opcionament se li pot especificar:
@@ -3145,6 +3334,7 @@ class LayersBase(object):
         ##layers_list = self.get_group_layers_id(group_name) if group_name else []
 
         # Afegim totes les imatges que ens passin
+        layers_list = []
         error_files = []
         last_layer = None
         for i, filename in enumerate(files_list):
@@ -3162,15 +3352,14 @@ class LayersBase(object):
             # Detectem si existeix el fitxer
             if not os.path.exists(filename):
                 error_files.append(filename)
+                layers_list.append(None)
                 continue
 
             # Creem la capa (alguns arxius multicapa, no retornen la capa)
             last_layer = self.add_vector_layer(name, filename, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
-            #if not last_layer:
-            #    group = self.parent.legend.get_group_by_name(name)
-            #    if not group:
-            #        error_files.append(filename)
-            #    continue
+            if not last_layer:
+                 error_files.append(filename)
+            layers_list.append(last_layer)
 
         # Mostrem errors
         if len(error_files) > 0:
@@ -3183,7 +3372,7 @@ class LayersBase(object):
         self.iface.setActiveLayer(active_layer)
 
         # Retornem la última capa inserida
-        return last_layer
+        return layers_list
 
     def add_vector_layer(self, name, pathname, group_name=None, group_pos=None, min_scale=None, max_scale=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
         """ Afegeix una cape vectorial a partir d'un nom de capa i un fitxer. Opcionament se li pot especificar:
@@ -3311,26 +3500,27 @@ class LayersBase(object):
                 self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, None, set_current, properties_dict_list[i] if properties_dict_list else None)
         # Si carreguem arxiu multicapa, hem creat un grup per ell i volem el grup colapsat
         if group_name:
-            if is_zipped_file or is_geopackage_file:
-                self.iface.mapCanvas().setCurrentLayer(layer) # seleccionem un capa del grup perquè no expandeixi un altre grup
-                self.parent.legend.collapse_group_by_name(group_name)
-            if collapsed_parent_group:
-                parent_group.setExpanded(False)
+           if is_zipped_file or is_geopackage_file:
+               #self.iface.mapCanvas().setCurrentLayer(layer) # seleccionem un capa del grup perquè no expandeixi un altre grup -> Ho desactivo deixa tonta la selecció...
+               self.parent.legend.collapse_group_by_name(group_name)
+           if collapsed_parent_group:
+               parent_group.setExpanded(False)
 
         return layer
 
-    def add_remote_vector_file(self, remote_file, local_filename=None, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_vector_file(self, remote_file, local_filename=None, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers vectorials via http en la carpeta especificada i els obre a QGIS.
             Veure add_vector_files per opcions
             ---
             Download http vector files in the specified folder and open them to QGIS.
-            See add_vector_files for options
+            See add_vector_layer for options
             """
         # Descarreguem el fitxer si cal
         local_pathname = self.download_remote_file(remote_file, local_filename, download_folder, select_folder_text)
+        if not local_pathname:
+            return None
         # Carreguem el fitxer
-        if local_pathname:
-            self.add_vector_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+        return self.add_vector_layer(layer_name, local_pathname, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict, only_one_map_on_group, only_one_visible_map_on_group)
 
     def add_remote_vector_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers vectorials via http en la carpeta especificada i els obre a QGIS.
@@ -3339,12 +3529,18 @@ class LayersBase(object):
             Download http vector files in the specified folder and open them to QGIS.
             See add_vector_files for options
             """
+        layers_list = []
         for remote_file in remote_files_list:
             # Descarreguem el fitxer si cal
             local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text)
             # Carreguem el fitxer
             if local_pathname:
-                self.add_vector_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+                last_layer = self.add_vector_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            else:
+                last_layer = None
+            layers_list.append(last_layer)
+        # Retornem la última capa
+        return layers_list
 
     def add_wms_t_layer(self, layer_name, url, layer_id, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
@@ -3376,12 +3572,12 @@ class LayersBase(object):
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
         if url:
-            layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style], 
-                image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, 
+            layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style],
+                image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group,
                 collapsed, visible, transparency, saturation, set_current)
         else:
             layer = self.add_raster_layer(time_layer_name, url_time, group_name, group_pos, epsg,
-                color_default_expansion=True, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation, 
+                color_default_expansion=True, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation,
                 resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic,
                 set_current=set_current, only_one_map_on_group=only_one_map_on_group)
 
@@ -3640,7 +3836,7 @@ class LayersBase(object):
         layer = self.add_vector_uri_layer(layer_name, uri.uri(), provider, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file)
         return layer
 
-    def add_wfs_layer(self, layer_name, url, layers_list, epsg=None, extra_tags="", version="2.0.0", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None):
+    def add_wfs_layer(self, layer_name, url, layers_list, epsg=None, filter=None, extra_tags="", version="2.0.0", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None):
         """ Afegeix una capa vectorial a partir de la URL base i una llista de capes WFS.
             Retorna la capa.
             Opcionalment es pot especificar:
@@ -3665,12 +3861,21 @@ class LayersBase(object):
             - collapsed: Indicates whether we want to load the layer with collapsed legend
             - visible: Indicates whether we want to load the layer by leaving it visible or not
             """
+        # Preparem la cadena URI i carreguem la capa WFS
         if not epsg:
             epsg = self.parent.project.get_epsg()
-        uri = "%s?service=WFS&version=%s&request=GetFeature&typename=%s&srsname=EPSG:%s" % (url, version, ",".join(layers_list), epsg)
+        separator = "&" if url.find("?") >= 0 else "?"
+        uri = "%s%sservice=WFS&version=%s&request=GetFeature&typename=%s&srsname=EPSG:%s" % (url, separator, version, ",".join(layers_list), epsg)
         if extra_tags:
             uri += "&%s" % extra_tags
-        return self.add_vector_uri_layer(layer_name, uri, "WFS", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file)
+        layer = self.add_vector_uri_layer(layer_name, uri, "WFS", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file=None)
+        # Apliquem un filtrat si cal
+        if layer and filter:
+            self.set_filter(layer, filter)
+        # Carreguem l'estil després del filtrat si cal
+        if layer and style_file:
+            self.load_style(layer, style_file)
+        return layer
 
     def add_vector_uri_layer(self, layer_name, uri, provider, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None):
         """ Afegeix una capa vectorial a partir d'un URI i proveidor de dades (wms, oracle ...). Retorna la capa.
@@ -3797,7 +4002,10 @@ class LayersBase(object):
             Refresh the legend of a layer by id.
             You can update the visibility and expansion of the layer's legend
             """
-        layer.setDataSource(layer.source(), layer.name(), layer.providerType(), layer.dataProvider().ProviderOptions()) # Force layer counter update:
+        #if layer.providerType() != "memory": # Si faig el refresc en una capa de memòria s'esborren les dades...
+        #    layer.setDataSource(layer.source(), layer.name(), layer.providerType(), layer.dataProvider().ProviderOptions()) # Force layer counter update
+        if type(layer) is QgsVectorLayer:
+            layer.countSymbolFeatures(True) # Force layer counter update
         self.iface.layerTreeView().refreshLayerSymbology(layer.id())
         if visible is not None:
             self.set_visible(layer, visible)
@@ -3820,7 +4028,7 @@ class LayersBase(object):
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        self.layerConfigureEditionDialog2(layer, config_list)
+        self.configure_edition_dialog(layer, config_list)
         return True
 
     def configure_edition_dialog(self, layer, config_list):
@@ -3836,39 +4044,78 @@ class LayersBase(object):
             in the editing of the dialogue.
             The list of values can be only value or a list of key / value pairs if you have a drop-down list
             """
+        hidden_setup = QgsEditorWidgetSetup('Hidden', {})
         for field_name, values_list, field_alias, visibility in config_list:
             # actualitzem l'alias si té:
             field_index = layer.fields().indexFromName(field_name)
             if field_alias:
-                self.layerSetFieldAlias2(layer, field_index, field_alias)
+                layer.setFieldAlias(field_index, field_alias)
 
             # comprovem si el camp serà visible o no
             if not visibility:
-                layer.editFormConfig().setWidgetType(field_index, u'Hidden')
+                layer.setEditorWidgetSetup(field_index, hidden_setup)
 
             # montem un desplegable si existeixen més d'un valor
             if values_list and  len(values_list) > 1:
                 values_dict = dict([(item[0], item[1]) for item in values_list])
-                editor_widget_setup = QgsEditorWidgetSetup('ValueMap', values_dict)
+                editor_widget_setup = QgsEditorWidgetSetup('ValueMap', {'map' : values_dict})
                 layer.setEditorWidgetSetup(field_index, editor_widget_setup)
 
-    def set_field_alias_by_id(self, layer_idprefix, field_index, field_alias, pos=0):
-        """ Assigna un alias a un camp d'una capa
+    def copy_vector_layer_to_memory(self, source_layer, include_fields_list=[], rename_fields_dict={}, qdate_format=None, qdatetime_format=None, date_text_len=10, add_to_legend=True):
+        """ Crea una copia de la capa en una capa de tipus memory i tradueix el noms dels camps i transforma les dates a text si cal
             ---
-            Assign an alias to a layer's field
-        """
-        layer = self.get_by_id(layer_idprefix, pos)
+            Creates a layer copy of type memory and translate fields names and transform dates to text if is required
+            """
+        # Creem una nova capa del mateix tipus a memòria
+        layer_name = source_layer.name()
+        if source_layer.type() == QgsMapLayer.VectorLayer:
+            if source_layer.geometryType() == QgsWkbTypes .PointGeometry:
+                creation_text = "Point"
+            elif source_layer.geometryType() == QgsWkbTypes .LineGeometry:
+                creation_text = "LineString"
+            elif source_layer.geometryType() == QgsWkbTypes .PolygonGeometry:
+                creation_text = "Polygon"
+            else:
+                creation_text = "None"
+        else:
+            creation_text = "None"
+        epsg = self.get_epsg(source_layer)
+        if epsg:
+            creation_text += "?crs=epsg:%s" % epsg
+        layer = QgsVectorLayer(creation_text, layer_name, 'memory')
         if not layer:
-            return False
-        self.set_field_alias(layer, field_index, field_alias)
-        return True
+            return None
+        dp = layer.dataProvider()
 
-    def set_field_alias(self, layer, field_index, field_alias):
-        """ Assigna un alias a un camp d'una capa
-            ---
-            Assign an alias to a layer's field
-        """
-        layer.addAttributeAlias(field_index, field_alias)
+        # Creem els atributs de la capa i els omplim
+        dp.addAttributes([
+            QgsField(f.name(), QVariant.String, "String", date_text_len) if (qdatetime_format and f.type() == QVariant.DateTime) or (qdate_format and f.type() == QVariant.Date) else f for f in source_layer.fields()])
+
+        # Afegim la informació a la capa
+        layer.startEditing()
+        features_list = []
+        for feature in source_layer.getFeatures():
+            for i, attribute in enumerate(feature.attributes()):
+                if qdatetime_format and type(attribute) == QDateTime:
+                    feature.setAttribute(i, attribute.toString(qdatetime_format))
+                elif qdate_format and type(attribute) == QDate:
+                    feature.setAttribute(i, attribute.toString(qdate_format))
+            features_list.append(feature)
+        layer.addFeatures(features_list)
+        layer.commitChanges()
+        layer.updateExtents()
+
+        # Modifiquem la copia si cal
+        if include_fields_list:
+            fields_to_remove_list = list(set([f.name() for f in layer.fields()]) - set(include_fields_list))
+            self.delete_fields(layer, fields_to_remove_list)
+        if rename_fields_dict:
+            self.rename_fields(layer, rename_fields_dict)
+
+        # Registrem la capa i la retornem
+        if add_to_legend:
+            QgsMapLayerRegistry.instance().addMapLayer(layer)
+        return layer
 
 
 class LegendBase(object):
@@ -3966,13 +4213,13 @@ class LegendBase(object):
             - group_parent_name: parent group in which we will create the new group
             - group_pos: insert group position
             """
-        if group_pos is not None:
+        group_parent = self.get_group_by_name(group_parent_name) if group_parent_name else None
+        if group_pos is not None and not group_parent:
             group = self.root.insertGroup(group_pos, group_name)
         else:
             group = self.root.addGroup(group_name)
-        group_parent = self.get_group_by_name(group_parent_name) if group_parent_name else None
-        if group_parent:
-            group = self.move_group_to_group(group, group_parent)
+            if group_parent:
+                group = self.move_group_to_group(group, group_parent, group_pos)
         if layer_list:
             self.move_layers_to_group(group, layer_list, visible_layer=visible_group)
         if not expanded:
@@ -3984,7 +4231,7 @@ class LegendBase(object):
             ---
             Delete a group by name """
         # Recuperem el grup
-        group = self.get_group(group_name)
+        group = self.get_group_by_name(group_name)
         if group is None:
             return False
         return self.remove_group(group)
@@ -3995,8 +4242,7 @@ class LegendBase(object):
             Delete a group
             """
         # Esborrem el contingut del grup
-        if not self.empty_group(group):
-            return False
+        self.empty_group(group)
         # Esborrem el grup
         self.root.removeChildNode(group)
         return True
@@ -4078,6 +4324,9 @@ class LegendBase(object):
             - remove_repeaterd_layers: Indicates if you want to erase repeated layers
             """
         for layer in layers_list:
+            if not layer:
+                continue
+
             # Obtenim la posició de la capa dins l'arbre
             old_tree_layer = self.root.findLayer(layer.id())
 
@@ -4125,7 +4374,7 @@ class LegendBase(object):
             """
         # Movem el group dins el grup pare
         new_tree_group = group.clone()
-        parent_group.insertChildNode(pos, new_tree_group)
+        parent_group.insertChildNode(0 if pos is None else pos, new_tree_group)
         # Esborrem el grup inicial
         group.parent().removeChildNode(group)
         return new_tree_group
@@ -4268,18 +4517,24 @@ class LegendBase(object):
         extent.setMinimal()
 
         # A partir del grup, iterem les seves capes i combinem l'area de cada capa
+        project_epsg = self.parent.project.get_epsg()
         for tree_layer in group.findLayers():
             layer = tree_layer.layer()
             # Descartem si es una capa només amb dades (sense cap tipus de geometria)
-            if layer.wkbType() == 100:
+            if type(layer) is QgsVectorLayer and layer.geometryType() in [QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry]:
                 continue
             area = layer.extent()
+            if area.isNull() or area.isEmpty():
+                continue
             # Reprojectem les coordenades si cal
-            if self.parent.layers.get_epsg(layer) != self.parent.project.get_epsg():
-                area = self.parent.crs.transform_bounding_box(layer.extent(), self.parent.layers.get_epsg(layer))
+            layer_epsg = self.parent.layers.get_epsg(layer)
+            if not layer_epsg:
+                continue
+            if layer_epsg != project_epsg:
+                area = self.parent.crs.transform_bounding_box(area, layer_epsg, project_epsg)
             # Ampliem el rectangle si cal
             if buffer:
-                area = area.buffer(buffer)
+                area = area.buffered(buffer)
             # Combinem l'area
             extent.combineExtentWith(area)
 
@@ -4341,47 +4596,105 @@ class ComposerBase(object):
     #    composer_view = composer_views[composer_titles.index(composer_name)]
     #    return composer_view
 
-    def show_composer_view(self, composer_view):
+    def show_composer_view(self, composer_view, enable_atlas=False, enable_edit_tools=True):
         """ Mostra el diàleg de composició d'informes
             ---
             Show composer report dialog
             """
-        self.iface.openLayoutDesigner(composer_view)
+        # Mostrem el diàleg del compositor
+        layout_designer = self.iface.openLayoutDesigner(composer_view)
+        if not layout_designer:
+            return None
 
-    def get_composition(self, report_pathname, open_composer=True):
+        # Configurem el diàleg
+        # Atles
+        if enable_atlas:
+            layout_designer.setAtlasPreviewEnabled(enable_atlas)
+        # Toolbars
+        layout_designer.navigationToolbar().show()
+        if enable_edit_tools:
+            layout_designer.layoutToolbar().show()
+            layout_designer.actionsToolbar().show()
+            layout_designer.atlasToolbar().show()
+        else:
+            layout_designer.actionsToolbar().hide()
+            if enable_atlas:
+                layout_designer.layoutToolbar().hide()
+                layout_designer.atlasToolbar().show()
+            else:
+                layout_designer.layoutToolbar().show()
+                layout_designer.atlasToolbar().hide()
+        # Menús
+        layout_designer.viewMenu().setEnabled(True)
+        layout_designer.layoutMenu().setEnabled(enable_edit_tools or not enable_atlas)
+        layout_designer.atlasMenu().setEnabled(enable_edit_tools or enable_atlas)
+        layout_designer.editMenu().setEnabled(enable_edit_tools)
+        layout_designer.itemsMenu().setEnabled(enable_edit_tools)
+        layout_designer.settingsMenu().setEnabled(enable_edit_tools)
+
+        return layout_designer
+
+    def get_composition(self, report_pathname, atlas_layer=None, atlas_filter=None, zoom_to_view=False, zoom_to_view_buffer=0, open_composer=True, enable_edit_tools=True):
         """ Carrega un compositor a partir d'un fitxer i retorna l'objecte
             ---
             Load a composer from a file and return the object
             """
-        if not os.path.isabs(report_pathname) and os.environ.get('APP_PATH', None):
-            report_pathname = os.path.join(os.environ['APP_PATH'], report_pathname)
+        # Carreguem el template en un document per poder pasar-li al QgsPrintLayout
+        if not os.path.isabs(report_pathname):
+            if os.path.exists(os.path.join(self.parent.plugin_path, report_pathname)):
+                report_pathname = os.path.join(self.parent.plugin_path, report_pathname)
+            elif os.environ.get('APP_PATH', None) and os.path.exists(os.path.join(os.environ['APP_PATH'], report_pathname)):
+                report_pathname = os.path.join(os.environ['APP_PATH'], report_pathname)
         if os.path.splitext(report_pathname)[1].lower() != '.qpt':
             report_pathname += '.qpt'
-
-        template_file = file(report_pathname)
-        template_content = template_file.read()
-        template_file.close()
-
+        with open(report_pathname, "r") as template_file:
+            template_content = template_file.read()
         document = QDomDocument()
         document.setContent(template_content)
 
-        if open_composer:
-            composer = self.iface.createNewComposer()
-            composition = composer.composition()
-        else:
-            # ------------------------------------------------------------------------------------------------------
-            # ATENCIÓ: Amb Windows 10 executar les dues instruccions:
-            # -> composition = QgsComposition(self.iface.mapCanvas().mapSettings())
-            # -> composition.loadFromTemplate(document)
-            # provoca un error que tanca QGIS. Amb el visor d'events parla de la PIL però ho he trobat la solució.
-            # ------------------------------------------------------------------------------------------------------
-            #composition = QgsComposition(self.iface.mapCanvas().mapSettings())
-            composer = self.iface.createNewComposer()
-            composition = composer.composition()
-            composer.composerWindow().close()
+        # Creem l'objecte de l'informe
+        layout = QgsPrintLayout(QgsProject.instance())
+        layout.loadFromTemplate(document, QgsReadWriteContext(), True)
 
-        composition.loadFromTemplate(document)
-        return composition
+        # Refresquem els objectes tipus mapa
+        if zoom_to_view:
+            for item in layout.items():
+               if type(item) is QgsLayoutItemMap:
+                    item.zoomToExtent(self.parent.iface.mapCanvas().extent().buffered(zoom_to_view_buffer))
+
+        # Activem atles si cal
+        if atlas_layer:
+            atlas = layout.atlas()
+            atlas.setEnabled(True)
+            atlas.setCoverageLayer(atlas_layer)
+            if atlas_filter:
+                atlas.setFilterFeatures(True)
+                atlas.setFilterExpression(atlas_filter)
+
+        # Mostrem el diàleg si cal
+        if open_composer:
+            self.show_composer_view(layout, True if atlas_layer else False, enable_edit_tools)
+
+        return layout
+
+    def export_composition(self, composition, out_pathname):
+        # Si tenim atles, renderitzem totes les pàgines
+        atlas = composition.atlas()
+        if atlas:
+            atlas.beginRender()
+            if atlas.first():
+                for i in range(atlas.count()):
+                    atlas.refreshCurrentFeature()
+                    atlas.next()
+            atlas.endRender()
+
+        # Generem el fitxer de sortida
+        exporter = QgsLayoutExporter(composition)
+        if os.path.splitext(out_pathname)[1].lower() == ".pdf":
+            status = exporter.exportToPdf(out_pathname, QgsLayoutExporter.PdfExportSettings())
+            return status == QgsLayoutExporter.ExportResult.Success
+        else:
+            return False
 
     def export_composition_as_image(self, composition, filepath):
         """ Exporta el contingut d'un composer com una imatge
@@ -4444,13 +4757,11 @@ class CrsToolsBase(object):
             ---
             Get an epsg code to choose from the standard QGIS dialog
             """
-        ps = QgsProjectionSelectionTreeWidget()
+        ps = QgsProjectionSelectionDialog()
         ps.exec_()
-        crsId = ps.selectedCrsId()
-        if crsId > 0:
-            self.crs = QgsCoordinateReferenceSystem()
-            self.crs.createFromId(crsId, QgsCoordinateReferenceSystem.InternalCrsId)
-            return format_epsg(self.crs.authid(), asPrefixedText)
+        crs = ps.crs()
+        if crs:
+            return format_epsg(crs.authid(), asPrefixedText)
         else:
             return None
 
@@ -4718,8 +5029,12 @@ class ToolsBase(object):
         QgsProject.instance().layerRemoved.disconnect(self.on_layer_removed)
         if self.time_series_dialog:
             self.time_series_dialog.close()
+            self.iface.removeDockWidget(self.time_series_dialog)
+            self.time_series_dialog = None
         if self.transparency_dialog:
             self.transparency_dialog.close()
+            self.iface.removeDockWidget(self.transparency_dialog)
+            self.transparency_dialog = None
 
     def add_shortcut_QGIS_options(self, description = "Eines QGIS", keyseq = "Ctrl+Alt+F12"):
         """ Afegeix un shortcut per mostrar / ocultar els menús / toolbars de QGIS
@@ -5018,6 +5333,16 @@ class ToolsBase(object):
                 if style_id:
                     self.parent.layers.set_db_style_by_id(layer_id, style_id)
 
+    def send_email(self, mail_to, subject="", body="", copy_to="", hidden_copy_to=""):
+        """ Envia un email fent servir el client del sistema
+            ---
+            Send email using system email client
+            """
+        QDesktopServices.openUrl(
+            QUrl("mailto:%s?subject=%s&body=%s&cc=%s&bcc=%s" % (
+                mail_to, subject or " ", body or " ", copy_to or " ", hidden_copy_to or " "
+                ), QUrl.TolerantMode))
+
 
 class MetadataBase(object):
     def __init__(self, parent, plugin_pathname):
@@ -5101,20 +5426,20 @@ class MetadataBase(object):
         if language == self.parent.translation.LANG_CA:
             # Català
             about = self.get("about_ca")
-            if not about:
+            if not about and len(multi_about_list) > 1:
                 # Suposo que el català està en segona posició
                 about = multi_about_list[1]
         elif language == self.parent.translation.LANG_ES:
             # Castellà
             about = self.get("about_es")
-            if not about and len(multi_about_list) > 1:
-                # Suposo que el castellà està en segona posició
+            if not about and len(multi_about_list) > 2:
+                # Suposo que el castellà està en tercera posició
                 about = multi_about_list[2]
         else:
             # Per defecte anglés
             about = self.get("about_en")
-            if not about and len(multi_about_list) > 2:
-                # Suposo que l'anglés està en tercera posició
+            if not about and len(multi_about_list) > 0:
+                # Suposo que l'anglés està en primera posició
                 about = multi_about_list[0]
         if not about:
             # Si no agafem la descripció llarga estàndar que hem fet servir en el metadata.txt

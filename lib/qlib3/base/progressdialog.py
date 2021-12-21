@@ -40,12 +40,12 @@ class ProgressDialog(object):
         Dialog class with progressbar, % and end time estimate
         """
 
-    def __init__(self, label, num_steps, title="Processing...", cancel_button_text=None, autoclose=False, time_info="Elapsed %s. Remaining %s", parent=None):
+    def __init__(self, label, num_steps, title="Processing...", cancel_button_text=None, autoclose=True, time_info="Elapsed %s. Remaining %s", parent=None):
         """ Inicialitza un diàleg amb una progressbar a dins, cal indicar etiqueta a mostrar i nombre de passos de la barra.
             Opcionalment es pot especificar:
             - title: Títol del diàleg
             - cancel_button_text: Afegeix un botó de cancelació amb el text indicat
-            - autoclose: indica si es tanca automàticament a l'arribar al 100%
+            - autoclose: indica si es tanca automàticament a l'arribar al 100% (activeu-lo per fer que la barra es mantingui plena quan arriba al 100%)
             - time_info: plantilla text amb la informació de temps transcorregut i restant (ha de portar 2 %s)
             - parent: finestra pare del diàleg
             ---
@@ -53,7 +53,7 @@ class ProgressDialog(object):
             Optionally you can specify:
             - title: dialog title
             - cancel_button_text: add a cancellation button with the indicated text
-            - Autoclose: indicates if it is automatically closed when reaching 100%
+            - autoclose: indicates if it is automatically closed when reaching 100% (set autoclose=True to ensure a full progress bar at 100%)
             - time_info: text template with the elapsed and remaining time information (requires 2 %s)
             - parent: parent window of the dialog
             """
@@ -94,17 +94,23 @@ class ProgressDialog(object):
             #    ##print("canceled")
             #    pass
         self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent, Qt.Dialog | Qt.WindowTitleHint | Qt.WindowMinimizeButtonHint)
-        self.dlg.resize(400, self.dlg.height())
 
         # Configurem el diàleg
         self.dlg.setWindowState(Qt.WindowNoState if self.parent != None and not self.parent.isMinimized() else Qt.WindowMinimized)
         self.dlg.setWindowModality(Qt.WindowModal)
         self.dlg.setWindowTitle(title)
         self.dlg.setAutoClose(autoclose)
-        self.dlg.setValue(0)
+        #self.dlg.setValue(0)
 
         # Obtinc un apuntador a la barra de progres
         self.bar = [c for c in self.dlg.children() if type(c) == QProgressBar][0]
+
+        # Inicialitza el progrés
+        self.time_begin = datetime.datetime.now()
+        self.time_prev = self.time_begin
+        self.time_last = self.time_begin
+        self.time_average = datetime.timedelta(0)
+        self.set_value(0)
 
         # Mostrem el diàleg
         self.show()
@@ -120,12 +126,10 @@ class ProgressDialog(object):
             ---
             Show the dialog and deactivate the parent window if necessary
             """
-        self.time_begin = datetime.datetime.now()
-        self.time_last = self.time_begin
-        self.time_average = datetime.timedelta(0)
         if self.parent_was_enabled:
             self.parent.setEnabled(False)
             ##print "Disabled!", self.parent, self.parent.windowTitle()
+        self.dlg.resize(400, self.dlg.height())
         self.dlg.setEnabled(True)
         self.dlg.show()
         self.app.processEvents()
@@ -167,17 +171,19 @@ class ProgressDialog(object):
         self.app.processEvents()
         # Quan es tanca sol el diàleg de progress ens podem deixar el programa bloquejat, això ho evitarà
         if self.autoclose:
-           if not self.dlg.isVisible():
-               self.__post_close__()
-           #if self.dlg.value() == self.dlg.maximum():
-           #  self.close()
+            if not self.dlg.isVisible():
+                self.__post_close__()
+            #if self.dlg.value() == self.dlg.maximum():
+            #  self.close()
 
     def get_value(self):
         """ Retorna la posició actual de progress bar
             ---
             Get current position of progress bar
             """
-        return self.dlg.value()
+        value = self.dlg.value()
+        # Quan arriba al màxim, QProgressDialog reseteja el valor a -1. Ho arreglo
+        return self.dlg.maximum() if value < 0 else value
 
     def step_it(self, steps=1):
         """ Avança la posició de la progressbar "steps" vegades
@@ -218,12 +224,14 @@ class ProgressDialog(object):
         return self.dlg.wasCanceled()
 
     def update_time(self):
-        """ Actualitza la estimació de temps per acabat i temps transcorregut
+        """ Actualitza l'estimació de temps per acabat i temps transcorregut cada 0.1 segons
             ---
-            Update estimated time to finish and elapsed time
+            Update estimated time to finish and elapsed time every 0.1 seconds
             """
         self.time_last = datetime.datetime.now()
-        self.set_label(self.get_label()) # Força actualitzar el temps
+        if (self.time_last - self.time_prev) > datetime.timedelta(microseconds=100000):
+            self.time_prev = self.time_last
+            self.set_label(self.get_label()) # Força actualitzar el temps
 
     def get_begin_time(self):
         """ Retorna el temps d'inici de procés
@@ -252,8 +260,6 @@ class ProgressDialog(object):
             Returns the average time of process per step
             """
         values = self.get_value()
-        if values < 0:
-            values = self.dlg.maximum()
         elapsed = self.get_elapsed_time()
         if not elapsed or not values:
             return datetime.timedelta(0)
@@ -322,7 +328,7 @@ class WorkingDialog(ProgressDialog):
             - title: Títol del diàleg
             - cancel_button_text: Afegeix un botó de cancelació amb el text indicat
             - autoclose: indica si es tanca automàticament a l'arribar al 100%
-            - time_info: plantilla text amb la informació de temps transcorregut i restant (ha de portar 2 %s)
+            - time_info: plantilla text amb la informació de temps transcorregut i restant (ha de portar 1 %s)
             - parent: finestra pare del diàleg
             ---
             Initializes a dialog with a progressbar inside, you must indicate the label to show and the number of steps in the bar.
@@ -330,7 +336,7 @@ class WorkingDialog(ProgressDialog):
             - title: dialog title
             - cancel_button_text: add a cancellation button with the indicated text
             - Autoclose: indicates if it is automatically closed when reaching 100%
-            - time_info: text template with the elapsed and remaining time information (requires 2 %s)
+            - time_info: text template with the elapsed and remaining time information (requires 1 %s)
             - parent: parent window of the dialog
             """
         # Creem un progressdialog amb nombre de passos 0
