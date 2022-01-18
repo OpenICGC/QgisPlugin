@@ -2465,7 +2465,7 @@ class LayersBase(object):
             ---
             Return all group's children or only children type layer
             """
-        return self.get_children_layers_by_id(group.name())
+        return self.get_group_children_by_id(group.name())
 
     def get_group_children_by_id(self, group_id, only_layers=False, only_groups=False):
         """ Retorna els fills d'un grup o només els de tipus capa a partir del nom de grup
@@ -4217,7 +4217,7 @@ class LegendBase(object):
             ---
             Verify that an item is group type
             """
-        return item.nodeType() == 0 # 0 és tipus grup
+        return type(item) == QgsLayerTreeGroup
 
     def is_group_by_name(self, group_name):
         """ Indica si el nom de grup correspon realment a un grup existent

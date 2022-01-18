@@ -510,7 +510,7 @@ class OpenICGC(PluginBase):
                     ] + [
                     "---",
                     (self.tr("Color orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "color_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_color_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                     ]),
                 (self.tr("Satellite color orthophoto (monthly serie)"),
@@ -534,7 +534,7 @@ class OpenICGC(PluginBase):
                     ] + [
                     "---",
                     (self.tr("Infrared orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "infraroig_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_infraroig_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                     ]),
                 (self.tr("Satellite infrared orthophoto (monthly serie)"),

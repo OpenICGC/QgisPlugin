@@ -31,6 +31,7 @@ qgisMaximumVersion=3.99
 version=1.0.7
 changelog=v1.0.7 (2022-01-18)
 	- Fixed problems with buttons activation events
+	- Fixed problem accessing to annual orthophoto layers
 
 	v1.0.6 (2021-12-21)
 	- Added download products from selected polygons on vector layer
