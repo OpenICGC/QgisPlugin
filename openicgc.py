@@ -542,6 +542,10 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
                 "---"
                 ] + ([
+                    (self.tr("Instamaps pyramid"),
+                        lambda:self.layers.add_wms_layer(self.tr("Instamaps pyramid"), "https://tilemaps.icgc.cat/mapfactory/service", ["osm_suau"], ["default"], "image/png", 25831, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        QIcon(":/lib/qlib3/base/images/cat_topo5k.png")),
+                    "---",
                     (self.tr("Spain"), None, QIcon(":/lib/qlib3/base/images/spain_topo.png"), [
                         (self.tr("IGN topographic"),
                             lambda:self.layers.add_wms_layer(self.tr("IGN topographic"), "http://www.ign.es/wms-inspire/mapa-raster", ["mtn_rasterizado"], ["default"], "image/png", 25830, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
@@ -550,6 +554,10 @@ class OpenICGC(PluginBase):
                         (self.tr("PNOA orthophoto"),
                             lambda:self.layers.add_wms_layer(self.tr("PNOA orthophoto"), "http://www.ign.es/wms-inspire/pnoa-ma", ["OI.OrthoimageCoverage"], ["default"], "image/png", 25830, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/spain_orto.png")),
+                        "---",
+                        (self.tr("Cadastral registry"),
+                            lambda:self.layers.add_wms_layer(self.tr("Cadastral registry"), "http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx", ["Catastro"], ["default"], "image/png", 25831, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                            QIcon(":/lib/qlib3/base/images/spain_cadastral.png")),
                         ]),
                     (self.tr('Andorra'), None, QIcon(":/lib/qlib3/base/images/andorra_topo50k.png"), [
                         (self.tr("Andorra topographic 1:25,000 1989"),
@@ -624,7 +632,7 @@ class OpenICGC(PluginBase):
                 (self.tr("QGIS plugin repository"), lambda _checked:self.show_help_file("plugin_qgis"), QIcon(":/lib/qlib3/base/images/plugin.png")),
                 (self.tr("Software Repository"), lambda _checked:self.show_help_file("plugin_github"), QIcon(":/lib/qlib3/base/images/git.png")),
                 (self.tr("Report an issue"), lambda _checked:self.show_help_file("plugin_issues"), QIcon(":/lib/qlib3/base/images/bug.png")),
-                (self.tr("Send us an email"), lambda _checked:self.tools.send_email("openicgc@icgc.cat", "OpenICGC QGIS plugin"), QIcon(":/lib/qlib3/base/images/send_email.png")),
+                (self.tr("Send us an email"), lambda _checked:self.tools.send_email("qgis.openicgc@icgc.cat", "OpenICGC QGIS plugin"), QIcon(":/lib/qlib3/base/images/send_email.png")),
                 ]),
             ]) + ([] if not new_qgis_plugin_version or self.lite else [
                 self.tr("Update\n available: v%s") % new_qgis_plugin_version,
@@ -734,10 +742,11 @@ class OpenICGC(PluginBase):
             self.time_series_action.setEnabled(is_wms_t)
             self.time_series_action.setChecked(self.tools.time_series_dialog is not None and self.tools.time_series_dialog.isVisible())
 
-    def on_click_legend(self, index):
+    def on_click_legend(self, _index):
         """ Enable disable geopackage style options according to the selected layer """
-        is_geopackage_layer = len(self.tools.get_selected_db_styled_layers()) > 0
-        self.geopackage_style_action.setEnabled(is_geopackage_layer)
+        is_geopackage_layer = self.tools.is_current_group_db_styled_layers()
+        if self.geopackage_style_action:
+            self.geopackage_style_action.setEnabled(is_geopackage_layer)
 
     def pair_download_checks(self, status):
         """ Synchronize the check of the button associated with Download button """
@@ -748,7 +757,7 @@ class OpenICGC(PluginBase):
         """ Undo the change on button state we make when clicking on the Download button """
         if self.download_action:
             self.download_action.setChecked(not self.download_action.isChecked())
-        
+
         # If not download action checked
         if not self.download_action.isChecked():
             if self.tool_subscene.download_type in ["dt_area", "dt_counties", "dt_municipalities"]:
@@ -917,7 +926,7 @@ class OpenICGC(PluginBase):
     def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, download_operation_code, local_filename, default_point_buffer=50):
         """ Download a FME server data area (limited to max_download_area) """
         title = self.tr("Download tool")
-        
+
         if self.download_type == 'dt_coord':
             # Ask coordinates to user
             msg_text = self.tr('Enter west, north, east, south values in the project coordinates system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65 429493.19 4580294.65" or\n   "429393.19 4580194.65 429493.19 4580294.65 EPSG:25831" or\n   "EPSG:25831 429393.19 4580194.65 429493.19 4580294.65"')

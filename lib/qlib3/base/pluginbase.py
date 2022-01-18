@@ -46,9 +46,9 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsP
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
 from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
-from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler
+from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler, QgsSimpleLineSymbolLayer
 from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
-from qgis.core import QgsLayoutExporter
+from qgis.core import QgsLayoutExporter, QgsFields
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -1084,6 +1084,22 @@ class LayersBase(object):
         connection_string = layer.dataProvider().dataSourceUri()
         return dict([pair.split('=') for pair in connection_string.split() if len(pair.split('=')) == 2])
 
+    def get_visible_features(self, layer, features_list):
+        """ Retorna els elements visibles d'una capa (a partir d'una llista)
+            ---
+            Returns visible layer's features (from a list)
+            """
+        visible_features = []
+        renderer = layer.renderer().clone()
+        ctx = QgsRenderContext()
+        renderer.startRender(ctx, QgsFields())
+        for feature in features_list:
+            ctx.expressionContext().setFeature(feature)
+            if renderer.willRenderFeature(feature, ctx):
+                visible_features.append(feature)
+        renderer.stopRender(ctx)
+        return visible_features
+
     def get_feature_attribute_by_id(self, idprefix, entity, field_name, pos=0):
         """ Retorna el valor d'un camp (columna) d'una entitat d'una capa (fila)
             ---
@@ -2053,10 +2069,10 @@ class LayersBase(object):
         if use_current_symbol:
             # Prioritzem el símbol base de la capa. Si no està definit, agafem el de la primera categoria
             renderer = layer.renderer()
-            if hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
-                base_symbol = renderer.sourceSymbol().clone()
-            elif len(renderer.symbols(QgsRenderContext())):
+            if len(renderer.symbols(QgsRenderContext())):
                 base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
+            elif hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
+                base_symbol = renderer.sourceSymbol().clone()
 
         # Recupera el renderer o crea un de nou
         if hasattr(layer.renderer(), 'categories'):
@@ -2077,12 +2093,18 @@ class LayersBase(object):
             field_pos = layer.fields().indexFromName(class_attribute)
             values_list = list(set([f.attributes()[field_pos] for f in layer.getFeatures() if f.attributes()[field_pos]]))
 
-        # Partim de la classificació existent i mirem si falten o sobren categories
-        delete_list = []
-        if len(renderer.categories()):
-            old_categories_list = [c.value() for c in renderer.categories()]
-            delete_list = [c for c in old_categories_list if not c in values_list] # Categories que sobren (les eliminarem)
-            values_list = [v for v in values_list if not v in old_categories_list] # Categories que falten (les crearem)
+        ## Partim de la classificació existent i mirem si falten o sobren categories
+        #delete_list = []
+        #if len(renderer.categories()):
+        #    old_categories_list = [c.value() for c in renderer.categories()]
+        #    delete_list = [c for c in old_categories_list if not c in values_list] # Categories que sobren (les eliminarem)
+        #    values_list = [v for v in values_list if not v in old_categories_list] # Categories que falten (les crearem)
+
+        # Esborrem la classificació existent per recrear-la amb els elements ordenats
+        delete_list = [c.value() for c in renderer.categories()]
+        for value in delete_list:
+            index = renderer.categoryIndexForValue(value)
+            renderer.deleteCategory(index)
 
         # Detectem si els color d'omplir i el de border són el mateix
         linked_colors = base_symbol and not border_color_list and base_symbol.color().rgb() == base_symbol.symbolLayer(0).strokeColor().rgb()
@@ -2140,7 +2162,10 @@ class LayersBase(object):
             if width is not None:
                 if type(symbol) == QgsFillSymbol:
                     # gruix del borde dels polígons
-                    symbol.symbolLayer(0).setStrokeWidth(width)
+                    if type(symbol.symbolLayer(0)) == QgsSimpleLineSymbolLayer:
+                        symbol.symbolLayer(0).setWidth(width)
+                    else:
+                        symbol.symbolLayer(0).setStrokeWidth(width)
                 else:
                     # gruix per línies
                     symbol.setWidth(width)
@@ -2155,11 +2180,11 @@ class LayersBase(object):
             cat = QgsRendererCategory(value, symbol, unicode(label))
             renderer.addCategory(cat)
 
-        # Eliminem categories sense dades
-        if len(delete_list):
-            for value in delete_list:
-                index = renderer.categoryIndexForValue(value)
-                renderer.deleteCategory(index)
+        ## Eliminem categories sense dades
+        #if len(delete_list):
+        #    for value in delete_list:
+        #        index = renderer.categoryIndexForValue(value)
+        #        renderer.deleteCategory(index)
 
         # Ordenem categories. Cal guardar l'estat de les caselles de renderització (en ordenar es perd)
         if sort:
@@ -2372,6 +2397,8 @@ class LayersBase(object):
         if type(layer) is QgsVectorLayer and layer.featureCount() < 1:
             return False
         area = layer.extent()
+        if area.area() == float('inf'):
+            return False
         # Reprojectem les coordenades si cal
         layer_epsg = self.get_epsg(layer)
         project_epsg = self.parent.project.get_epsg()
@@ -4005,7 +4032,10 @@ class LayersBase(object):
         #if layer.providerType() != "memory": # Si faig el refresc en una capa de memòria s'esborren les dades...
         #    layer.setDataSource(layer.source(), layer.name(), layer.providerType(), layer.dataProvider().ProviderOptions()) # Force layer counter update
         if type(layer) is QgsVectorLayer:
-            layer.countSymbolFeatures(True) # Force layer counter update
+            try: # Force layer counter update
+                layer.countSymbolFeatures(True)
+            except: # En linux i versions antigues de QGIS3 va sense paràmetres?
+                layer.countSymbolFeatures()
         self.iface.layerTreeView().refreshLayerSymbology(layer.id())
         if visible is not None:
             self.set_visible(layer, visible)
@@ -5295,7 +5325,7 @@ class ToolsBase(object):
     #            return True
     #    return False
     def get_selected_db_styled_layers(self):
-        """ Obtenim les capes seleccionades incloent les de dins d'un grup
+        """ Obtenim les capes seleccionades amb estil BD incloent les de dins d'un grup
             ---
             Gets selected layers with db styles includes layers in groups
             """
@@ -5307,6 +5337,24 @@ class ToolsBase(object):
         layers_list = [layer for layer in list(set(layers_list)) if type(layer) == QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
 
         return layers_list
+
+    def get_group_db_styled_layers(self, group):
+        """ Obtenim les capes amb estil BD de dins d'un grup
+            ---
+            Gets layers with db styles from a group
+            """
+        layers_list = self.parent.layers.get_group_layers_by_id(group.name())
+        db_layers_list = [layer for layer in layers_list if type(layer) == QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
+        return db_layers_list
+
+    def is_current_group_db_styled_layers(self):
+        """ Obtenim si el grup actual té capes amb estil BD
+            ---
+            Gets if current group has layers with db styles
+            """
+        node = self.iface.layerTreeView().currentNode()
+        is_geopackage_layer = type(node) == QgsLayerTreeGroup and len(self.get_group_db_styled_layers(node)) > 0
+        return is_geopackage_layer
 
     def show_db_styles_dialog(self, title=None, show=True):
         """ Mostra el diàleg d'estils per capes amb estils a bbdd

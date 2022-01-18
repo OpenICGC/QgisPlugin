@@ -24,12 +24,15 @@ about=Plugin for accessing open data published by the Cartographic and Geologica
 tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,street,road,WMS
 icon=icon.png
 author=ICGC
-email=openicgc@icgc.cat
+email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.6
-changelog=v1.0.6 (2021-12-21)
+version=1.0.7
+changelog=v1.0.7 (2022-01-18)
+	- Fixed problems with buttons activation events
+
+	v1.0.6 (2021-12-21)
 	- Added download products from selected polygons on vector layer
 	- Added reactivation of download tool with last download configuration
 	- Fixed WMS error initializing plugin
