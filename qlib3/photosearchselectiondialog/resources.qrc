@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/lib/qlib3/photosearchselectiondialog" >
+        <file>images/photo_brightness.png</file>
+        <file>images/photo_certificate.png</file>
+        <file>images/photo_download.png</file>
+        <file>images/photo_forbidden.png</file>
+        <file>images/photo_preview.png</file>
+        <file>images/photo_scan.png</file>
+    </qresource>
+</RCC>

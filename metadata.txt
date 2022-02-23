@@ -11,15 +11,15 @@ description=ICGC Open data access
 description_ca=Accés a dades obertes ICGC
 description_es=Acceso a datos abiertos ICGC
 about=Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
-	Includes spatial toponymic searches, streets, roads, coordinates in different reference systems and load of WMS base layers of Catalonia.
+	Includes spatial toponymic searches, streets, roads, coordinates in different reference systems, load of base data layers and download different vectorial and raster products.
 	This plugin uses suds-py3, wsse libraries and land registry geo services.
 	---
 	Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
-	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència i càrrega de capes base WMS de Catalunya.
+	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència, càrrega de dades de capes base i descàrrega de diferents productes vectorials i ràster.
 	Aquest plugin utilitza les llibreries suds-py3, wsse i serveis web del cadastre.
 	---
 	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
-	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia y carga de capas base WMS de Cataluña.
+	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia, carga datos de capas base y descarga de diferentes productos vectoriales y raster.
 	Este plugin utiliza las llibrerías suds-py3, wsse y servicios web del catastro.
 tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,street,road,WMS
 icon=icon.png
@@ -28,8 +28,13 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.0.7
-changelog=v1.0.7 (2022-01-18)
+version=1.1.0
+changelog=v1.1.0 (2022-02-14)
+	- Added access to ICGC historical photo library (visualization and downloads)
+	- Added download geological map GT I and GT VI product
+	- Fixed timeline bars to skip one year when click on it
+	
+	v1.0.7 (2022-01-18)
 	- Fixed problems with buttons activation events
 	- Fixed problem accessing to annual orthophoto layers
 

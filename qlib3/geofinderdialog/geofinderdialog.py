@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 *******************************************************************************
-Module with the implementation of the dialog that allows to show the results 
+Module with the implementation of the dialog that allows to show the results
 of the spatial searches
                              -------------------
         begin                : 2019-01-18
@@ -25,11 +25,6 @@ from . import resources_rc
 # Load a .ui file without pre-compiling it
 ui_geofinder, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_geofinder.ui'))
 
-# Import GeoFinder class
-import geofinder3.geofinder
-reload(geofinder3.geofinder)
-from geofinder3.geofinder import GeoFinder
-
 
 class GeoFinderDialog(QDialog, ui_geofinder):
     """ Dialog class that allows to show the results of the spatial searches """
@@ -49,18 +44,18 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         14:'river.png', 15:'river.png' #Curs fluvial, hidrografia
         }
 
-    def __init__(self, geofinder_dict_list=[], title=None, columns_list=[], auto_show=False):
+    def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], auto_show=False, parent=None):
         """ Dialog initialization """
-        QDialog.__init__(self)
+        QDialog.__init__(self, parent)
 
         # Set up the user interface from Designer.
         self.setupUi(title, columns_list)
-        
+
         # Set up values
-        self.geofinder = GeoFinder()
+        self.geofinder = geofinder_instance
         self.geofinder_dict_list = geofinder_dict_list
         self.set_data(self.geofinder_dict_list)
-                
+
         # We show the dialog automatically if necessary
         self.status = False
         if auto_show:
@@ -70,10 +65,10 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         """ Setup the components that form the dialog """
 
         # We Initialize the UI by associating the items in the plugin class
-        # For compatibility with the old code QGIS2, we fake the member variable ui with self param 
+        # For compatibility with the old code QGIS2, we fake the member variable ui with self param
         # (now it would not be necessary to have .ui)
         super().setupUi(self)
-        
+
         # Setup dialog title
         if title:
             self.setWindowTitle(title)
@@ -129,7 +124,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         # If we have a rectangle, we do not have to do anything, we get the coordinates and access
         if self.geofinder.is_rectangle(self.geofinder_dict_list):
             # Get rectangle coordinates
-            self.selected = 0        
+            self.selected = 0
         else:
             # We show the found places in a dialog
             self.set_data(self.geofinder_dict_list)
@@ -140,7 +135,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
                 return False
             print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
 
-        return True 
+        return True
 
     def is_rectangle(self):
         return self.geofinder.is_rectangle(self.geofinder_dict_list)

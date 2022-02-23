@@ -20,7 +20,7 @@ reference systems and load of WMS base layers of Catalonia.
 # Add a additional library folder to pythonpath
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib")) # Per la suds que ha de ser global...
 
 # Import base libraries
 import re
@@ -45,42 +45,66 @@ from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInput
 # Initialize Qt resources from file resources_rc.py
 from . import resources_rc
 
-# Import basic plugin functionalities
-import qlib3.base.pluginbase
-reload(qlib3.base.pluginbase)
-from qlib3.base.pluginbase import PluginBase, WaitCursor
-import qlib3.base.loginfodialog
-reload(qlib3.base.loginfodialog)
-from qlib3.base.loginfodialog import LogInfoDialog
-
-# Import geofinder dialog and class
-import qlib3.geofinderdialog.geofinderdialog
-reload(qlib3.geofinderdialog.geofinderdialog)
-from qlib3.geofinderdialog.geofinderdialog import GeoFinderDialog
-import geofinder3.geofinder
-reload(geofinder3.geofinder)
-from geofinder3.geofinder import GeoFinder
-
-# Import wms resources access functions
-import resources3.wms
-reload(resources3.wms)
-from resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
-import resources3.fme
-reload(resources3.fme)
-from resources3.fme import get_clip_data_url, get_services, get_regex_styles as get_fme_regex_styles
-import resources3.http
-reload(resources3.http)
-from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
+is_import_relative = os.path.exists(os.path.join(os.path.dirname(__file__), "qlib3"))
+if is_import_relative:
+	# Import basic plugin functionalities
+	from .qlib3.base.loginfodialog import LogInfoDialog
+	from .qlib3.base.pluginbase import PluginBase, WaitCursor
+	# Import geofinder dialog and class
+	from .geofinder3.geofinder import GeoFinder
+	from .qlib3.geofinderdialog.geofinderdialog import GeoFinderDialog
+	# Import photosearch dialog
+	from .qlib3.photosearchselectiondialog.photosearchselectiondialog import PhotoSearchSelectionDialog
+	# Import wms resources access functions
+	from .resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
+	from .resources3.fme import get_clip_data_url, get_services, get_regex_styles as get_fme_regex_styles
+	from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
+else:
+    # Import basic plugin functionalities
+    import qlib3.base.pluginbase
+    reload(qlib3.base.pluginbase)
+    from qlib3.base.pluginbase import PluginBase, WaitCursor
+    import qlib3.base.loginfodialog
+    reload(qlib3.base.loginfodialog)
+    from qlib3.base.loginfodialog import LogInfoDialog
+    # Import geofinder dialog and class
+    import qlib3.geofinderdialog.geofinderdialog
+    reload(qlib3.geofinderdialog.geofinderdialog)
+    from qlib3.geofinderdialog.geofinderdialog import GeoFinderDialog
+    import geofinder3.geofinder
+    reload(geofinder3.geofinder)
+    from geofinder3.geofinder import GeoFinder
+    # Import photosearch dialog
+    import qlib3.photosearchselectiondialog.photosearchselectiondialog
+    reload(qlib3.photosearchselectiondialog.photosearchselectiondialog)
+    from qlib3.photosearchselectiondialog.photosearchselectiondialog import PhotoSearchSelectionDialog
+    # Import wms resources access functions
+    import resources3.wms
+    reload(resources3.wms)
+    from resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
+    import resources3.fme
+    reload(resources3.fme)
+    from resources3.fme import get_clip_data_url, get_services, get_regex_styles as get_fme_regex_styles
+    import resources3.http
+    reload(resources3.http)
+    from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
 
 
 # Global function to set HTML tags to apply fontsize to QInputDialog text
 set_html_font_size = lambda text, size=9: ('<html style="font-size:%spt;">%s</html>' % (size, text.replace("\n", "<br/>").replace(" ", "&nbsp;")))
 
+# Constants
+PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/" #"http://sedockersec01.icgc.local:80" #"http://seuatdlinux01:5000" "http://localhost:5000"
+PHOTOLIB_WMS = PHOTOLIB_WFS
+
 
 class QgsMapToolSubScene(QgsMapTool):
     """ Tool class to manage rectangular selections """
 
-    def __init__(self, map_canvas, callback=None, min_side=None, max_download_area=None, mode_area_not_point=None, download_type=None, color=QColor(0,150,0,255), error_color=QColor(255,0,0,255), line_width=3):
+    def __init__(self, map_canvas, callback=None, \
+        min_side=None, max_download_area=None, min_px_side=None, max_px_download_area=None, gsd=None, \
+        mode_area_not_point=None, download_type=None, color=QColor(0,150,0,255), error_color=QColor(255,0,0,255), line_width=3):
+        # Initialize parent
         QgsMapTool.__init__(self, map_canvas)
         # Initialize local variables
         self.callback = callback
@@ -88,8 +112,11 @@ class QgsMapToolSubScene(QgsMapTool):
         self.color = color
         self.error_color = error_color
         self.line_width = line_width
-        self.min_side = None
+        self.min_side = min_side
         self.max_download_area = max_download_area
+        self.min_px_side = min_px_side
+        self.max_px_download_area = max_px_download_area
+        self.gsd = gsd
         self.mode_area_not_point = mode_area_not_point
         self.download_type = download_type
         # Initialize paint object
@@ -98,17 +125,17 @@ class QgsMapToolSubScene(QgsMapTool):
     def set_callback(self, callback):
         self.callback = callback
 
-    def set_min_side(self, min_side):
+    def set_min_max(self, min_side, max_download_area, min_px_side, max_px_download_area):
         self.min_side = min_side
-
-    def set_max_download_area(self, max_download_area):
         self.max_download_area = max_download_area
+        self.min_px_side = min_px_side
+        self.max_px_download_area = max_px_download_area
+
+    def set_gsd(self, gsd):
+        self.gsd = gsd
 
     def set_mode(self, area_not_point):
         self.mode_area_not_point = area_not_point
-
-    def set_download_type(self, download_type):
-        self.download_type = download_type
 
     def canvasPressEvent(self, event):
         #click
@@ -129,8 +156,10 @@ class QgsMapToolSubScene(QgsMapTool):
         width = abs(cpos.x() - self.top_left.x())
         height = abs(cpos.y() - self.top_left.y())
         area =  width * height
-        area_too_big = self.max_download_area and (area > self.max_download_area)
-        area_too_little = self.min_side and (width < self.min_side or height < self.min_side)
+        area_too_big = self.max_download_area and (area > self.max_download_area) or \
+            self.max_px_download_area and self.gsd and ((area / self.gsd / self.gsd) > self.max_px_download_area)
+        area_too_little = self.min_side and (width < self.min_side or height < self.min_side) or \
+            self.min_px_side and self.gsd and ((width / self.gsd) < self.min_px_side or (height / self.gsd) < self.min_px_side)
         color = self.error_color if area_too_big or area_too_little else self.color
 
         self.rubberBand.reset(True)
@@ -170,6 +199,27 @@ class QgsMapToolSubScene(QgsMapTool):
         if self.callback:
             self.callback(area)
 
+
+class QgsMapToolPhotoSearch(QgsMapTool):
+    """ Enable to return coordinates from clic in a layer.
+    """
+    def __init__(self, map_canvas, callback=None, action=None):
+        """ Constructor.
+        """
+        QgsMapTool.__init__(self, map_canvas)
+        self.map_canvas = map_canvas
+        self.callback = callback
+        # Action to check / uncheck tools
+        self.setAction(action)
+        # Assign tool cursor
+        self.setCursor(Qt.CrossCursor)
+
+    def canvasReleaseEvent(self, event):
+        cpos = self.toMapCoordinates(QPoint(event.pos().x(), event.pos().y()))
+        if self.callback:
+            self.callback(cpos.x(), cpos.y())
+
+
 class HelpType:
     """ Definition of differents types of show pluggin help """
     local = 0
@@ -203,16 +253,19 @@ class OpenICGC(PluginBase):
         "mt":":/lib/qlib3/base/images/cat_topo5k.png",
         "co":":/lib/qlib3/base/images/cat_landcover.png",
         "me":":/lib/qlib3/base/images/cat_dtm.png",
-        "gt":":/lib/qlib3/base/images/cat_geo250k.png",
+        #"gt":":/lib/qlib3/base/images/cat_geo250k.png",
         "mg":":/lib/qlib3/base/images/cat_geo250k.png",
         "ma":":/lib/qlib3/base/images/cat_geo250k.png",
-        #"ph":":/plugins/openicgc/images/photo_preview.png",
+        "ph":":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png", # fototeca
         }
 
     CAT_WKT = "POLYGON((304457.290340574458241 4758033.341267678886652, 300160.834704967564903 4683919.481553458608687, 283512.069116991071496 4639880.811288491822779, 266863.303529014694504 4608731.507930342108011, 251825.708804390684236 4504542.458766875788569, 295327.322114910115488 4476078.440180979669094, 339903.049334330891725 4505079.515721328556538, 322717.226791903492995 4527635.907808261923492, 445166.212406698206905 4567378.122437627054751, 452147.952814559219405 4582952.774116697721183, 527335.926437678863294 4628065.558290572836995, 534317.666845540050417 4704864.702777042984962, 469333.775356986618135 4713994.671002711169422, 443555.041543345665559 4707012.930594847537577, 388238.175234907655977 4722050.525319471955299, 368367.067920226138085 4741384.575679702684283, 304457.290340574458241 4758033.341267678886652))"
 
     download_action = None
     time_series_action = None
+    photo_search_action = None
+    photo_search_2_action = None
+    photo_download_action = None
     geopackage_style_action = None
 
     debug_mode = False
@@ -313,16 +366,17 @@ class OpenICGC(PluginBase):
             "cobertes-sol-vector": self.tr("Land cover map"),
             "met2": self.tr("Digital terrain model 2m"),
             "met5": self.tr("Digital terrain model 5m"),
-            # Pending revision of symbology
+            "mggt1": self.tr("Geological map 1:25,000 (GT I)"),
             "mg50m": self.tr("Geological map 1:50,000"),
             "mg250m": self.tr("Geological map 1:250,000"),
+            "mggt6": self.tr("Geological map for the prevention of geological hazards 1:25,000 (GT VI)"),
+            # Pending revision of symbology
+            #"gt2": self.tr("GT II. Geoanthropic map 1:25,000"),
+            #"gt3": self.tr("GT III. Geological map of urban areas 1:5,000"),
+            #"gt4": self.tr("GT IV. Soil map 1:25,000"),
+            #"gt5": self.tr("GT V. Hydrogeological map 1:25,000"),
             #"mah250m": self.tr("Map of hydrogeological Areas 1:250,000"),
-            #"gt1", self.tr("GT I. Geological map 1:25,000"),
-            #"gt2", self.tr("GT II. Geoanthropic map 1:25,000"),
-            #"gt3", self.tr("GT III. Geological map of urban areas 1:5,000"),
-            #"gt4", self.tr("GT IV. Soil map 1:25,000"),
-            #"gt5", self.tr("GT V. Hydrogeological map 1:25,000"),
-            "gt6": self.tr("GT VI. Map for the prevention of geological hazards 1:25,000"),
+            "photo": self.tr("Photo library"),
             }
         # Initialize download type descriptions (with translation)
         self.FME_DOWNLOADTYPE_LIST = [
@@ -342,9 +396,19 @@ class OpenICGC(PluginBase):
         self.download_group_name = self.tr("Download")
 
         # We created a GeoFinder object that will allow us to perform spatial searches
-        self.geofinder_dialog = GeoFinderDialog(title=self.tr("Spatial search"),
+        self.geofinder = GeoFinder()
+        self.geofinder_dialog = GeoFinderDialog(self.geofinder, title=self.tr("Spatial search"),
             columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")])
-        self.geofinder = self.geofinder_dialog.geofinder
+
+        # Initialize reference to PhotoSearchSelectionDialog
+        self.photo_search_dialog = None
+        # Initialize photo search group names
+        self.photos_group_name = self.tr("Photograms")
+        # Initialize photo search label
+        self.photo_label = self.tr("Photo: %s")
+        self.photo_layer_id = self.photo_label.replace(" ", "_").replace(":", "_") % ""
+        self.photo_search_label = self.tr("Photo query: %s")
+        self.photo_search_layer_id = self.photo_search_label.replace(" ", "_").replace(":", "_") % ""
 
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
@@ -356,7 +420,14 @@ class OpenICGC(PluginBase):
         self.iface.layerTreeView().currentLayerChanged.disconnect(self.on_change_current_layer)
         self.iface.layerTreeView().clicked.disconnect(self.on_click_legend)
         self.combobox.activated.disconnect()
-
+        # Remove photo dialog
+        if self.photo_search_dialog:
+            self.photo_search_dialog.reset()
+            self.iface.removeDockWidget(self.photo_search_dialog)
+        self.photo_search_dialog = None
+        # Remove photo search groups
+        self.legend.remove_group_by_name(self.photos_group_name)
+        self.legend.remove_group_by_name(self.download_group_name)
         # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
 
@@ -426,7 +497,8 @@ class OpenICGC(PluginBase):
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
-        self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + " lite" if self.lite else "", [
+        self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""),
+                                                 [
             self.tr("Find"), # Label text
             self.combobox, # Editable combobox
             (self.tr("Find place names and adresses"), self.run, QIcon(":/lib/qlib3/geofinderdialog/images/geofinder.png")), # Action button
@@ -592,6 +664,10 @@ class OpenICGC(PluginBase):
                 QIcon(":/lib/qlib3/base/images/time.png"),
                 False, True, "time_series"),
             ] + ([
+                (self.tr("Search photograms"), (self.enable_search_photos, self.pair_photo_search_checks), QIcon(":/plugins/openicgc/images/search.png"), True, True, "photo_search", [
+                    (self.tr("Search photograms interactively"), (self.enable_search_photos, self.pair_photo_search_checks), QIcon(":/plugins/openicgc/images/search.png"), True, True, "photo_search_2"),
+                    (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos(), QIcon(":/plugins/openicgc/images/search_coord.png"), True, False),
+                    ]),
                 (self.tr("Download tool"), self.disable_download_global_check, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download",
                     download_vector_submenu + ["---"] + download_raster_submenu + [
                     "---",
@@ -656,9 +732,15 @@ class OpenICGC(PluginBase):
         self.download_action = self.gui.find_action("download").defaultWidget().defaultAction() if self.gui.find_action("download") else None  # it is a toolbar menu, it has a subaction...
         self.time_series_action = self.gui.find_action("time_series")
         self.geopackage_style_action = self.gui.find_action("geopackage_style")
+        self.photo_search_action = self.gui.find_action("photo_search").defaultWidget().defaultAction() if self.gui.find_action("photo_search") else None
+        self.photo_search_2_action = self.gui.find_action("photo_search_2")
+        self.photo_download_action = self.gui.find_action("photo")
 
         # Add a tool to download map areas
         self.tool_subscene = QgsMapToolSubScene(self.iface.mapCanvas())
+
+        # Add a tool to search photograms in photo library (set action to manage check/uncheck tools)
+        self.tool_photo_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), self.search_photos, self.photo_search_action)
 
     def get_download_menu(self, fme_services_list, raster_not_vector=None, nested_download_submenu=True):
         """ Create download submenu structure list """
@@ -748,6 +830,15 @@ class OpenICGC(PluginBase):
         if self.geopackage_style_action:
             self.geopackage_style_action.setEnabled(is_geopackage_layer)
 
+    def on_change_photo_selection(self):
+        """ Select photogram in photosearch dialog if change selection on photosearch layer """
+        if self.photo_search_dialog and self.photo_search_dialog.isVisible():
+            photo_id, flight_year, _flight_code, _filename, _photo_name, gsd, _epsg = self.get_selected_photo_info(show_errors=False)
+            if self.photo_search_dialog:
+                self.photo_search_dialog.select_photo(photo_id, flight_year)
+            if self.tool_subscene:
+                self.tool_subscene.set_gsd(gsd)
+
     def pair_download_checks(self, status):
         """ Synchronize the check of the button associated with Download button """
         if self.download_action:
@@ -766,6 +857,13 @@ class OpenICGC(PluginBase):
             else:
                 self.tool_subscene.subscene()
             #self.enable_download_subscene(data_type, name, min_side, max_download_area, min_px_side, max_px_area, download_list, filename, url_ref_or_wms_tuple)
+
+    def pair_photo_search_checks(self, status):
+        """ Synchronize the check of the button associated with Download button """
+        if self.photo_search_2_action:
+            self.photo_search_2_action.setChecked(status)
+        if self.photo_search_action:
+            self.photo_search_action.setChecked(status)
 
 
     ###########################################################################
@@ -861,6 +959,20 @@ class OpenICGC(PluginBase):
             action.setChecked(False)
         self.gui.enable_tool(None)
 
+        # Check photo search warning
+        gsd = None
+        is_photo = (data_type == "photo")
+        if is_photo:
+            # If we want download a photogram, we need have select it one
+            photo_id, _flight_year, _flight_code, _filename, _photo_name, gsd, _epsg = self.get_selected_photo_info()
+            if not photo_id:
+                action.setChecked(False)
+                self.gui.enable_tool(None)
+                return
+            # If we have a selected photo, we show it
+            # we force keep the layer active, when we add a layer to a group sometimes the active layer changes
+            self.photo_search_dialog.preview()
+
         # Check EPSG warning
         if self.project.get_epsg() != "25831":
             if QMessageBox.warning(self.iface.mainWindow(), title, \
@@ -908,10 +1020,9 @@ class OpenICGC(PluginBase):
             min_side=min_side, max_download_area=max_download_area, min_px_side=min_px_side, max_px_area=max_px_area,
             download_operation_code=download_operation_code, filename=filename:
             self.download_map_area(geo, data_type, min_side, max_download_area, min_px_side, max_px_area, download_operation_code, filename))
-        self.tool_subscene.set_max_download_area(max_download_area)
-        self.tool_subscene.set_min_side(min_side)
+        self.tool_subscene.set_min_max(min_side, max_download_area, min_px_side, max_px_area)
+        self.tool_subscene.set_gsd(gsd)
         self.tool_subscene.set_mode(self.download_type in ['dt_area', 'dt_coord', 'dt_layer_polygon'])
-        self.tool_subscene.set_download_type(self.download_type)
         # Configure new download action (for auto manage check/uncheck action button)
         self.tool_subscene.setAction(action)
 
@@ -919,7 +1030,7 @@ class OpenICGC(PluginBase):
             # No interactive geometry required, call download process
             self.tool_subscene.subscene()
         else:
-            # Ineractive point or rect is required, enable tool
+            # Interactive point or rect is required, enable tool
             action.setChecked(True)
             self.gui.enable_tool(self.tool_subscene)
 
@@ -1000,9 +1111,9 @@ class OpenICGC(PluginBase):
         is_unsupported_format = self.is_unsupported_extension(ext)
         is_compressed = self.is_compressed_extension(ext)
         is_raster = self.is_raster_extension(ext)
-        is_photo = data_type == "photo"
+        is_photo = (data_type == "photo")
 
-        download_epsg = '25831'
+        epsg = 25831
         gsd = None
         rect = None
 
@@ -1011,11 +1122,19 @@ class OpenICGC(PluginBase):
         if not download_folder:
             return
 
+        # If is photo download, change default out filename and add extra params to download
+        if is_photo:
+            _photo_id, flight_year, flight_code, filename, name, gsd, epsg = self.get_selected_photo_info()
+            extra_params = [flight_year, flight_code, filename, name + ext]
+            filename = os.path.splitext(filename)[0]
+        else:
+            extra_params = []
+
         # Check CS and transform
-        if self.project.get_epsg() != download_epsg:
+        if self.project.get_epsg() != str(epsg):
             transformation = QgsCoordinateTransform(
                 QgsCoordinateReferenceSystem(self.project.get_epsg(True)),
-                QgsCoordinateReferenceSystem("EPSG:%s" % download_epsg),
+                QgsCoordinateReferenceSystem("EPSG:%s" % epsg),
                 QgsProject.instance())
             if self.debug_mode:
                 print("Transformation geometry from %s to 25831\n%s" % (self.project.get_epsg(), geo))
@@ -1032,15 +1151,15 @@ class OpenICGC(PluginBase):
                 return
             if max_download_area and (geo.area() > max_download_area):
                 QMessageBox.warning(self.iface.mainWindow(), title,
-                    self.tr("Maximum download area reached (%d m%s)") % (max_download_area, self.SQUARE_CHAR))
+                    self.tr("Maximum download area reached (%s m%s)") % (self.format_scale(max_download_area), self.SQUARE_CHAR))
                 return
             if min_px_side and gsd and ((rect.width() / gsd) < min_px_side or (rect.height() / gsd) < min_px_side):
                 QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("Minimum download rect side not reached (%d px)") % (min_px_side))
                 return
-            if max_px_area and ((geo.area() * gsd * gsd) > max_px_area):
+            if max_px_area and ((geo.area() / gsd / gsd) > max_px_area):
                 QMessageBox.warning(self.iface.mainWindow(), title,
-                    self.tr("Maximum download area reached (%d px%s)") % (max_download_area, self.SQUARE_CHAR))
+                    self.tr("Maximum download area reached (%s px%s)") % (self.format_scale(max_px_area), self.SQUARE_CHAR))
                 return
 
         # If area is point, maybe we need transform into a rectangle
@@ -1097,7 +1216,7 @@ class OpenICGC(PluginBase):
         west, south, east, north = (rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()) if rect else (None, None, None, None)
         points_list = [(vertex.x(), vertex.y()) for vertex in geo.vertices()] if is_polygon else []
         referrer = "%s_v%s" % (self.metadata.get_name().replace(" ", ""), self.metadata.get_version())
-        url = get_clip_data_url(data_type, download_operation_code, west, south, east, north, points_list, referrer=referrer)
+        url = get_clip_data_url(data_type, download_operation_code, west, south, east, north, points_list, extra_params, referrer=referrer)
         if self.debug_mode:
             print("Download URL: %s" % url)
         if not url:
@@ -1105,6 +1224,7 @@ class OpenICGC(PluginBase):
             return
 
         # Load layer
+        current_layer = self.layers.get_current_layer()
         download_layer = None
         try:
             if is_unsupported_format:
@@ -1117,8 +1237,8 @@ class OpenICGC(PluginBase):
                     # If can't load QLR, we suppose that compressed file contains Shapefiles
                     download_layer = self.layers.add_vector_files([os.path.join(download_folder, local_filename)], group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
             elif is_raster:
-                # Force EPSG:25831 by problems with QGIS 3.10 version
-                download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=25831, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True)
+                # Force EPSG:25831 or photo EPSG by problems with QGIS 3.10 version in auto detection EPSG
+                download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=epsg, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True)
             else:
                 download_layer = self.layers.add_remote_vector_file(url, local_filename, group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
         except Exception as e:
@@ -1128,6 +1248,12 @@ class OpenICGC(PluginBase):
                 error = self.tr("Error downloading file or selection is out of reference area")
             QMessageBox.warning(self.iface.mainWindow(), title, error)
             return
+        if current_layer:
+            self.layers.set_current_layer(current_layer)
+
+        # Hide photo preview
+        if is_photo and download_layer:
+            self.layers.set_visible_by_id(self.photo_layer_id, False)
 
         # With unsupported format we try open file with external app
         if is_unsupported_format:
@@ -1146,6 +1272,18 @@ class OpenICGC(PluginBase):
         if action:
             action.setChecked(False)
         self.gui.enable_tool(None)
+
+    def get_selected_photo_info(self, show_errors=True):
+        """ Return selected photo attributes: flight_year, flight_code, filename, name, gsd, epsg """
+        photo_layer = self.layers.get_by_id(self.photo_search_layer_id)
+        selected_photos_list = list(photo_layer.getSelectedFeatures()) if photo_layer else None
+        photo_id = selected_photos_list[0].id() if selected_photos_list else None
+        if show_errors:
+            photo_info_list = self.layers.get_attributes_selection_by_id(self.photo_search_layer_id, ['flight_year', 'flight_code', 'image_filename', 'name', 'gsd', 'epsg'], lambda p: len(p) != 1, self.tr("You must select one photogram"))
+        else:
+            photo_info_list = self.layers.get_attributes_selection_by_id(self.photo_search_layer_id, ['flight_year', 'flight_code', 'image_filename', 'name', 'gsd', 'epsg'], lambda p: len(p) != 1)
+        photo_id, flight_year, flight_code, filename, name, gsd, epsg = (([photo_id] + list(photo_info_list[0])) if photo_info_list else (None, None, None, None, None, None, None))       
+        return photo_id, flight_year, flight_code, filename, name, gsd, epsg
 
     def disable_ref_layers(self):
         """ Disable all reference layers """
@@ -1407,6 +1545,10 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
     ###########################################################################
     # Shading DTM
 
+
+    ###########################################################################
+    # Shading DTM
+
     def shading_dtm(self, checked=False):
         """ Change current layer style """
         title=self.tr("Shading DTM layer")
@@ -1421,3 +1563,221 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         QMessageBox.information(self.iface.mainWindow(), title,
             self.tr('You can modify the angle of the sun in the layer simbology'))
         return layer
+
+
+    ###########################################################################
+    # Photo library search
+
+    def enable_search_photos(self, checked=False):
+        """ Enables search photos interactive tool """
+        self.gui.enable_tool(self.tool_photo_search)
+        self.iface.messageBar().pushMessage(self.tr("Photograms search tool"), self.tr("Select a point"), level=Qgis.Info, duration=5)
+
+    def search_photos(self, x=None, y=None, photolib_wfs=PHOTOLIB_WFS, date_field="flight_date"):
+        """ Search photos in photo library by selected point """
+        title = self.tr("Search photograms")
+        epsg = None
+
+        # If no coordinate available, we request it
+        if not x or not y:
+            msg_text = self.tr('Enter an x y value in the project coordinate system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65" or "429393.19 4580194.65 EPSG:25831" or "EPSG:25831 429393.19 4580194.65"')
+            coord_text, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
+                set_html_font_size(msg_text), QLineEdit.Normal, "")
+            if not ok_pressed:
+                return
+            # Use GeoFinder static function to parse coordinate text
+            x, y, epsg = GeoFinder.get_point_coordinate(coord_text)
+            if not x or not y:
+                QMessageBox.warning(self.iface.mainWindow(), title, "Incorrect coordinate format")
+                return
+
+        # Check existence of old photo search
+        group_pos = 0
+        group = self.legend.get_group_by_name(self.photos_group_name)
+        if group and len(self.layers.get_group_layers(group)) > 0:
+            if QMessageBox.question(self.iface.mainWindow(), self.photo_search_label.replace(": %s", ""),
+                self.tr('It exists a previous photo search. Do you want close it?'), QMessageBox.Yes, QMessageBox.No) == QMessageBox.No:
+                return False
+            self.legend.empty_group(group)
+        # If photo search group not exist, we ensure that it is created before download group        
+        if not group:
+            # If not exists download group return -1
+            group_pos = self.legend.get_group_position_by_name(self.download_group_name) + 1 
+
+        with WaitCursor():
+            if not epsg:
+                epsg = int(self.project.get_epsg())
+            # Transform point coordinates to EPSG 4326
+            point = QgsPointXY(x, y)
+            if epsg != 4326:
+                transformation = QgsCoordinateTransform(
+                    QgsCoordinateReferenceSystem("EPSG:%s" % epsg),
+                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsProject.instance())
+                point = transformation.transform(point)
+
+            # Get municipality information of coordinate
+            found_dict_list = self.find_point_secure(point.y(), point.x(), 4326) # En geogràfiques el topofinder vol lat, lon (y, x)
+            municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
+            if municipality:
+                layer_name = self.photo_search_label % municipality
+            else:
+                if x >= 100 and y >= 100:
+                    layer_name = self.photo_search_label % self.tr("Coord %s %s") % ("%.2f" % x,"%.2f" % y)
+                else:
+                    layer_name = self.photo_search_label % self.tr("Coord %s %s") % (x, y)
+
+            # Search point in photo library
+            if self.debug_mode:
+                print("Search photo: %s" % photolib_wfs)
+            photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                ["icgc:fotogrames"], 4326,
+                filter="SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (point.x(), point.y()),
+                extra_tags="referer=ICGC",
+                group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+                collapsed=False, visible=True, transparency=None, set_current=True)
+            if not photo_layer:
+                return
+            # Translate field names
+            self.layers.set_fields_alias(photo_layer, {
+               "name": self.tr("Name"),
+               "flight_code": self.tr("Flight code"),
+               "flight_date": self.tr("Flight date"),
+               "flight_year": self.tr("Flight year"),
+               "image_filename": self.tr("Image filename"),
+               "image_width": self.tr("Image width"),
+               "image_height": self.tr("Image height"),
+               "image_channels": self.tr("Image channels"),
+               "image_bits_ppc": self.tr("Image bits PPC"),
+               "color_type": self.tr("Color type"),
+               "strip": self.tr("Strip"),
+               "strip_photo": self.tr("Photo in strip"),
+               "camera": self.tr("Camera"),
+               "focal_length": self.tr("Focal Length"),
+               "gsd": self.tr("Ground sampling distance"),
+               "scale": self.tr("Scale"),
+               "flying_height": self.tr("Flying height"),
+               "mean_ground_height": self.tr("Mean ground height"),
+               "view_type": self.tr("View type"),
+               "northing": self.tr("Northing"),
+               "easting": self.tr("Easting"),
+               "epsg": self.tr("EPSG code"),
+               "omega": self.tr("Omega"),
+               "phi": self.tr("Phi"),
+               "kappa": self.tr("Kappa"),
+               })
+            # Get years of found photograms
+            self.search_photos_year_list = sorted(list(set([(f[date_field].date().year() if type(f[date_field]) == QDateTime \
+                else int(f[date_field].split("-")[0])) for f in photo_layer.getFeatures()])), reverse=True)
+            # Set layer colored by year style
+            self.layers.classify(photo_layer, 'to_int(left("flight_date", 4))', values_list=self.search_photos_year_list,
+                color_list=[QColor(0, 127, 255, 25), QColor(100, 100, 100, 25)], # Fill with transparence
+                border_color_list=[QColor(0, 127, 255), QColor(100, 100, 100)],  # Border without transparence
+                interpolate_colors=True)
+            self.layers.set_categories_visible(photo_layer, self.search_photos_year_list[1:], False)
+            self.layers.enable_feature_count(photo_layer)
+            self.layers.zoom_to_full_extent(photo_layer)
+
+            # Show photo search dialog
+            self.search_photos_year_list.reverse()
+            self.show_photo_search_dialog(photo_layer, self.search_photos_year_list, self.search_photos_year_list[-1] if self.search_photos_year_list else None)
+
+            # Map change selection feature event
+            photo_layer.selectionChanged.connect(self.on_change_photo_selection)
+            photo_layer.willBeDeleted.connect(self.photo_search_dialog.reset)
+
+            # Disable search tool
+            self.gui.enable_tool(None)
+
+    def photo_preview(self, photo_name, only_one=True, photolib_wms=PHOTOLIB_WMS):
+        """ Load photogram raster layer """
+        if only_one:
+            # Remove previous preview layers
+            self.layers.remove_layer_by_id(self.photo_layer_id)
+        else:
+            # Disable previous preview layers
+            self.legend.set_group_items_visible_by_name(self.photo_group_name, False)
+            self.layers.set_visible_by_id(self.photo_search_layer_id, True)
+
+        # We don't want change current selected layer
+        current_layer = self.layers.get_current_layer()
+        # Load new preview layer at top (using WMS or UNC path to file)
+        if self.debug_mode:
+            print("Show photo: %s / %s" % (photolib_wms, photo_name))
+        photo_layer = self.layers.add_wms_layer(self.photo_label % photo_name, photolib_wms,
+            ["fotos"], [photo_name], "image/png", self.project.get_epsg(), extra_tags="referer=ICGC&bgcolor=0x000000",
+            group_name=self.photos_group_name, group_pos=0, only_one_map_on_group=False, only_one_visible_map_on_group=False,
+            collapsed=False, visible=True, transparency=None, set_current=False)
+        # Restore previous selected layer
+        if current_layer:
+            self.layers.set_current_layer(current_layer)
+
+        return photo_layer
+
+    def show_photo_search_dialog(self, layer, years_list, current_year=None, title=None, current_prefix="", show=True):
+        """ Show photo search dialog to filter photo results """
+        # Show or hide dialog
+        if show:
+            if not current_year and years_list:
+                current_year = years_list[0]
+
+            # If not exist dialog we create it else we configure and show it
+            update_photo_time_callback = lambda current_year, range_year: self.update_photo_search_layer_year(layer, current_year, range_year)
+            update_photo_selection_callback = lambda photo_id: self.layers.set_selection(layer, [photo_id] if photo_id else [])
+            show_info_callback = lambda photo_id: self.iface.openFeatureForm(layer, layer.getFeature(photo_id))
+            preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'])
+            download_callback = lambda photo_id: self.photo_download_action.trigger()
+            request_certificate_callback = None #lambda photo_id: self.tools.send_email("qgis.openicgc@icgc.cat",
+                #"OpenICGC QGIS plugin. certificate %s" % layer.getFeature(photo_id)['name'],
+                #self.tr("Certificate request for photogram: %s") % layer.getFeature(photo_id)['name'])
+            request_scan_callback = None #lambda photo_id: self.tools.send_email("qgis.openicgc@icgc.cat",
+                #"OpenICGC QGIS plugin. scan %s" % layer.getFeature(photo_id)['name'],
+                #self.tr("Scan request for photogram: %s") % layer.getFeature(photo_id)['name'])
+            report_photo_bug_callback = lambda photo_id: self.report_photo_bug(layer.getFeature(photo_id)['name'], )
+            if not self.photo_search_dialog:
+                self.photo_search_dialog = PhotoSearchSelectionDialog(layer,
+                    years_list, current_year,
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, preview_callback,
+                    None, download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback,
+                    parent=self.iface.mainWindow())
+                # Align dialog to right
+                self.iface.addDockWidget(Qt.RightDockWidgetArea, self.photo_search_dialog)
+                # Map visibility event to refresh any control if necessary. This is implemented in
+                # change layer event that's why i send a change layer signal
+                self.photo_search_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
+            else:
+                # Configure search result information
+                self.photo_search_dialog.set_info(layer,
+                    years_list, current_year,
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, preview_callback, None,
+                    download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback)
+                # Mostrem el diàleg
+                self.photo_search_dialog.show()
+        else:
+            # Reset data and hide dialog
+            if self.photo_search_dialog:
+                self.photo_search_dialog.reset()
+
+    def update_photo_search_layer_year(self, photo_layer, current_year, range_year):
+        """ Update visibility of  photo categories from years range """
+        year_range = range(current_year, range_year + 1) if range_year else [current_year]
+        if photo_layer:
+            self.layers.set_categories_visible(photo_layer, set(self.search_photos_year_list) - set(year_range), False)
+            self.layers.set_categories_visible(photo_layer, year_range, True)
+
+    def report_photo_bug(self, photo_name):
+        """ Report a photo bug """
+        # description, ok_pressed = QInputDialog.getMultiLineText(self.iface.mainWindow(), self.tr("Report photo bug"),
+        #     set_html_font_size(self.tr("Looks like you found an error in photogram:\n%s\n\nWe will register the problem and try to fix it. Could you describe it briefly?") % photo_name))
+        # if not ok_pressed:
+        #     return
+        title=self.tr("Report photo bug")
+        if QMessageBox.question(self.iface.mainWindow(), title,
+            self.tr("Before reporting an error, bear in mind that the position of photograms is an approximation i will never completely fit the underlying cartography, since no terrain model has been used to project the imatge against. Furthermore, changes in instrumenation over time (wheter GPS is used or not, scanning and photogrammetric workflow) account for a very limited precision in positioning.\n\nOnly large displacements in position (for example, an element that should appear near the center does not appear) or if there is an error in rotation (eg. the sea appears in the northern part of a photo).\n\nDo you want continue?"),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) != QMessageBox.Yes:
+            return
+        self.tools.send_email("qgis.openicgc@icgc.cat",
+                "Error en el fotograma %s" % photo_name, # Static text no translated
+                self.tr("Problem description: "))
+        QMessageBox.information(self.iface.mainWindow(), title,
+            self.tr("Thanks for reporting an error in photogram:\n%s\n\nWe try to fix it as soon as possible") % photo_name)

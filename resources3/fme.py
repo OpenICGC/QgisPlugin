@@ -42,11 +42,11 @@ services_list = [
     ("mtc1000m", "Mapa topogràfic 1:1.000.000", 10000, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "mtc1000m.tif", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mtc1000m&Format=GEOTIFF&Projecte=mtc1000m&Codi=%s&piramide=True", None),
     ("mtc2000m", "Mapa topogràfic 1:2.000.000", 20000, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "mtc2000m.tif", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mtc2000m&Format=GEOTIFF&Projecte=mtc2000m&Codi=%s&piramide=True", None),
 
-    ("ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, ["", "mu"], "ct1m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=ct1m&Codi=%s",
+    ("ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, ["", "mu"], "ct1m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
         ("http://www.icc.cat/appdownloads/lib/json/ct1m_id.json", "ct1m_disponible.qml")),
 
-    #("bm5m", "Base municipal 1:5.000", None, None, ["cat", "tot"], "bm5m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=bm5m&Codi=%s", None),
-    ("divisions-administratives", "Divisions administratives", None, None, None, None, ["cat"], "divisions-administratives.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=divisions-administratives&Codi=%s", None),
+    #("bm5m", "Base municipal 1:5.000", None, None, ["cat", "tot"], "bm5m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=bm5m&Codi=%s", None),
+    ("divisions-administratives", "Divisions administratives", None, None, None, None, ["cat"], "divisions-administratives.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s", None),
 
     ("topografia-territorial-gpkg", "Referencial topogràfic territorial GeoPackage", 50, 100000000, None, None, ["", "pol", "mu"], "topografia-territorial.gpkg", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
     ("topografia-territorial-dgn", "Referencial topogràfic territorial DGN", 50, 25000000, None, None, ["", "pol", "mu"], "topografia-territorial.dgn", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt&Codi=%s", None),
@@ -61,25 +61,23 @@ services_list = [
     ("met2", "MET 2m", 200, 800000000, None, None, ["", "pol", "mu", "co"], "met2.tif", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
     ("met5", "MET 5m", 500, 5000000000, None, None, ["", "pol", "mu", "co"], "met5.tif", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
 
-    ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, ["cat", "tot"], "mg50m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mg50m&Codi=%s", None),
-    ("mg250m", "Mapa geològic 1:250.000", None, None, None, None, ["cat", "tot"], "mg250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mg250m&Codi=%s", None),
-
-    # Pending revision of symbology
-    #("gt1", "GT I. ... 1:25.000", None, 1250000000, None, None, ["", "mu", "co"], "gt1.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt1&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_I", "", "image/png")),
-    #("gt2", "GT II. ...  1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt2.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt2&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_II", "", "image/png")),
-    #("gt3", "GT III. ... 1:5.000", None, 50000000, None, None, ["", "mu", "co", "cat", "tot"], "gt3.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt3&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_III", "", "image/png")),
-    #("gt4", "GT IV. ... 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt4.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt4&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_IV", "", "image/png")),
-    #("gt5", "GT V. ... 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt5.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt5&Codi=%s",
-    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_V", "", "image/png")),
-    ("gt6", "GT VI. Mapa per a la prevenció dels riscos geològics 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt6.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=gt6&Codi=%s",
+    ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, ["tot"], "gt1.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
+    ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, ["tot"], "mg50m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
+    ("mg250m", "Mapa geològic 1:250.000", None, None, None, None, ["tot"], "mg250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg250m&Codi=%s", None),
+    ("mggt6", "GT VI. Mapa per a la prevenció dels riscos geològics 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt6.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt6&Codi=%s",
         ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_VI", "", "image/png")),
-    #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, None, None, ["cat", "tot"], "mah250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Projecte=mah250m&Codi=%s", None),
-    
-    #("photo", "Fototeca digital", None, None, 100, 10000000, [""], "photo.tif", "%s/fmedatastreaming/Fototeca/ICGC_fototeca_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&Codi=%s&Any=%s&CodiVol=%s&NomFoto=%s&Nom=%s", None),
+    # Pending revision of symbology
+    #("gt2", "GT II. ...  1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt2.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt2&Codi=%s",
+    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_II", "", "image/png")),
+    #("gt3", "GT III. ... 1:5.000", None, 50000000, None, None, ["", "mu", "co", "cat", "tot"], "gt3.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt3&Codi=%s",
+    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_III", "", "image/png")),
+    #("gt4", "GT IV. ... 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt4.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt4&Codi=%s",
+    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_IV", "", "image/png")),
+    #("gt5", "GT V. ... 1:25.000", None, 1250000000, None, None, ["", "mu", "co", "cat", "tot"], "gt5.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt5&Codi=%s",
+    #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_V", "", "image/png")),
+    #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, None, None, ["cat", "tot"], "mah250m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mah250m&Codi=%s", None),
+
+    ("photo", "Fototeca digital", None, None, 100, 100000000, ["", "pol"], "photo.tif", "%s/fmedatastreaming/Fototeca/ICGC_fototeca_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Codi=%s&Any=%s&CodiVol=%s&NomFoto=%s&Nom=%s", None),
     ]
 services_dict = dict([(id, (name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_pattern, url_ref_or_wms_tuple)) for (id, name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_pattern, url_ref_or_wms_tuple) in services_list])
 
@@ -110,9 +108,9 @@ def get_services():
 
 def get_clip_data_url(data_type, mode, xmin, ymin, xmax, ymax, points_list=[], extra_params=[], referrer=None, url_base=FME_URL):
     """ Retorna la petició URL FME per descarregar un producte """
-    _name, _min_side, _max_query_area, _min_px_side, _max_px_area, download_list, _filename, url_pattern, _url_ref_or_wms_tuple = services_dict.get(data_type, (None, None, None, None, None, None))    
+    _name, _min_side, _max_query_area, _min_px_side, _max_px_area, download_list, _filename, url_pattern, _url_ref_or_wms_tuple = services_dict.get(data_type, (None, None, None, None, None, None))
     rect_list = [("%.2f" % v if v is not None else "") for v in [xmin, ymin, xmax, ymax]]
-    points_list = [",".join(["%.2f %.2f" % (x, y) for x, y in points_list])] if "pol" in download_list else []
+    points_list = [",".join(["%.2f %.2f" % (x, y) for x, y in points_list])] if "pol" in download_list else [None]
     values_list = [url_base] + rect_list + points_list + [mode] + extra_params
     url = (url_pattern % tuple(values_list)) if url_pattern else None
     if url and referrer:
