@@ -11,5 +11,6 @@
         <file>images/download_all.png</file>
         <file>images/search.png</file>
         <file>images/search_coord.png</file>
+        <file>images/search_name.png</file>
     </qresource>
 </RCC>

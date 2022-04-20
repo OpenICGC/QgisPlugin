@@ -32,8 +32,10 @@ from xml.etree import ElementTree
 from importlib import reload
 import base64
 import zipfile
-#import ogr
-from osgeo import ogr
+try:
+    import ogr, osr
+except:
+    from osgeo import ogr, osr
 
 from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication, QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
@@ -42,13 +44,13 @@ from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktop
 from PyQt5.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsContrastEnhancement
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
-from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap
+from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap, QgsContrastEnhancement
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
 from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler, QgsSimpleLineSymbolLayer
 from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
-from qgis.core import QgsLayoutExporter, QgsFields
+from qgis.core import QgsLayoutExporter, QgsFields, Qgis
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -68,6 +70,10 @@ from .transparencydialog import TransparencyDialog
 from . import timeseriesdialog
 reload(timeseriesdialog)
 from .timeseriesdialog import TimeSeriesDialog
+
+from . import anaglyphdialog
+reload(anaglyphdialog)
+from .anaglyphdialog import AnaglyphDialog
 
 from . import stylesdialog
 reload(stylesdialog)
@@ -230,7 +236,7 @@ class GuiBase(object):
             if entry is None:
                 continue
             # Recollim les dades de usuari
-            eseparator, elabel, eaction, econtrol, name, callback, toggle_callback, icon, enabled, checkable, id, subentries_list = self.__parse_entry(entry)
+            eseparator, elabel, eaction, econtrol, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list = self.__parse_entry(entry)
 
             # Creem el menu o toolbar
             if eseparator != None:
@@ -300,6 +306,7 @@ class GuiBase(object):
                 else:
                     # Submenú
                     submenu = QMenu()
+                    submenu.setToolTipsVisible(True)
                     self.add_to_menu(submenu, subentries_list)
                     # Guardem el submenu (si no, si està buit, dóna problemes afegint-lo a un menú)
                     self.menus.append(submenu)
@@ -338,6 +345,11 @@ class GuiBase(object):
                 action.setEnabled(False)
             if checkable:
                 action.setCheckable(True)
+            if tooltip:
+                if type(action) == QWidgetAction:
+                    action.defaultWidget().defaultAction().setToolTip(tooltip)
+                else:
+                    action.setToolTip(tooltip)
 
             #Ens guardem els items de menu o toolbar, si no no apareix...
             self.actions.append((menu_or_toolbar, action))
@@ -349,7 +361,7 @@ class GuiBase(object):
                 QAction --> Acció amb icona i funció a executar
                 Altres_tipus --> Suposem que és un control (combobox, lineedit, ...)
                 Tupla:
-                    (Nom, [funció | (funció_activació, funció_toggle)], [icona], [enabled], [checkable], [id], [submenu_llista])
+                    (Nom, [funció | (funció_activació, funció_toggle)], [icona], [enabled], [checkable], [id], [tooltip], [submenu_llista])
             ---
             Types of accepted menus / toolbars, lists of:
                  None or "---" or "" -> separator
@@ -399,6 +411,7 @@ class GuiBase(object):
         enabled = True
         checkable = False
         id = None
+        tooltip = None
         subentries_list = None
 
         if type(entry) != tuple:
@@ -444,18 +457,24 @@ class GuiBase(object):
                                         if len(entry) > 6:
                                             if type(entry[6]) == list:
                                                 subentries_list = entry[6]
-        # Si la entradano té callback (i no és un control) la desactivem
+                                            else:
+                                                tooltip = entry[6]
+                                                if len(entry) > 7:
+                                                    if type(entry[7]) == list:
+                                                        subentries_list = entry[6]
+
+        # Si la entrada no té callback (i no és un control) la desactivem
         if self.disable_unmapped_gui and not separator and not label and not action and not control and not callback \
             and not toggle_callback and not subentries_list:
             enabled = False
-        return separator, label, action, control, name, callback, toggle_callback, icon, enabled, checkable, id, subentries_list
+        return separator, label, action, control, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list
 
     def find_action(self, id, actions_list=None):
         """ Cerca una acció a partir del seu objectName
             ---
             Find a action by objectName
             """
-        if not actions_list:
+        if actions_list == None:
             actions_list = [action for menu_or_toolbar, action in self.actions]
         for action in actions_list:
             if action and action.objectName() == id:
@@ -1026,10 +1045,10 @@ class LayersBase(object):
             ---
             Refresh the content of the map, if it is specified that you wait, the function does not return until the end event is received
             """
+        self.map_refreshed = False
         self.iface.mapCanvas().refreshAllLayers()
         if wait_refreshed:
             # Espera a que es refresqui el mapa
-            self.map_refreshed = False
             while not self.map_refreshed:
                 QApplication.instance().processEvents()
 
@@ -1115,6 +1134,8 @@ class LayersBase(object):
             ---
             Returns the value of a field (column) of an layer entity (row) based on its id (id prefix is passed)
             """
+        if field_name.lower() in ('footprint', 'geometry', 'the_geom', 'geometria'):
+            return entity.geometry()
         index = layer.dataProvider().fieldNameIndex(field_name)
         if index < 0:
             return None
@@ -1314,8 +1335,7 @@ class LayersBase(object):
             if layer:
                 # Obtenim els elements seleccionats
                 if only_selection:
-                    selected_fids = set(layer.selectedFeatureIds())
-                    selected_features = [f for f in layer.getFeatures() if f.id() in selected_fids][:max_items]
+                    selected_features = layer.getSelectedFeatures()
                 else:
                     selected_features = list(layer.getFeatures())[:max_items]
                 # Obtenim la selecció de la capa fields_name_or_list (acceptem llista o valor)
@@ -1468,24 +1488,12 @@ class LayersBase(object):
 
         # Obtenim els camps de la capa
         dp = layer.dataProvider()
-        # CANVIS QGIS2
-        ##fields_names = [f.name() for f in dp.fields().values()]
         fields_names = [f.name() for f in dp.fields().toList()]
         if field_name not in fields_names:
             return False
-        field_index = fields_names.index(field_name)
-        fields_ids = list(dp.fields())
-        field_id = fields_ids[field_index]
-
-        # Obtenim la llista d'elements seleccionats
-        selected_features = []
-        for feature in layer.getFeatures():
-            field_value = feature[field_index]
-            if field_value in values_list:
-                selected_features.append(feature.id())
-
-        # Seleccionem els elements filtrats
-        layer.selectByIds(selected_features)
+        # Seleccionem pel camp indicat
+        expression_filter = "\"%s\" IN ('%s')" % (field_name, "', '".join([str(v).replace("\\", "\\\\") for v in values_list]))
+        layer.selectByExpression(expression_filter)
         return True
 
     def zoom_to_selection_by_id(self, layer_idprefix, scale=None, pos=0):
@@ -1928,29 +1936,33 @@ class LayersBase(object):
     #    if not show:
     #        self.set_visible(layer, False)
 
-    def classification_ranges_by_id(self, layer_basename, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0):
+    def classification_ranges_by_id(self, layer_basename, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0, suffix=None):
         """ Classifica els valors d'una capa per id segons la llista de rang de valors.
             Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant l'operador de mòdul)
+            suffix permet afegir un text al final de l'etiqueta de cada categoria (p.e.: unitats)
             ---
             Classify the values of a layer by id according to the list of value ranges.
             Additionally you can pass a list of colors to apply, transparency or width
             (if it is shorter than the number of values, colors will be repeated using module operator)
+            suffix allows the user to append a text to each of the categories (e.g.: units)
             """
         layer = self.get_by_id(layer_basename, pos)
         if not layer:
             return False
-        self.classification_ranges(layer, class_attribute, ranges_list, color_list, border_color_list, transparency_list, width_list)
+        self.classification_ranges(layer, class_attribute, ranges_list, color_list, border_color_list, transparency_list, width_list, suffix)
         return True
 
-    def classification_ranges(self, layer, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None):
+    def classification_ranges(self, layer, class_attribute, ranges_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, suffix=None):
         """ Classifica els valors d'una capa segons la llista de rang de valors.
             Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
             (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
+            suffix permet afegir un text al final de l'etiqueta de cada categoria (p.e.: unitats)
             ---
             Classify the values of a layer according to the list of value ranges.
             Additionally you can pass a list of colors to apply, transparency or width
             (if it is shorter than the number of values, colors will be repeated using module operator)
+            suffix allows the user to append a text to each of the categories (e.g.: units)
             """
         # Afegim un categoria per cada data
         renderers_list = []
@@ -1971,7 +1983,9 @@ class LayersBase(object):
                     symbol.setSize(width)
                 else:
                     symbol.setWidth(width)
-            label = f"{begin_value} - {end_value}"
+            label = f"{begin_value} - {end_value}" if begin_value != end_value else str(end_value)
+            if suffix:
+                label += f" {suffix}"
             renderers_list.append(QgsRendererRange(begin_value, end_value, symbol, label))
 
         # Assignem la visualització per rangs a la capa
@@ -1986,7 +2000,7 @@ class LayersBase(object):
         if not show:
             self.set_visible(layer, False)
 
-    def classify_by_id(self, layer_idprefix, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False, interpolate_colors=False, pos=0):
+    def classify_by_id(self, layer_idprefix, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, opacity=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha=None, sort=False, interpolate_colors=False, pos=0):
         """ Classifica els valors d'una capa per id segons la llista de valors i un camp de la capa.
             layer: capa a processar
             class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
@@ -1998,8 +2012,8 @@ class LayersBase(object):
             use_current_symbol: utilitza la simbolització actual canviant els colors
             base_symbol: simbol base a utilitzar canviant els colors
             label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
-            alpha: aplica transparència
-            alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
+            opacity: aplica opacitat a tot el símbol. Rang entre 0 (transparent) i 1 (opac)
+            alpha: aplica transparència al color de l'emplenament. Rang entre 0 (transparent) i 1 (opac)
             expand: expandeix la llegenda de la capa
             sort: ordena les categories
             pos: index de la capa amb layer_idprefix a processar
@@ -2015,8 +2029,8 @@ class LayersBase(object):
             use_current_symbol: use current symbol changing colors
             base_symbol: use this symbol changing colors
             label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
-            alpha: set transparency
-            alpha_fill: set transparency only to the fill (e.g.: highlight borders when footprints have transparency)
+            opacity: set opacity for the symbol. Range between 0 (fully transparent) and 1 (fully opaque)
+            alpha: set transparency only to the fill color. Range between 0 (fully transparent) and 1 (fully opaque)
             expand: expand layer legend
             sort: sort categories
             pos: index of layer with layer_idprefix to process
@@ -2024,10 +2038,10 @@ class LayersBase(object):
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, size, alpha, use_current_symbol, base_symbol, label_function, alpha_fill, sort, ininterpolate_colors)
+        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, size, opacity, use_current_symbol, base_symbol, label_function, alpha, sort, ininterpolate_colors)
         return True
 
-    def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, alpha=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha_fill=None, sort=False, interpolate_colors=False):
+    def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, opacity=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha=None, sort=False, interpolate_colors=False):
         """ Classifica els valors d'una capa segons la llista de valors i un camp de la capa.
             layer: capa a processar
             class_attribute: si no s'especifica, assumim que es vol partir de la classificació anterior
@@ -2040,8 +2054,8 @@ class LayersBase(object):
             use_current_symbol: utilitza la simbolització actual canviant els colors
             base_symbol: simbol base a utilitzar canviant els colors
             label_function: genera una etiqueta a partir del valor de la categoria (p.e.: canvia representació de dates: lambda x: x.toPyDate())
-            alpha: aplica transparència
-            alpha_fill: aplica transparència només a l'emplenament (p.e.: ressalta el borde dels footprints amb transparència)
+            opacity: aplica opacitat al símbol. Rang entre 0 (transparent) i 1 (opac)
+            alpha: aplica transparència al color de l'emplenament. Rang entre 0 (transparent) i 1 (opac)
             expand: expandeix la llegenda de la capa
             sort: ordena les categories
             ---
@@ -2057,8 +2071,8 @@ class LayersBase(object):
             use_current_symbol: use current symbol changing colors
             base_symbol: use this symbol changing colors
             label_function: generate a label from a category value (e.g.: tune representation of dates: lambda x: x.toPyDate())
-            alpha: set transparency
-            alpha_fill: set transparency only to the fill (e.g.: highlight borders when footprints have transparency)
+            opacity: set opacity for the symbol. Range between 0 (fully transparent) and 1 (fully opaque)
+            alpha: set transparency only to the fill color. Range between 0 (fully transparent) and 1 (fully opaque)
             expand: expand layer legend
             sort: sort categories
             """
@@ -2069,10 +2083,11 @@ class LayersBase(object):
         if use_current_symbol:
             # Prioritzem el símbol base de la capa. Si no està definit, agafem el de la primera categoria
             renderer = layer.renderer()
-            if len(renderer.symbols(QgsRenderContext())):
-                base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
-            elif hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
-                base_symbol = renderer.sourceSymbol().clone()
+            if renderer:
+                if len(renderer.symbols(QgsRenderContext())):
+                    base_symbol = renderer.symbols(QgsRenderContext())[0].clone()
+                elif hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
+                    base_symbol = renderer.sourceSymbol().clone()
 
         # Recupera el renderer o crea un de nou
         if hasattr(layer.renderer(), 'categories'):
@@ -2152,12 +2167,12 @@ class LayersBase(object):
             if border_color:
                 # pinta les línies
                 symbol.symbolLayer(0).setStrokeColor(border_color)
-            if alpha is not None:
+            if opacity is not None:
                 # aplica transparència al símbol sencer
-                symbol.setOpacity(alpha)
-            if alpha_fill is not None:
+                symbol.setOpacity(opacity)
+            if alpha is not None:
                 # aplica transparència a l'emplenament
-                color.setAlpha(alpha_fill*100)
+                color.setAlphaF(alpha)
                 symbol.symbolLayer(0).setFillColor(color)
             if width is not None:
                 if type(symbol) == QgsFillSymbol:
@@ -3573,7 +3588,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -3583,22 +3598,25 @@ class LayersBase(object):
         # Obtenim la llista de capes temporals i la registrem associada a la url
         if time_series_list:
             if url:
-                default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
+                if not default_time:
+                    default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
                 default_layer = layer_id
                 url_time = url
             else:
-                default_time = layer_id
+                if not default_time:
+                    default_time = layer_id
                 default_layer = layer_id
                 url_time = dict(time_series_list)[default_layer]
         else:
-            time_series_list, default_time = self.get_wms_t_time_series(url, layer_id)
+            time_series_list, default_time2 = self.get_wms_t_time_series(url, layer_id)
             if not time_series_list:
                 return None
+            default_time = default_time or default_time2
             if not default_time:
                 default_time = time_series_list[-1][0]
             default_layer = dict(time_series_list)[default_time]
             is_question_mark = url.find("?") >= 0
-            url_time = "%s%stime=%s&IgnoreGetMapUrl=1" % (url, "%26" if is_question_mark else "?", default_time)
+            url_time = "%s%stime=%s" % (url, "%26" if is_question_mark else "?", default_time)
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
@@ -3775,6 +3793,7 @@ class LayersBase(object):
         uri = "url=%s&crs=EPSG:%s&format=%s&styles=%s&layers=%s" % (url, epsg, image_format, "&styles=".join(styles_list), "&layers=".join(layers_list))
         if extra_tags:
             uri += "&%s" % extra_tags
+        uri += "&IgnoreGetMapUrl=1"
 
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
@@ -3786,33 +3805,60 @@ class LayersBase(object):
             See add_wms_layer for options
             """
         uri = "url=%s" % url_query.lower().replace("epsg:", "epsg:").replace("srs=", "crs=").replace("?", "&")
+        uri += "&IgnoreGetMapUrl=1"
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
-    def update_wms_layer(self, layer, wms_layer, wms_time=None):
+    def update_wms_layer(self, layer, wms_layer=None, wms_time=None, wms_style=None):
         """ Actualitza la capa a llegir d'un servidor WMS
             ---
             Update WMS layer to read
             """
-        ##print("update wms layer", wms_layer, wms_time)
-
         # Obtenim la capa actual carregada
         url, current_layer, current_time = self.parse_wms_t_layer(layer)
+        current_style = None
 
         if url and current_layer:
             # Actualitzem la capa a WMS carregar (pot ser un canvi de capa (fals WMS-T) o un canvi de temps)
-            new_uri = layer.dataProvider().dataSourceUri()
-            new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
+            if self.parent.check_qgis_version(31600): 
+                # Incompatible with version 3.4 and 3.10 (not update value)            
+                new_uri = layer.source()
+            else:
+                new_uri = layer.dataProvider().dataSourceUri()
+            if wms_layer:
+                new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
             if wms_time:
                 new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
-            layer.dataProvider().setDataSourceUri(new_uri)
+            if wms_style:
+                found = re.search(r"(styles=[^&]+)", new_uri, re.IGNORECASE)
+                if found:
+                    current_style = found.groups()[0]
+                    new_uri = new_uri.replace(current_style, "styles=%s" % wms_style)
+                else:
+                    new_uri += "&styles=%s" % wms_style
         else:
             # Si tenim un fals WMS-T amb link a arxius raster, cal fer més refrescos...
             new_uri = wms_layer
+            
+        if self.parent.check_qgis_version(31600): 
+            # Incompatible with version 3.4 and 3.10 (not updated)
+            layer.setDataSource(new_uri, layer.name(), "WMS", layer.dataProvider().ProviderOptions())
+        else:
             layer.dataProvider().setDataSourceUri(new_uri)
             layer.dataProvider().reloadData()
             layer.reload()
+            layer.triggerRepaint()
 
-        layer.triggerRepaint()
+    def is_anaglyph_layer(self, layer):
+        """ Retorna si una capa té informació WMS anaglif 
+            ---
+            Returns layer is WMS anaglyph
+            """
+        uri = layer.source()
+        found = re.search(r"(styles=[^&]+)", uri.lower(), re.IGNORECASE)
+        if not found:
+            return False
+        anaglyph_params = found.groups()[0].split(",")
+        return len(anaglyph_params) == 3
 
     def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
         """ Afegeix una capa raster a partir d'un URI i proveidor de dades (wms, oracle ...). Retorna la capa.
@@ -3896,12 +3942,11 @@ class LayersBase(object):
         if not epsg:
             epsg = self.parent.project.get_epsg()
         separator = "&" if url.find("?") >= 0 else "?"
-        uri = "%s%sservice=WFS&version=%s&request=GetFeature&typename=%s&srsname=EPSG:%s" % (url, separator, version, ",".join(layers_list), epsg)
+        uri = "url=%s%sservice=WFS&version=%s&request=GetFeature&typename=%s&srsname=EPSG:%s" % (url, separator, version, ",".join(layers_list), epsg)
         if extra_tags:
             uri += "&%s" % extra_tags
         ds_uri = QgsDataSourceUri()
         ds_uri.setEncodedUri(uri)
-        ds_uri.setParam('url', url)
         # Apliquem un filtrat si cal
         if filter:
             ds_uri.setSql(filter)
@@ -4706,11 +4751,15 @@ class ComposerBase(object):
         if os.path.splitext(report_pathname)[1].lower() != '.qpt':
             report_pathname += '.qpt'
         with open(report_pathname, "r") as template_file:
-            template_content = template_file.read()
-        document = QDomDocument()
-        document.setContent(template_content)
+            report_content = template_file.read()
+        # Modifiquem els path relatius a paths absoluts a memòria
+        report_path = os.path.dirname(report_pathname).replace("\\", "/")
+        report_content = report_content.replace('"./', '"%s/' % report_path)
+        report_content = report_content.replace('"../', '"%s/../' % report_path)
 
         # Creem l'objecte de l'informe
+        document = QDomDocument()
+        document.setContent(report_content)
         layout = QgsPrintLayout(QgsProject.instance())
         layout.loadFromTemplate(document, QgsReadWriteContext(), True)
 
@@ -5073,6 +5122,7 @@ class ToolsBase(object):
         # Diàlegs auxiliars i gestió de time series
         self.transparency_dialog = None
         self.time_series_dialog = None
+        self.anaglyph_dialog = None
 
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
@@ -5093,6 +5143,10 @@ class ToolsBase(object):
             self.transparency_dialog.close()
             self.iface.removeDockWidget(self.transparency_dialog)
             self.transparency_dialog = None
+        if self.anaglyph_dialog:
+            self.anaglyph_dialog.close()
+            self.iface.removeDockWidget(self.anaglyph_dialog)
+            self.anaglyph_dialog = None
 
     def add_shortcut_QGIS_options(self, description = "Eines QGIS", keyseq = "Ctrl+Alt+F12"):
         """ Afegeix un shortcut per mostrar / ocultar els menús / toolbars de QGIS
@@ -5102,7 +5156,7 @@ class ToolsBase(object):
         #Creem un shortcut per activer les opcions per defecte de QGIS
         self.parent.gui.add_shortcut(description, keyseq, self.toggle_QGIS_options)
 
-    def toggle_QGIS_options(self, hide_not_remove = None):
+    def toggle_QGIS_options(self, hide_not_remove=None):
         """ Mostra / Oculta els menús / toolbars de QGIS (canvia l'estat previ)
             ---
             Show / Hide QGIS menus / toolbars (change previous state)
@@ -5233,18 +5287,23 @@ class ToolsBase(object):
             (tool_name, lambda p = plugins_id_wildcard : self.parent.debug.reload_plugins(p), QIcon(":/lib/qlib3/base/images/python.png"))
             ])
 
-    def add_tool_refresh_map_and_legend(self, tool_name, remove_refresh_map):
+    def add_tool_refresh_map_and_legend(self, tool_name, remove_refresh_map, id="ToolRefreshMapAndLegend"):
         """ Afegeix o actualitza el botó de refresc per actualitzar també la llegenda
             ---
             Add or refresh the refresh button to also update the legend
             """
-        self.action_refresh_all = QAction(QIcon(":/lib/qlib3/base/images/refresh_all.png"), tool_name, self.iface.mainWindow())
-        self.action_refresh_all.triggered.connect(self.parent.refresh_all)
-        # Afegim el botó de la eina a la toolbar
-        if remove_refresh_map:
-            self.iface.mapNavToolToolBar().removeAction(self.iface.mapNavToolToolBar().actions()[-1])
-        if self.action_refresh_all.text() not in [a.text() for a in self.iface.mapNavToolToolBar().actions()]:
+        self.action_refresh_all = self.parent.gui.find_action(id, self.iface.mapNavToolToolBar().actions())
+        # Si no existeix creem l'acció
+        if not self.action_refresh_all:
+            self.action_refresh_all = QAction(QIcon(":/lib/qlib3/base/images/refresh_all.png"), tool_name, self.iface.mainWindow())
+            self.action_refresh_all.setObjectName(id)
+            self.action_refresh_all.triggered.connect(self.parent.refresh_all)
+            # Afegim el botó de la eina a la toolbar
+            if remove_refresh_map:
+                self.iface.mapNavToolToolBar().removeAction(self.iface.mapNavToolToolBar().actions()[-1])
             self.iface.mapNavToolToolBar().addAction(self.action_refresh_all)
+            # Registro l'acció perquè el destructor del plugin l'esborri automàticament al descarregar-lo
+            self.parent.gui.actions.append((self.iface.mapNavToolToolBar(), self.action_refresh_all))
 
     def show_transparency_dialog(self, title=None, layer=None, transparency=None, show=True):
         """ Mostra un diàleg simplificat per escollir la transparència d'una capa
@@ -5266,7 +5325,7 @@ class ToolsBase(object):
             else:
                 self.transparency_dialog.hide()
 
-    def toggle_transparency_dialog(self, title=None, layer=None, transparency=None, show=True):
+    def toggle_transparency_dialog(self, title=None, layer=None, transparency=None):
         self.show_transparency_dialog(title, layer, transparency, not self.transparency_dialog.isVisible() if self.transparency_dialog else True)
 
     def show_time_series_dialog(self, layer, title=None, current_prefix="", show=True):
@@ -5312,8 +5371,54 @@ class ToolsBase(object):
             if self.time_series_dialog:
                 self.time_series_dialog.hide()
 
-    def toggle_time_series_dialog(self, layer, title=None, current_prefix="", show=True):
+    def toggle_time_series_dialog(self, layer, title=None, current_prefix=""):
         self.show_time_series_dialog(layer, title, current_prefix, not self.time_series_dialog.isVisible() if self.time_series_dialog else True)
+
+    def show_anaglyph_dialog(self, layer=None, title=None, parallax_label="", inverted_stereo_label="", show=True):
+        # Mostrem o ocultem el diàleg de sèries temporals
+        if show:
+            if not layer:
+                layer = self.parent.layers.get_current_layer()
+            # Obtenim els valors de paral·laxi
+            photo_id = "dummy"
+            parallax = 100
+            inverted_stereo = False
+            found = re.search(r"styles=([^&]+)", layer.dataProvider().uri().uri().lower())
+            if found:
+                anaglyph_params_list = found.groups()[0].split(",")
+                if len(anaglyph_params_list) == 3:
+                    photo_id =  anaglyph_params_list[0]
+                    parallax = int(anaglyph_params_list[1])
+                    inverted_stereo = anaglyph_params_list[2] == "true"
+            # Si no tenim el diàleg el creem i el mostrem
+            update_callback = lambda parallax, inverted_stereo: self.parent.layers.update_wms_layer(layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
+            if not self.anaglyph_dialog:
+                self.anaglyph_dialog = AnaglyphDialog(layer.name(), update_callback, parallax, inverted_stereo,
+                    title, parallax_label, inverted_stereo_label, True, self.iface.mainWindow())
+                self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.anaglyph_dialog)
+                # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
+                # algun botó si cal... en principi això està implementat en l'event de canvi de capa
+                # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè
+                # s'executi
+                #self.anaglyph_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
+            else:
+                # Configurem el diàleg
+                if title:
+                    self.anaglyph_dialog.setWindowTitle(title)
+                if layer:
+                    self.anaglyph_dialog.update_title(layer.name())
+                    self.anaglyph_dialog.set_callback(update_callback)
+                self.anaglyph_dialog.set_anaglyph(parallax, inverted_stereo)
+                # Mostrem el diàleg
+                self.anaglyph_dialog.show()
+            # Activem els controls
+            self.anaglyph_dialog.set_enabled(self.parent.layers.is_anaglyph_layer(layer))
+        else:
+            if self.anaglyph_dialog:
+                self.anaglyph_dialog.hide()
+
+    def toggle_anaglyph_dialog(self, layer, title=None, current_prefix=""):
+        self.show_anaglyph_dialog(layer, title, current_prefix, not self.anaglyph_dialog.isVisible() if self.anaglyph_dialog else True)
 
     def on_change_current_layer(self, layer):
         """ Activa o desactiva les opcions de sèries temporals / transparència segons la capa seleccionada
@@ -5330,6 +5435,12 @@ class ToolsBase(object):
         if self.transparency_dialog:
             if self.transparency_dialog.isVisible():
                 self.show_transparency_dialog(layer=layer)
+        # Refresh anaglyph dialog
+        if self.anaglyph_dialog:
+            is_anaglyph = layer is not None and self.parent.layers.is_anaglyph_layer(layer)
+            self.anaglyph_dialog.set_enabled(is_anaglyph)
+            if is_anaglyph and self.anaglyph_dialog.isVisible():
+                self.show_anaglyph_dialog(layer=layer)
 
     def on_layer_removed(self, layer):
         if self.parent and self.parent.layers and self.parent.layers.time_series_dict:
@@ -5415,8 +5526,12 @@ class ToolsBase(object):
             Send email using system email client
             """
         QDesktopServices.openUrl(
-            QUrl("mailto:%s?subject=%s&body=%s&cc=%s&bcc=%s" % (
-                mail_to, subject or " ", body or " ", copy_to or " ", hidden_copy_to or " "
+            QUrl("mailto:%s?subject=%s%s%s%s" % (
+                mail_to,
+                subject or " ",
+                ("&body=%s" % body) if body else "",
+                ("&cc=%s" % copy_to) if copy_to else "",
+                ("&bcc=%s" % hidden_copy) if hidden_copy_to else "",
                 ), QUrl.TolerantMode))
 
 
@@ -5795,25 +5910,30 @@ class PluginBase(QObject):
         self.layers.refresh_attributes_tables()
         self.legend.refresh_legend()
 
-    def set_map_point(self, x, y, epsg=None, scale=None):
+    def set_map_point(self, x, y, epsg=None, scale=5000):
         """ Situa el mapa en les coordenades indicades a una determinada escala a partir d'un punt central.
             Reprojecta la coordenada al sistema de projecte si cal
             ---
             Locate the map in the coordinates indicated on a given scale from a central point.
             Reproject the coordinate to the project reference system if necessary
             """
-        print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+        # Cal, transformem les coordenades al sistema del projecte        
+        #print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+        if epsg and epsg != int(self.project.get_epsg()):
+            x, y = self.crs.transform_point(x, y, epsg)
+            #print("Coordinate: %s %s EPSG:%s" % (x, y, self.project.get_epsg()))
 
-        # Detectem si estem en geogràfiques o no i configurem la escala
-        if not scale:
-            scale = 0.01 if x < 100 else 1000
+        ## Detectem si estem en geogràfiques o no i configurem la escala
+        #if not scale:
+        #    scale = 0.01 if x < 100 else 1000
 
-        # Calculem el rectangle a visualitzar
-        west = x-scale/2
-        south = y-scale/2
-        east = x+scale/2
-        north = y+scale/2
-        self.set_map_rectangle(west, north, east, south, epsg)
+        # Situem el centre del mapa i la escala
+        mc = self.iface.mapCanvas()
+        mc.setCenter(QgsPointXY(x, y))
+        if scale:
+            mc.zoomScale(scale)
+        else:
+            mc.refresh()
 
     def set_map_rectangle(self, west, north, east, south, epsg=None):
         """ Situa el mapa en les coordenades indicades pel rectangle.
@@ -5823,16 +5943,21 @@ class PluginBase(QObject):
             Reproject the coordinates to the project reference system if necessary
             """
         # Cal, transformem les coordenades al sistema del projecte
+        #print("Rectangle: %s %s %s %s EPSG:%s" % west, north, east, south, epsg)
         if epsg and epsg != int(self.project.get_epsg()):
             west, north = self.crs.transform_point(west, north, epsg)
             east, south = self.crs.transform_point(east, south, epsg)
-        print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
+            #print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
 
         # Resituem el mapa
         rect = QgsRectangle(west, south, east, north) # minx, miny, maxx, maxy
         mc = self.iface.mapCanvas()
         mc.setExtent(rect)
         mc.refresh()
+
+    def check_qgis_version(self, version):
+        """ Checks QGIS version is greater than or equal to the one indicated (31004, 30400, 31600, ...) """
+        return Qgis.QGIS_VERSION_INT >= version
 
     def get_settings(self, group_name=None):
         self.settings.beginGroup(group_name or self.plugin_id)
@@ -5862,3 +5987,26 @@ class PluginBase(QObject):
         else:
             self.settings.setValue(key, value)
         self.settings.endGroup();
+
+    #def get_setting_list(self, key, group_name=None):
+    #    values_list = []
+    #    self.settings.beginGroup(group_name or self.plugin_id)
+    #    count = self.settings.beginReadArray(key)
+    #    for i in range(count):
+    #        self.settings.setArrayIndex(i)
+    #        values_list.append(self.settings.value(key))
+    #    self.settings.endArray()
+    #    self.settings.endGroup();
+    #    return values_list
+
+    #def set_setting_list(self, key, values_list, group_name=None):
+    #    self.settings.beginGroup(group_name or self.plugin_id)
+    #    if not values_list:
+    #        self.settings.remove(key)
+    #    else:
+    #        self.settings.beginWriteArray(key, len(values_list))
+    #        for i, value in enumerate(values_list):
+    #            self.settings.setArrayIndex(i)
+    #            self.settings.setValue(key, value)
+    #        self.settings.endArray()
+    #    self.settings.endGroup();

@@ -285,8 +285,9 @@ def qgis_handle_error(function):
     def handle_error(*args, **kwargs):
         try:
             QgsMessageLog.logMessage(f"Procés '{function.__name__}' iniciat", 'Missatges', level=Qgis.Info)
-            function(*args, **kwargs)
+            result = function(*args, **kwargs)
             status_message = f"Procés '{function.__name__}' finalitzat amb èxit."
+            return result
         except QgisError as e:
             # Error controlat (InputError, ProcessError...)
             title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')

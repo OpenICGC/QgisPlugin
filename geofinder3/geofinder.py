@@ -245,24 +245,45 @@ class GeoFinder(object):
 
         return cadastral_ref
 
-    def find_rectangle_coordinates(self, west, north, east, south, epsg):
+    def find_rectangle_coordinates(self, west, north, east, south, epsg, add_rect_if_empty=True, show_log=True):
         """ Returns a list with a dictionary with the coordinates of the rectangle """
 
-        print(u"Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, epsg))
+        if show_log:
+            print(u"Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, epsg))
+        
+        # Find central point (exclude last result: "Point x, y")
+        central_x = west + (west-east) / 2.0
+        central_y = south + (north-south) / 2.0
         dicts_list = [{
-            'nom':'Rectangle (%s %s %s %s)' % (west, north, east, south),
             'west': float(west),
             'north': float(north),
             'east': float(east),
             'south': float(south),
-            'epsg': int(epsg)
-            }]
+            **point_dict
+            } for point_dict in self.find_point_coordinate(central_x, central_y, epsg, add_point_if_empty=False)]
+        # If not results, inject an entry with point
+        if not dicts_list and add_rect_if_empty:
+            dicts_list.append({
+                'nom':'Rectangle (%s %s %s %s)' % (west, north, east, south),
+                'idTipus': u'',
+                'nomTipus': u'',
+                'nomMunicipi': u'',
+                'nomComarca': u'',
+                'x': central_x,
+                'y': central_y,
+                'west': float(west),
+                'north': float(north),
+                'east': float(east),
+                'south': float(south),
+                'epsg': int(epsg)
+                })        
         return dicts_list
 
-    def find_point_coordinate(self, x, y, epsg):
+    def find_point_coordinate(self, x, y, epsg, add_point_if_empty=True, show_log=True):
         """ Returns a list of dictionaries with the sites found at the indicated point """
 
-        print(u"Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+        if show_log:
+            print(u"Coordinate: %s %s EPSG:%s" % (x, y, epsg))
 
         # We convert the coordinates to ETRS89 UTM31N to do the query
         nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
@@ -292,13 +313,32 @@ class GeoFinder(object):
             'y': y,
             'epsg': epsg
             } for label_adrecaInversa, res_dict in res_tuple_list if res_dict and label_adrecaInversa == 'adrecaInversa']
+        # If not results, inject an entry with point
+        if not dicts_list and add_point_if_empty:
+            dicts_list.append({
+                'nom': "Punt %s %s" % (x, y),
+                'idTipus': u'',
+                'nomTipus': u'',
+                'nomMunicipi': u'',
+                'nomComarca': u'',
+                'x': x,
+                'y': y,
+                'epsg': epsg
+                })
         return dicts_list
 
     def transform_point(self, x, y, source_epsg, destination_epsg):
+        # EN GDAL 3 al convertir una coordenada a WGS84 gira x<->y per evitar-ho canviar WGS84 oer CRS84!!          
         source_crs = osr.SpatialReference()
         source_crs.ImportFromEPSG(int(source_epsg))
+        if source_epsg == 4326:
+            source_crs.SetWellKnownGeogCS("CRS84") 
+
         destination_crs = osr.SpatialReference()
         destination_crs.ImportFromEPSG(int(destination_epsg))
+        if destination_epsg == 4326:
+            destination_crs.SetWellKnownGeogCS("CRS84") 
+
         ct = osr.CoordinateTransformation(source_crs, destination_crs)
         destination_x, destination_y, _h = ct.TransformPoint(x, y)
         return destination_x, destination_y
@@ -542,7 +582,7 @@ class GeoFinder(object):
 
     def is_rectangle(self, dict_list):
         """ Check if dict_list is of rectangle type """
-        return len(dict_list) == 1 and dict_list[0]['nom'].startswith("Rectangle")
+        return len(dict_list) == 1 and dict_list[0].get("west", None)
 
     def get_rectangle(self, dict_list):
         """ Returns rectangle coordinates of dict_list type rectangle.

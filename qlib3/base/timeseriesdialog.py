@@ -22,57 +22,10 @@ from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlid
 Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_timeseries.ui'))
 
 
-#class MySlider(QSlider):
-#    def __init__(self, parent=None):
-#        super().__init__(parent)
-#        self.style = QApplication.style()
-#        self.opt = QStyleOptionSlider()
-#        self.tip_offset = QPoint(10, 10)
-#        self.valueChanged.connect(self.show_tip)
-#        #self.enterEvent = self.show_tip
-#        #self.mouseReleaseEvent = self.show_tip
-
-#    def paintEvent(self, event):
-#        """Paint log scale ticks"""
-#        super().paintEvent(event)
-#        qp = QPainter(self)
-#        pen = QPen()
-#        pen.setWidth(2)
-#        pen.setColor(Qt.black)
-
-#        qp.setPen(pen)
-#        font = QFont('Times', 10)
-#        font_y_offset = font.pointSize()/2
-#        qp.setFont(font)
-#        size = self.size()
-#        contents = self.contentsRect()
-#        db_val_list =   [10, 5, 0, -5, -10, -20, -30, -40, -50, -60, -90]
-#        for val in db_val_list:
-#            if val == 10:
-#                y_val_fudge = 12
-#            elif val == -90:
-#                y_val_fudge = -12
-#            ##db_scaled = db_to_int(val)
-#            db_scaled = int(val)
-#            y_val = contents.height() - translate(db_scaled, 0, 1023, 0, contents.height())
-#            if val == -90:
-#                qp.drawText(contents.x() - font.pointSize(), y_val + font_y_offset + y_val_fudge, '-oo')
-#            else:
-#                qp.drawText(contents.x() - font.pointSize(), y_val + font_y_offset + y_val_fudge,'{0:2}'.format(val))
-#            qp.drawLine(contents.x() + font.pointSize(), y_val + y_val_fudge,  contents.x() + contents.width(), y_val + y_val_fudge)
-
-#    def show_tip(self, _):
-#        #self.initStyleOption(self.opt)
-#        #rectHandle = self.style.subControlRect(self.style.CC_Slider, self.opt, self.style.SC_SliderHandle, self)
-#        rectHandle = self.style.subControlRect(self.style.CC_Slider, None, self.style.SC_SliderHandle, self)
-#        pos_local = rectHandle.topLeft() + self.tip_offset
-#        pos_global = self.mapToGlobal(pos_local)
-#        QToolTip.showText(pos_global, str(self.value()), self)
-
 class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
-    """ Classe diàleg per mostrar informació bàsica del plugin i logo el ICGC
+    """ Classe diàleg per mostrar opcions de sèries temporals
         ---
-        Class to display basic information of plugin and ICGC logo
+        Class dialog to display temporal series options
         """
 
     layer = None
@@ -163,3 +116,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.label_begin.setEnabled(enable)
         self.label_end.setEnabled(enable)
         self.label_current.setEnabled(enable)
+        # Canviem el color de la barra del slider i el títol del diàleg quan està desactivat
+        self.horizontalSlider.setStyleSheet("" if enable else "selection-background-color: gray")
+        self.setStyleSheet("" if enable else "color: gray")
+

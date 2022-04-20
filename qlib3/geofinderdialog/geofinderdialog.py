@@ -44,12 +44,12 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         14:'river.png', 15:'river.png' #Curs fluvial, hidrografia
         }
 
-    def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], auto_show=False, parent=None):
+    def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], keep_scale_text=None, default_scale=1000, auto_show=False, parent=None):
         """ Dialog initialization """
         QDialog.__init__(self, parent)
 
         # Set up the user interface from Designer.
-        self.setupUi(title, columns_list)
+        self.setupUi(title, columns_list, keep_scale_text, default_scale)
 
         # Set up values
         self.geofinder = geofinder_instance
@@ -61,7 +61,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         if auto_show:
             self.do_modal()
 
-    def setupUi(self, title, columns_list):
+    def setupUi(self, title, columns_list, keep_scale_text, default_scale):
         """ Setup the components that form the dialog """
 
         # We Initialize the UI by associating the items in the plugin class
@@ -85,6 +85,14 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         if columns_list:
             for i, col_name in enumerate(columns_list):
                 self.tableWidget.horizontalHeaderItem(i).setText(col_name)
+
+        # Setup first scale text "keep scale"
+        if keep_scale_text:
+            self.comboBox_scale.setItemText(0, keep_scale_text)
+
+        # Initialize default scale value 
+        pos = max(self.comboBox_scale.findText(str(default_scale)), 0)
+        self.comboBox_scale.setCurrentIndex(pos)
 
     def set_data(self, topodata_list):
         self.tableWidget.setRowCount(len(topodata_list))
@@ -121,19 +129,15 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         finally:
             QApplication.restoreOverrideCursor()
 
-        # If we have a rectangle, we do not have to do anything, we get the coordinates and access
-        if self.geofinder.is_rectangle(self.geofinder_dict_list):
-            # Get rectangle coordinates
-            self.selected = 0
-        else:
-            # We show the found places in a dialog
-            self.set_data(self.geofinder_dict_list)
-            if not self.do_modal():
-                return False
-            self.selected = self.get_selection_index()
-            if self.selected < 0:
-                return False
-            print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
+        # We show the found places in a dialog
+        self.comboBox_scale.setEnabled(not self.geofinder.is_rectangle(self.geofinder_dict_list))
+        self.set_data(self.geofinder_dict_list)
+        if not self.do_modal():
+            return False
+        self.selected = self.get_selection_index()
+        if self.selected < 0:
+            return False
+        print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
 
         return True
 
@@ -145,3 +149,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
 
     def get_point(self):
         return self.geofinder.get_point(self.geofinder_dict_list, self.selected)
+
+    def get_scale(self):
+        scale = int(self.comboBox_scale.currentText()) if self.comboBox_scale.currentIndex() else None
+        return scale

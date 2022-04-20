@@ -17,10 +17,10 @@ reference systems and load of WMS base layers of Catalonia.
 *******************************************************************************
 """
 
-# Add a additional library folder to pythonpath
+# Add a additional library folder to pythonpath (for external libraries)
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), "lib")) # Per la suds que ha de ser global...
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
 # Import base libraries
 import re
@@ -45,6 +45,7 @@ from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInput
 # Initialize Qt resources from file resources_rc.py
 from . import resources_rc
 
+# Detect import relative mode (for release) or global import mode (for debug)
 is_import_relative = os.path.exists(os.path.join(os.path.dirname(__file__), "qlib3"))
 if is_import_relative:
 	# Import basic plugin functionalities
@@ -94,7 +95,11 @@ else:
 set_html_font_size = lambda text, size=9: ('<html style="font-size:%spt;">%s</html>' % (size, text.replace("\n", "<br/>").replace(" ", "&nbsp;")))
 
 # Constants
-PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/" #"http://sedockersec01.icgc.local:80" #"http://seuatdlinux01:5000" "http://localhost:5000"
+PHOTOLIB_WFS_MAX_FEATURES = 1000
+PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/" 
+#PHOTOLIB_WFS = "http://sedockersec01.icgc.local/"
+#PHOTOLIB_WFS = "http://seuatdlinux01.icgc.local/" 
+#PHOTOLIB_WFS = "http://localhost:5000/"
 PHOTOLIB_WMS = PHOTOLIB_WFS
 
 
@@ -398,7 +403,8 @@ class OpenICGC(PluginBase):
         # We created a GeoFinder object that will allow us to perform spatial searches
         self.geofinder = GeoFinder()
         self.geofinder_dialog = GeoFinderDialog(self.geofinder, title=self.tr("Spatial search"),
-            columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")])
+            columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")],
+            keep_scale_text=self.tr("Keep scale"))
 
         # Initialize reference to PhotoSearchSelectionDialog
         self.photo_search_dialog = None
@@ -448,6 +454,9 @@ class OpenICGC(PluginBase):
         self.combobox.setFixedSize(QSize(250,24))
         self.combobox.setEditable(True)
         self.combobox.setToolTip(self.TOOLTIP_HELP)
+        self.combobox.addItems(self.get_setting_value("last_searches", []))
+        self.combobox.setCurrentText("")
+        self.combobox.setMaxVisibleItems(20)
         self.combobox.activated.connect(self.run) # Press intro and select combo value
 
         # Gets available Topo5k files to simulate WMS-T service
@@ -480,7 +489,12 @@ class OpenICGC(PluginBase):
         ortoxpres_color_list = [(str(year), layer_id, layer_name) for layer_id, layer_name, ortho_type, color, year in historic_ortho_list if ortho_type == "ortoxpres" and color != "irc"]
         ortoxpres_color_year, ortoxpres_color_layer_id, ortoxpres_color_layer_name = ortoxpres_color_list[-1] if ortoxpres_color_list else (None, None, None)
         ortoxpres_infrared_list = [(str(year), layer_id, layer_name) for layer_id, layer_name, ortho_type, color, year in historic_ortho_list if ortho_type == "ortoxpres" and color == "irc"]
-        ortoxpres_infrared_year, ortoxpres_infrared_layer_id, ortoxpres_infrared_layer_name = ortoxpres_infrared_list[-1] if ortoxpres_infrared_list else (None, None, None)
+        ortoxpres_infrared_year, ortoxpres_infrared_layer_id, ortoxpres_infrared_layer_name = ortoxpres_infrared_list[-1] if ortoxpres_infrared_list else (None, None, None)        
+        
+        # Gets anaglyph fotograms. Last year can not have full photograms coverage, we select previous year as default
+        photolib_wms_url = PHOTOLIB_WMS
+        photolib_time_series_list, photolib_current_time = self.layers.get_wms_t_time_series(photolib_wms_url, "anaglif_central")
+        photolib_current_time = str(int(photolib_current_time) - 1) if photolib_current_time else photolib_current_time
 
         # Gets available download source data
         fme_services_list = get_services()
@@ -497,8 +511,7 @@ class OpenICGC(PluginBase):
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
-        self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""),
-                                                 [
+        self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""), [
             self.tr("Find"), # Label text
             self.combobox, # Editable combobox
             (self.tr("Find place names and adresses"), self.run, QIcon(":/lib/qlib3/geofinderdialog/images/geofinder.png")), # Action button
@@ -511,7 +524,7 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/cat_topo250k.png")),
                 (self.tr("Territorial topographic referential"), None, QIcon(":/lib/qlib3/base/images/cat_topo5k.png"), enable_http_files, [
                     (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
-                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, "default", "image/jpeg", topo5k_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/jpeg", topo5k_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_topo5k.png"))
                     for topo5k_year, _url in topo5k_time_series_list]),
                 (self.tr("Topographic map 1:50,000"),
@@ -549,7 +562,7 @@ class OpenICGC(PluginBase):
                     lambda _checked:self.layers.add_wms_layer(self.tr("Geological map 1:250,000"), "https://geoserveis.icgc.cat/mgc250mv2(raster)/wms/service", ["0"], ["default"], "image/png", 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_geo250k.png")),
                 (self.tr("Land cover map (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] Land cover map"), "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms", "serie_temporal", "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] Land cover map"), "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms", "serie_temporal", None, "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_landcover.png")),
                 "---",
                 ] + [(self.tr("Digital Terrain Model %s") % dtm_name,
@@ -559,10 +572,10 @@ class OpenICGC(PluginBase):
                     ) for dtm_name, dtm_url in dtm_list] + [
                 "---",
                 (self.tr("NDVI color (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI color"), "https://geoserveis.icgc.cat/servei/catalunya/ndvi/wms", "ndvi_serie_anual_color", "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI color"), "https://geoserveis.icgc.cat/servei/catalunya/ndvi/wms", "ndvi_serie_anual_color", None, "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_landcover.png")),
                 (self.tr("NDVI (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"), None, ndvi_current_time, "default", "image/jpeg", ndvi_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"), None, ndvi_current_time, None, "default", "image/jpeg", ndvi_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_shadows.png"), enable_http_files),
                 "---",
                 (self.tr("Color orthophoto"), None, QIcon(":/lib/qlib3/base/images/cat_ortho5k.png"), [
@@ -577,16 +590,16 @@ class OpenICGC(PluginBase):
                     "---",
                     ] + [
                     (self.tr("Color orthophoto %s (temporal serie)") % ortho_year,
-                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Color orthophoto"), ortho_wms_url, layer_id, "default", "image/jpeg", ortho_color_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Color orthophoto"), ortho_wms_url, layer_id, None, "default", "image/jpeg", ortho_color_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")) for ortho_year, layer_id in reversed(ortho_color_time_series_list)
                     ] + [
                     "---",
                     (self.tr("Color orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_color_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_color_serie_anual", None, "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                     ]),
                 (self.tr("Satellite color orthophoto (monthly serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"), "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2rgb", "", "image/jpeg", None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"), "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2rgb", None, "", "image/jpeg", None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                 "---",
                 (self.tr("Infrared orthophoto"), None, QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png"), [
@@ -601,17 +614,31 @@ class OpenICGC(PluginBase):
                     "---"
                     ] + [
                     (self.tr("Infrared orthophoto %s (temporal serie)") % ortho_year,
-                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"), ortho_wms_url, layer_id, "default", "image/jpeg", ortho_infrared_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"), ortho_wms_url, layer_id, None, "default", "image/jpeg", ortho_infrared_time_series_list, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")) for ortho_year, layer_id in reversed(ortho_infrared_time_series_list)
                     ] + [
                     "---",
                     (self.tr("Infrared orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_infraroig_serie_anual", "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_infraroig_serie_anual", None, "", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
                     ]),
                 (self.tr("Satellite infrared orthophoto (monthly serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"), "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2irc", "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"), "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service", "sen2irc", None, "default", "image/jpeg", None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
+                "---",
+                (self.tr("Centered anaglyph photogram"), None, QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png"), [
+                    (self.tr("Centered anaglyph photogram %s (annual serie)") % anaglyph_year,
+                    lambda _checked,anaglyph_year=anaglyph_year,anaglyph_layer=anaglyph_layer:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"), photolib_wms_url, anaglyph_layer, str(anaglyph_year), "central,100,false", "image/png", None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png")) for anaglyph_year, anaglyph_layer in reversed(photolib_time_series_list)
+                    ])
+                ] + ([
+                (self.tr("Centered rectified photogram (annual serie)"),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"), photolib_wms_url, "ortoxpres_central", photolib_current_time, "central", "image/png", None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    QIcon(":/lib/qlib3/photosearchselectiondialog/images/rectified_preview.png")),
+                (self.tr("Centered photogram (annual serie)"),
+                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"), photolib_wms_url, "foto_central", photolib_current_time, "central", "image/png", None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png")),
+                ] if self.debug_mode else []) + [
                 "---"
                 ] + ([
                     (self.tr("Instamaps pyramid"),
@@ -655,7 +682,7 @@ class OpenICGC(PluginBase):
                              QIcon(":/lib/qlib3/base/images/world.png")),
                          ]),
                     "---",
-                ] if self.extra_countries else []) + [
+                ] if self.extra_countries or self.debug_mode else []) + [
                 (self.tr("Delete background maps"), lambda _checked:self.legend.empty_group_by_name(self.backgroup_map_group_name),
                     QIcon(":/lib/qlib3/base/images/wms_remove.png"), True, False, "delete_background")
                 ]),
@@ -666,7 +693,8 @@ class OpenICGC(PluginBase):
             ] + ([
                 (self.tr("Search photograms"), (self.enable_search_photos, self.pair_photo_search_checks), QIcon(":/plugins/openicgc/images/search.png"), True, True, "photo_search", [
                     (self.tr("Search photograms interactively"), (self.enable_search_photos, self.pair_photo_search_checks), QIcon(":/plugins/openicgc/images/search.png"), True, True, "photo_search_2"),
-                    (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos(), QIcon(":/plugins/openicgc/images/search_coord.png"), True, False),
+                    (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos_by_point(), QIcon(":/plugins/openicgc/images/search_coord.png"), True, False),
+                    (self.tr("Search photograms by name"), lambda _checked:self.search_photos_by_name(), QIcon(":/plugins/openicgc/images/search_name.png"), True, False),
                     ]),
                 (self.tr("Download tool"), self.disable_download_global_check, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download",
                     download_vector_submenu + ["---"] + download_raster_submenu + [
@@ -682,6 +710,9 @@ class OpenICGC(PluginBase):
                 (self.tr("Desaturate raster layer"),
                     lambda _checked:self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
                     QIcon(":/lib/qlib3/base/images/desaturate.png")),
+                (self.tr("Anaglyph"),
+                    lambda _checked:self.tools.show_anaglyph_dialog(self.iface.mapCanvas().currentLayer(), self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo")),
+                    QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png")),
                 (self.tr("Shading DTM layer"),
                     self.shading_dtm,
                     QIcon(":/lib/qlib3/base/images/cat_shadows.png")),
@@ -872,11 +903,14 @@ class OpenICGC(PluginBase):
     def run(self, checked): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Basic plugin call, which reads the text of the combobox and the search for the different web services available """
         self.find(self.combobox.currentText())
+        # Save last searches in persistent app settings
+        searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][-self.combobox.maxVisibleItems():]
+        self.set_setting_value("last_searches", searches_list)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Add WMS-T layer and enable timeseries dialog """
         # Add WMS-T
-        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, style, image_format, time_series_list, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current)
+        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current)
         if layer:
             if type(layer) in [QgsRasterLayer, QgsVectorLayer]:
                 # Show timeseries dialog
@@ -885,6 +919,14 @@ class OpenICGC(PluginBase):
                 if self.time_series_action:
                     self.time_series_action.setEnabled(True)
                     self.time_series_action.setChecked(self.tools.time_series_dialog is not None and self.tools.time_series_dialog.isVisible())
+            # Show stereo anaglyph options
+            if layer_id.lower().startswith("anaglif"):
+                self.tools.show_anaglyph_dialog(layer, self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo"))        
+            # Show "on the fly" central photogram rendering layers warning
+            if layer_id.lower().endswith("_central"):
+                message = self.tr("This layer renders only the most centered photogram in the map view, you can zoom in for continuous navigation. Please note that current year may not have full photogram coverage")
+                self.iface.messageBar().pushMessage(layer_name, message, level=Qgis.Info, duration=10)
+        
         return layer
 
     def find(self, user_text):
@@ -907,8 +949,6 @@ class OpenICGC(PluginBase):
             west, north, east, south, epsg = self.geofinder_dialog.get_rectangle()
             # We resituate the map (implemented in parent PluginBase)
             self.set_map_rectangle(west, north, east, south, epsg)
-            if self.debug_mode:
-               print("")
         else:
             # We get point coordinates
             x, y, epsg = self.geofinder_dialog.get_point()
@@ -917,11 +957,12 @@ class OpenICGC(PluginBase):
                 QMessageBox.warning(self.iface.mainWindow(), self.tr("Spatial search"),
                     self.tr("Error, location without coordinates"))
                 return
+            scale = self.geofinder_dialog.get_scale()
             # We resituate the map (implemented in parent PluginBase)
-            self.set_map_point(x, y, epsg)
-            if self.debug_mode:
-               print("")
-
+            self.set_map_point(x, y, epsg, scale)
+        
+        if self.debug_mode:
+            print("")
 
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg"])
@@ -1386,10 +1427,6 @@ class OpenICGC(PluginBase):
                     names_list.append(subaction.text())
         return names_list
 
-    def check_qgis_version(self, version=31004):
-        """ Checks QGIS old versions with plugin problems """
-        return Qgis.QGIS_VERSION_INT >= version
-
     def show_qgis_version_warnings(self):
         """ Show QGIS old versions warnigs """
         LogInfoDialog(
@@ -1573,29 +1610,45 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         self.gui.enable_tool(self.tool_photo_search)
         self.iface.messageBar().pushMessage(self.tr("Photograms search tool"), self.tr("Select a point"), level=Qgis.Info, duration=5)
 
-    def search_photos(self, x=None, y=None, photolib_wfs=PHOTOLIB_WFS, date_field="flight_date"):
-        """ Search photos in photo library by selected point """
+    def search_photos_by_point(self):
+        """ Search photos in photo library by text point coordinates """
+        # Ask coordinates
         title = self.tr("Search photograms")
-        epsg = None
-
-        # If no coordinate available, we request it
+        msg_text = self.tr('Enter an x y value in the project coordinate system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65" or "429393.19 4580194.65 EPSG:25831" or "EPSG:25831 429393.19 4580194.65"')
+        coord_text, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
+            set_html_font_size(msg_text), QLineEdit.Normal, "")
+        if not ok_pressed:
+            return
+        # Use GeoFinder static function to parse coordinate text
+        x, y, epsg = GeoFinder.get_point_coordinate(coord_text)
         if not x or not y:
-            msg_text = self.tr('Enter an x y value in the project coordinate system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65" or "429393.19 4580194.65 EPSG:25831" or "EPSG:25831 429393.19 4580194.65"')
-            coord_text, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
-                set_html_font_size(msg_text), QLineEdit.Normal, "")
-            if not ok_pressed:
-                return
-            # Use GeoFinder static function to parse coordinate text
-            x, y, epsg = GeoFinder.get_point_coordinate(coord_text)
-            if not x or not y:
-                QMessageBox.warning(self.iface.mainWindow(), title, "Incorrect coordinate format")
-                return
+            QMessageBox.warning(self.iface.mainWindow(), title, "Incorrect coordinate format")
+            return
+        # Search photo coordinates
+        self.search_photos(x, y)
+
+    def search_photos_by_name(self):
+        """ Search photos in photo library by photo name """
+        # Ask photo name
+        title = self.tr("Search photograms")
+        msg_text = self.tr('Photogram name:') + " " * 50
+        photo_name, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
+            set_html_font_size(msg_text), QLineEdit.Normal, "")
+        if not ok_pressed or not photo_name:
+            return
+        # Search photo name
+        self.search_photos(name=photo_name.strip())
+
+    def search_photos(self, x=None, y=None, name=None, photolib_wfs=PHOTOLIB_WFS, date_field="flight_date"):
+        """ Search photos in photo library by selected point or photo name """
+        title = self.photo_search_label.replace(": %s", "")
+        epsg = None
 
         # Check existence of old photo search
         group_pos = 0
         group = self.legend.get_group_by_name(self.photos_group_name)
         if group and len(self.layers.get_group_layers(group)) > 0:
-            if QMessageBox.question(self.iface.mainWindow(), self.photo_search_label.replace(": %s", ""),
+            if QMessageBox.question(self.iface.mainWindow(), title,
                 self.tr('It exists a previous photo search. Do you want close it?'), QMessageBox.Yes, QMessageBox.No) == QMessageBox.No:
                 return False
             self.legend.empty_group(group)
@@ -1603,39 +1656,54 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         if not group:
             # If not exists download group return -1
             group_pos = self.legend.get_group_position_by_name(self.download_group_name) + 1 
+       
+        # Fix event problems betwen photo layer and photo dialog for QGIS versions < 3.10
+        # Needs create photo dialog previous to photo layer...
+        if not self.photo_search_dialog and not self.check_qgis_version(310000):
+            self.show_photo_search_dialog(None, [])
+            self.photo_search_dialog.hide()
+
+        if self.debug_mode:
+            print("Search photo: %s" % photolib_wfs)
 
         with WaitCursor():
-            if not epsg:
-                epsg = int(self.project.get_epsg())
-            # Transform point coordinates to EPSG 4326
-            point = QgsPointXY(x, y)
-            if epsg != 4326:
-                transformation = QgsCoordinateTransform(
-                    QgsCoordinateReferenceSystem("EPSG:%s" % epsg),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
-                    QgsProject.instance())
-                point = transformation.transform(point)
+            photo_layer = None
 
-            # Get municipality information of coordinate
-            found_dict_list = self.find_point_secure(point.y(), point.x(), 4326) # En geogràfiques el topofinder vol lat, lon (y, x)
-            municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
-            if municipality:
-                layer_name = self.photo_search_label % municipality
-            else:
-                if x >= 100 and y >= 100:
-                    layer_name = self.photo_search_label % self.tr("Coord %s %s") % ("%.2f" % x,"%.2f" % y)
+            # Search by coordinates
+            if x and y:    
+                if not epsg:
+                    epsg = int(self.project.get_epsg())
+
+                # Get municipality information of coordinate
+                found_dict_list = self.find_point_secure(x, y, epsg)
+                municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
+                if municipality:
+                    layer_name = self.photo_search_label % municipality
                 else:
-                    layer_name = self.photo_search_label % self.tr("Coord %s %s") % (x, y)
+                    if x >= 100 and y >= 100:
+                        layer_name = self.photo_search_label % self.tr("Coord %s %s") % ("%.2f" % x,"%.2f" % y)
+                    else:
+                        layer_name = self.photo_search_label % self.tr("Coord %s %s") % (x, y)
 
-            # Search point in photo library
-            if self.debug_mode:
-                print("Search photo: %s" % photolib_wfs)
-            photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
-                ["icgc:fotogrames"], 4326,
-                filter="SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (point.x(), point.y()),
-                extra_tags="referer=ICGC",
-                group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
-                collapsed=False, visible=True, transparency=None, set_current=True)
+                # Search point in photo library (EPSG 4326)
+                x, y = self.crs.transform_point(x, y, epsg, 4326)
+                photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                    ["icgc:fotogrames"], 4326,
+                    filter="SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (x, y),
+                    extra_tags="referer=ICGC",
+                    group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+                    collapsed=False, visible=True, transparency=None, set_current=True)
+
+            # Search by name
+            if name and len(name) > 7: # at least flight code...
+                layer_name = self.photo_search_label % name
+                photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                    ["icgc:fotogrames"], 4326,
+                    filter="SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name),
+                    extra_tags="referer=ICGC",
+                    group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+                    collapsed=False, visible=True, transparency=None, set_current=True)
+
             if not photo_layer:
                 return
             # Translate field names
@@ -1665,6 +1733,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                "omega": self.tr("Omega"),
                "phi": self.tr("Phi"),
                "kappa": self.tr("Kappa"),
+               "analog": self.tr("Analog"),
                })
             # Get years of found photograms
             self.search_photos_year_list = sorted(list(set([(f[date_field].date().year() if type(f[date_field]) == QDateTime \
@@ -1677,6 +1746,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             self.layers.set_categories_visible(photo_layer, self.search_photos_year_list[1:], False)
             self.layers.enable_feature_count(photo_layer)
             self.layers.zoom_to_full_extent(photo_layer)
+            self.layers.set_visible(photo_layer, False)
 
             # Show photo search dialog
             self.search_photos_year_list.reverse()
@@ -1684,30 +1754,56 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
             # Map change selection feature event
             photo_layer.selectionChanged.connect(self.on_change_photo_selection)
-            photo_layer.willBeDeleted.connect(self.photo_search_dialog.reset)
+            if self.photo_search_dialog:
+                photo_layer.willBeDeleted.connect(self.photo_search_dialog.reset)
 
-            # Disable search tool
-            self.gui.enable_tool(None)
+        # Disable search tool
+        self.gui.enable_tool(None)
 
-    def photo_preview(self, photo_name, only_one=True, photolib_wms=PHOTOLIB_WMS):
+        ## Show warning if max results
+        #if photo_layer and photo_layer.featureCount() == PHOTOLIB_WFS_MAX_FEATURES:
+        #    QMessageBox.warning(self.iface.mainWindow(), title, 
+        #        self.tr("The maximum number of results (%d) has been reached.\nThe query may have more results than are displayed.") % PHOTOLIB_WFS_MAX_FEATURES)
+
+    def photo_preview(self, photo_name, rectified=False, stereo=False, only_one=True, photolib_wms=PHOTOLIB_WMS):
         """ Load photogram raster layer """
         if only_one:
-            # Remove previous preview layers
-            self.layers.remove_layer_by_id(self.photo_layer_id)
+            # Get previous photo_layer to update or create it
+            photo_layer = self.layers.get_by_id(self.photo_layer_id)
         else:
+            photo_layer = None
             # Disable previous preview layers
-            self.legend.set_group_items_visible_by_name(self.photo_group_name, False)
+            self.legend.set_group_items_visible_by_name(self.photos_group_name, False)
             self.layers.set_visible_by_id(self.photo_search_layer_id, True)
+
+        # Determine WMS layer to load
+        layer_name = "anaglif" if stereo else "ortoxpres" if rectified else "fotos"
+        if stereo:
+            photo_style = ",".join([photo_name, \
+                str(self.photo_search_dialog.get_parallax()), \
+                ("true" if self.photo_search_dialog.is_inverted_stereo() else "false") \
+                ])
+        else:
+            photo_style = photo_name
 
         # We don't want change current selected layer
         current_layer = self.layers.get_current_layer()
-        # Load new preview layer at top (using WMS or UNC path to file)
+        # Show debug info
         if self.debug_mode:
-            print("Show photo: %s / %s" % (photolib_wms, photo_name))
-        photo_layer = self.layers.add_wms_layer(self.photo_label % photo_name, photolib_wms,
-            ["fotos"], [photo_name], "image/png", self.project.get_epsg(), extra_tags="referer=ICGC&bgcolor=0x000000",
-            group_name=self.photos_group_name, group_pos=0, only_one_map_on_group=False, only_one_visible_map_on_group=False,
-            collapsed=False, visible=True, transparency=None, set_current=False)
+            print("Show photo: %s %s" % (photolib_wms, photo_style))
+        photo_label = self.photo_label % photo_name
+        if photo_layer:
+            # Update current photo_layer
+            self.layers.update_wms_layer(photo_layer, wms_layer=layer_name, wms_style=photo_style)
+            photo_layer.setName(photo_label)
+            self.layers.set_visible(photo_layer)
+            self.legend.set_group_visible_by_name(self.photos_group_name)
+        else:
+            # Load new preview layer at top (using WMS or UNC path to file)
+            photo_layer = self.layers.add_wms_layer(photo_label, photolib_wms,
+                [layer_name], [photo_style], "image/png", self.project.get_epsg(), extra_tags="referer=ICGC&bgcolor=0x000000",
+                group_name=self.photos_group_name, group_pos=0, only_one_map_on_group=False, only_one_visible_map_on_group=False,
+                collapsed=False, visible=True, transparency=None, set_current=False)
         # Restore previous selected layer
         if current_layer:
             self.layers.set_current_layer(current_layer)
@@ -1726,6 +1822,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             update_photo_selection_callback = lambda photo_id: self.layers.set_selection(layer, [photo_id] if photo_id else [])
             show_info_callback = lambda photo_id: self.iface.openFeatureForm(layer, layer.getFeature(photo_id))
             preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'])
+            rectified_preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'], rectified=True)
+            stereo_preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'], stereo=True)
             download_callback = lambda photo_id: self.photo_download_action.trigger()
             request_certificate_callback = None #lambda photo_id: self.tools.send_email("qgis.openicgc@icgc.cat",
                 #"OpenICGC QGIS plugin. certificate %s" % layer.getFeature(photo_id)['name'],
@@ -1733,14 +1831,16 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             request_scan_callback = None #lambda photo_id: self.tools.send_email("qgis.openicgc@icgc.cat",
                 #"OpenICGC QGIS plugin. scan %s" % layer.getFeature(photo_id)['name'],
                 #self.tr("Scan request for photogram: %s") % layer.getFeature(photo_id)['name'])
-            report_photo_bug_callback = lambda photo_id: self.report_photo_bug(layer.getFeature(photo_id)['name'], )
+            report_photo_bug_callback = lambda photo_id: self.report_photo_bug(layer.getFeature(photo_id)['name'], layer.getFeature(photo_id)['flight_code'], layer.getFeature(photo_id)['flight_date'], layer.getFeature(photo_id)['gsd'] )
             if not self.photo_search_dialog:
                 self.photo_search_dialog = PhotoSearchSelectionDialog(layer,
                     years_list, current_year,
-                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, preview_callback,
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, 
+                    preview_callback, rectified_preview_callback, stereo_preview_callback,
                     None, download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback,
-                    parent=self.iface.mainWindow())
+                    autoshow=True, parent=self.iface.mainWindow())
                 # Align dialog to right
+                self.photo_search_dialog.hide()
                 self.iface.addDockWidget(Qt.RightDockWidgetArea, self.photo_search_dialog)
                 # Map visibility event to refresh any control if necessary. This is implemented in
                 # change layer event that's why i send a change layer signal
@@ -1749,7 +1849,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 # Configure search result information
                 self.photo_search_dialog.set_info(layer,
                     years_list, current_year,
-                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, preview_callback, None,
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, 
+                    preview_callback, rectified_preview_callback, stereo_preview_callback, None,
                     download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback)
                 # Mostrem el diàleg
                 self.photo_search_dialog.show()
@@ -1764,8 +1865,11 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         if photo_layer:
             self.layers.set_categories_visible(photo_layer, set(self.search_photos_year_list) - set(year_range), False)
             self.layers.set_categories_visible(photo_layer, year_range, True)
+            self.layers.set_current_layer(photo_layer) # click in categories of layer can unselect layer... we fix it
+            self.layers.set_visible(photo_layer) # force visibility of photo layer
+            self.legend.set_group_visible_by_name(self.photos_group_name) # force visibility of photo group
 
-    def report_photo_bug(self, photo_name):
+    def report_photo_bug(self, photo_name, flight_code="", photo_date="", photo_resolution=0):
         """ Report a photo bug """
         # description, ok_pressed = QInputDialog.getMultiLineText(self.iface.mainWindow(), self.tr("Report photo bug"),
         #     set_html_font_size(self.tr("Looks like you found an error in photogram:\n%s\n\nWe will register the problem and try to fix it. Could you describe it briefly?") % photo_name))
@@ -1778,6 +1882,6 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             return
         self.tools.send_email("qgis.openicgc@icgc.cat",
                 "Error en el fotograma %s" % photo_name, # Static text no translated
-                self.tr("Problem description: "))
+                self.tr("Photo: %s\nFlight code: %s\nDate: %s\nResolution: %.2fm\n\nProblem description: ") % (photo_name, flight_code, photo_date, photo_resolution or 0))
         QMessageBox.information(self.iface.mainWindow(), title,
             self.tr("Thanks for reporting an error in photogram:\n%s\n\nWe try to fix it as soon as possible") % photo_name)
