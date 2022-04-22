@@ -181,6 +181,8 @@ class GuiBase(object):
         # Els menús s'esborren sols quan no tenen actions
         self.menus = []
         # Esborra les toolbars
+        for toolbar in self.toolbars:
+            toolbar.deleteLater()
         self.toolbars = []
 
     ###########################################################################
@@ -826,6 +828,39 @@ class GuiBase(object):
             if pos_x >= mainwindow_width:
                 pos_x = 0
                 self.iface.mainWindow().insertToolBarBreak(toolbar)
+
+    def get_toolbar_by_name(self, name):
+        """ Retorna un objecte toolbar a partir del seu nom
+            ---
+            Returns a toolbar from its name
+            """
+
+    def enable_toolbar_by_name(self, toolbar_name, enable=True):
+        """ Activa / Desactiva toolbar per nom de la toolbar
+            ---
+            Enable / Disable toolbar by object name 
+            """
+        toolbar = self.gui.get_toolbar_by_name(toolbar_object_id)
+        if not toolbar:
+            return
+        if enable:
+            toolbar.show()
+        else:
+            toolbar.hide()
+
+    def enable_toolbar_by_object_name(self, toolbar_object_id, enable=True):
+        """ Activa / Desactiva toolbar per nom de l'objecte
+            ---
+            Enable / Disable toolbar by object name 
+            """
+        toolbar = self.gui.get_toolbar_by_object_name(toolbar_object_id)
+        if not toolbar:
+            return
+        if enable:
+            toolbar.show()
+        else:
+            toolbar.hide()
+
 
     ###########################################################################
     # Shortcuts
@@ -3841,7 +3876,7 @@ class LayersBase(object):
             
         if self.parent.check_qgis_version(31600): 
             # Incompatible with version 3.4 and 3.10 (not updated)
-            layer.setDataSource(new_uri, layer.name(), "WMS", layer.dataProvider().ProviderOptions())
+            layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
         else:
             layer.dataProvider().setDataSourceUri(new_uri)
             layer.dataProvider().reloadData()
@@ -5019,7 +5054,7 @@ class DebugBase(object):
         # Registrem la data d'ini del QGIS
         try:
             # Eliminem el dia de la setmana i dobles espais
-            timestamp_text = " ".join([v for v in timestamp_text.split()[1:] if v])
+            timestamp_text = " ".join([v for v in timestamp_text.replace(",", ".").split()[-2:] if v])
             # Obtenim la data i la hora
             timestamp = datetime.datetime.strptime(timestamp_text, timestamp_format) if timestamp_text else None
         except Exception as e:

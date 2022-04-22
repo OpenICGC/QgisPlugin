@@ -289,7 +289,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
                     color = self.UNSCANNED_PHOTO_COLOR
                     icon = self.UNSCANNED_PHOTO_ICON
                     tooltip = self.tr("Scan required")
-                elif not analog:
+                elif (type(analog) in (bool, int) and not analog) or (type(analog) is str and analog.find("analog") < 0):
                     color = self.DEFAULT_PHOTO_COLOR
                     icon = self.DIGITAL_PHOTO_ICON
                     tooltip = self.tr("Available")
@@ -511,19 +511,22 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         
         # Select "photo view" type for analog photograms (disable rectified modes)
         if analog:
-            self.update_preview_button(self.preview,
-                self.pushButton_link_preview_type.menu().actions()[0].text(), 
-                self.pushButton_link_preview_type.menu().actions()[0].icon(),
-                False)
+            if len(self.pushButton_link_preview_type.menu().actions()) > 0:
+                self.update_preview_button(self.preview,
+                    self.pushButton_link_preview_type.menu().actions()[0].text(), 
+                    self.pushButton_link_preview_type.menu().actions()[0].icon(),
+                    False)
         # Enable or disable option for photogram
         enable = photo_id is not None
         nominal_preview = (self.preview_type == PreviewType.NOMINAL)
         self.pushButton_report_bug.setEnabled(enable and image_available)
-        self.pushButton_show_info.setEnabled(enable)
+        self.pushButton_show_info.setEnabled(enable)        
         self.pushButton_link_preview.setEnabled(enable and image_available)
         self.pushButton_link_preview_type.setEnabled(enable and image_available)
-        self.pushButton_link_preview_type.menu().actions()[1].setEnabled(not analog)
-        self.pushButton_link_preview_type.menu().actions()[2].setEnabled(not analog)
+        if len(self.pushButton_link_preview_type.menu().actions()) > 1:
+            self.pushButton_link_preview_type.menu().actions()[1].setEnabled(not analog)
+        if len(self.pushButton_link_preview_type.menu().actions()) > 2:
+            self.pushButton_link_preview_type.menu().actions()[2].setEnabled(not analog)
         self.pushButton_adjust_brightness.setEnabled(enable and image_available)
         self.pushButton_download_hd.setEnabled(enable and image_available and publishable and nominal_preview)
         self.pushButton_request_certificate.setEnabled(enable and image_available and publishable)

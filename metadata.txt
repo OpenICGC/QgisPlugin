@@ -28,8 +28,11 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.1
-changelog=v1.1.1 (2022-04-19)
+version=1.1.2
+changelog=v1.1.2 (2022-04-22)
+	- Fixed links to territorial-topography and NDVI maps
+
+	v1.1.1 (2022-04-19)
 	- Added photo library rectification "on the fly"
 	- Added photo library stereo anaglyph generation "on the fly"
 	- Added anaglyph central photo layer
