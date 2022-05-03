@@ -1486,7 +1486,10 @@ class LayersBase(object):
             self.set_selection(layer, [])
         layer.triggerRepaint()
         self.refresh_legend(layer)
-        self.refresh_map()
+        
+        # Desactivo la crida a refresh_map perquè la funció refreshAllLayers (que es crida dins)
+        # deselecciona a pinyó tots els elements de totes les capes a QGIS 3.22 (a QGIS 3.10 no passava)
+        #self.refresh_map()
 
     def set_selection_by_id(self, layer_idprefix, values_list, field_name=None, pos=0):
         """ Selecciona els elements de la capa vectorial especificada indicats a la llista "values_list".
@@ -6003,6 +6006,9 @@ class PluginBase(QObject):
     def get_setting_value(self, key, default_value=None, group_name=None):
         self.settings.beginGroup(group_name or self.plugin_id)
         value = self.settings.value(key, default_value)
+        # When setting file qgis.ini has values "@Invalid()" function "value" ignore default_value...
+        if value is None:
+            value = default_value
         self.settings.endGroup();
         return value
 
