@@ -14,6 +14,7 @@ import urllib
 import urllib.request
 import html
 import socket
+import ssl
 import re
 import os
 
@@ -34,12 +35,17 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
         Gets HTML code of web page with files
         Returns: string
         """
+    # Codi per ignorar errors de certificats...
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
     remaining_retries = retries
     while remaining_retries:
         try:
             response = None
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
+            response = urllib.request.urlopen(url, timeout=timeout_seconds, context=context)
             remaining_retries = 0
         except socket.timeout:
             remaining_retries -= 1

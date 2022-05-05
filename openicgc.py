@@ -56,9 +56,11 @@ if is_import_relative:
 	from .qlib3.geofinderdialog.geofinderdialog import GeoFinderDialog
 	# Import photosearch dialog
 	from .qlib3.photosearchselectiondialog.photosearchselectiondialog import PhotoSearchSelectionDialog
+	# Import download dialog
+	from .qlib3.downloaddialog.downloaddialog import DownloadDialog
 	# Import wms resources access functions
 	from .resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
-	from .resources3.fme import get_clip_data_url, get_services, get_regex_styles as get_fme_regex_styles
+	from .resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref, get_regex_styles as get_fme_regex_styles
 	from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
 else:
     # Import basic plugin functionalities
@@ -79,13 +81,17 @@ else:
     import qlib3.photosearchselectiondialog.photosearchselectiondialog
     reload(qlib3.photosearchselectiondialog.photosearchselectiondialog)
     from qlib3.photosearchselectiondialog.photosearchselectiondialog import PhotoSearchSelectionDialog
+    # Import download dialog
+    import qlib3.downloaddialog.downloaddialog
+    reload(qlib3.downloaddialog.downloaddialog)
+    from qlib3.downloaddialog.downloaddialog import DownloadDialog
     # Import wms resources access functions
     import resources3.wms
     reload(resources3.wms)
     from resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
     import resources3.fme
     reload(resources3.fme)
-    from resources3.fme import get_clip_data_url, get_services, get_regex_styles as get_fme_regex_styles
+    from resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref, get_regex_styles as get_fme_regex_styles
     import resources3.http
     reload(resources3.http)
     from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
@@ -107,8 +113,8 @@ class QgsMapToolSubScene(QgsMapTool):
     """ Tool class to manage rectangular selections """
 
     def __init__(self, map_canvas, callback=None, \
-        min_side=None, max_download_area=None, min_px_side=None, max_px_download_area=None, gsd=None, \
-        mode_area_not_point=None, download_type=None, color=QColor(0,150,0,255), error_color=QColor(255,0,0,255), line_width=3):
+        min_side=None, max_download_area=None, min_px_side=None, max_px_download_area=None, gsd=None, gsd_dict={}, \
+        mode_area_not_point=None, color=QColor(0,150,0,255), error_color=QColor(255,0,0,255), line_width=3):
         # Initialize parent
         QgsMapTool.__init__(self, map_canvas)
         # Initialize local variables
@@ -123,7 +129,6 @@ class QgsMapToolSubScene(QgsMapTool):
         self.max_px_download_area = max_px_download_area
         self.gsd = gsd
         self.mode_area_not_point = mode_area_not_point
-        self.download_type = download_type
         # Initialize paint object
         self.rubberBand = QgsRubberBand(map_canvas, True)
 
@@ -254,7 +259,9 @@ class OpenICGC(PluginBase):
         "di":":/lib/qlib3/base/images/cat_topo5k.png", # divisions-administratives
         "to":":/lib/qlib3/base/images/cat_topo5k.png", # topografia-territorial
         "of":":/lib/qlib3/base/images/cat_ortho5k.png",
+        "hc":":/lib/qlib3/base/images/cat_ortho5k.png",
         "oi":":/lib/qlib3/base/images/cat_ortho5ki.png",
+        "hi":":/lib/qlib3/base/images/cat_ortho5ki.png",
         "mt":":/lib/qlib3/base/images/cat_topo5k.png",
         "co":":/lib/qlib3/base/images/cat_landcover.png",
         "me":":/lib/qlib3/base/images/cat_dtm.png",
@@ -343,12 +350,23 @@ class OpenICGC(PluginBase):
 
         # Initialize download names (with translation)
         self.FME_NAMES_DICT = {
-            "of25c": self.tr("Color orthophoto 25cm 1:2,500"),
-            "of5m": self.tr("Color orthophoto 50cm 1:5,000"),
-            "of25m": self.tr("Color orthophoto 2.5m 1:25,000"),
-            "oi25c": self.tr("Infrared orthophoto 25cm 1:2,500"),
-            "oi5m": self.tr("Infrared orthophoto 50cm 1:5,000"),
-            "oi25m": self.tr("Infrared orthophoto 2.5m 1:25,000"),
+            "of25c": self.tr("Current color orthophoto 25cm 1:2,500"),
+            "of5m": self.tr("Current color orthophoto 50cm 1:5,000"),
+            "of25m": self.tr("Current color orthophoto 2.5m 1:25,000"),
+            "hc10cm": self.tr("Historic color orthophoto 10cm 1:1,000"),
+            "hc15cm": self.tr("Historic color orthophoto 15cm 1:1,500"),
+            "hc25cm": self.tr("Historic color orthophoto 25cm 1:2,500"),
+            "hc50cm": self.tr("Historic color orthophoto 50cm 1:5,000"),
+            "hc1m": self.tr("Historic color orthophoto 1m 1:10,000"),
+            "hc250cm": self.tr("Historic color orthophoto 2.5m 1:25,000"),
+            "oi25c": self.tr("Current infrared orthophoto 25cm 1:2,500"),
+            "oi5m": self.tr("Current infrared orthophoto 50cm 1:5,000"),
+            "oi25m": self.tr("Current infrared orthophoto 2.5m 1:25,000"),
+            "hi10cm": self.tr("Historic infrared orthophoto 10cm 1:1,000"),
+            "hi25cm": self.tr("Historic infrared orthophoto 25cm 1:2,500"),
+            "hi50cm": self.tr("Historic infrared orthophoto 50cm 1:5,000"),
+            "hi1m": self.tr("Historic infrared orthophoto 1m 1:10,000"),
+            "hi250cm": self.tr("Historic infrared orthophoto 2.5m 1:25,000"),
             #"bt5m": self.tr("Topographic base 1:5,000"),
             "topografia-territorial": self.tr("Territorial topographic referential"),
             "mtc25m": self.tr("Topographic map 1:25,000"),
@@ -369,8 +387,8 @@ class OpenICGC(PluginBase):
             "topografia-territorial-volum-dwg": self.tr("Territorial topographic referential volume"),
             "cobertes-sol-raster": self.tr("Land cover map"),
             "cobertes-sol-vector": self.tr("Land cover map"),
-            "met2": self.tr("Digital terrain model 2m"),
-            "met5": self.tr("Digital terrain model 5m"),
+            "met2": self.tr("Digital terrain model 2m 2008-2011"),
+            "met5": self.tr("Digital terrain model 5m 2020"),
             "mggt1": self.tr("Geological map 1:25,000 (GT I)"),
             "mg50m": self.tr("Geological map 1:50,000"),
             "mg250m": self.tr("Geological map 1:250,000"),
@@ -416,6 +434,9 @@ class OpenICGC(PluginBase):
         self.photo_search_label = self.tr("Photo query: %s")
         self.photo_search_layer_id = self.photo_search_label.replace(" ", "_").replace(":", "_") % ""
 
+        # Initialize reference to DownloadDialog
+        self.download_dialog = None
+
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
         self.iface.layerTreeView().clicked.connect(self.on_click_legend)
@@ -434,6 +455,10 @@ class OpenICGC(PluginBase):
         # Remove photo search groups
         self.legend.remove_group_by_name(self.photos_group_name)
         self.legend.remove_group_by_name(self.download_group_name)
+        # Remove GeoFinder dialog
+        self.geofinder_dialog = None
+        # Remove Download dialog
+        self.download_dialog = None
         # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
 
@@ -498,8 +523,8 @@ class OpenICGC(PluginBase):
 
         # Gets available download source data
         fme_services_list = get_services()
-        download_raster_submenu = self.get_download_menu(fme_services_list, True)
-        download_vector_submenu = self.get_download_menu(fme_services_list, False)
+        download_raster_submenu = self.get_download_menu(fme_services_list, raster_not_vector=True)
+        download_vector_submenu = self.get_download_menu(fme_services_list, raster_not_vector=False)
 
         # Check plugin update
         new_icgc_plugin_version = self.check_plugin_update() if check_icgc_updates else None
@@ -696,8 +721,10 @@ class OpenICGC(PluginBase):
                     (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos_by_point(), QIcon(":/plugins/openicgc/images/search_coord.png"), True, False),
                     (self.tr("Search photograms by name"), lambda _checked:self.search_photos_by_name(), QIcon(":/plugins/openicgc/images/search_name.png"), True, False),
                     ]),
-                (self.tr("Download tool"), self.disable_download_global_check, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download",
-                    download_vector_submenu + ["---"] + download_raster_submenu + [
+                (self.tr("Download tool"), self.enable_last_download, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download",
+                    download_vector_submenu + [
+                    "---"
+                    ] + download_raster_submenu + [
                     "---",
                     (self.tr("Select download folder"), self.set_download_folder, QIcon(":/lib/qlib3/base/images/download_folder.png"), True, False, "select_download_folder"),
                     (self.tr("Open download folder"), self.open_download_folder, style.standardIcon(QStyle.SP_DirIcon), True, False, "open_download_folder"),
@@ -777,66 +804,97 @@ class OpenICGC(PluginBase):
         """ Create download submenu structure list """
         # Filter data type if required
         if raster_not_vector is not None:
-            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_pattern, url_ref_or_wms_tuple) for id, name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_pattern, url_ref_or_wms_tuple in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
+            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple) for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
 
         # Define text labels
         common_label = "%s"
         vector_label = self.tr("%s vectorial data")
-        vector_file_label = vector_label + " (%s)"
         raster_label = self.tr("%s raster data")
-        raster_file_label = raster_label + " (%s)"
+        product_label_pattern = common_label if raster_not_vector is None else raster_label if raster_not_vector else vector_label
+        product_file_label_pattern = product_label_pattern + " (%s)"
 
         # Prepare nested download submenu
         if nested_download_submenu:
             # Add a end null entry
-            fme_extra_services_list = fme_services_list + [(None, None, None, None, None, None, None, None, None, None)]
+            fme_extra_services_list = fme_services_list + [(None, None, None, None, None, None, None, None, None, None, None, None)]
             download_submenu = []
             product_submenu = []
+            gsd_info_dict = {}
             # Create menu with a submenu for every product prefix
-            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_extra_services_list):
+            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_extra_services_list):
                 prefix_id = id[:2] if id else None
-                previous_prefix_id = fme_extra_services_list[i-1][0][:2] if i > 0 else id[:2]
+                previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
+                previous_prefix_id = previous_id[:2]
+                
+                # If break group prefix, create a grouped menu entry
                 if previous_prefix_id != prefix_id:
-                    if len(product_submenu) == 1:
-                        # Add single menu entry
-                        download_submenu.append(product_submenu[0])
+                    # Find group product common prefix
+                    if len(gsd_info_dict) == 1:
+                        common_name = self.FME_NAMES_DICT.get(fme_extra_services_list[i-1][0], fme_extra_services_list[i-1][1])
+                    elif len(product_submenu) == 1:
+                        common_name = None
                     else:
-                        # Find group product common prefix
                         previous_name1 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-1][0], fme_extra_services_list[i-1][1])
                         previous_name2 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-2][0], fme_extra_services_list[i-2][1])
                         diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2))) if previous_name1[pos] != previous_name2[pos]]
                         pos = diff_list[0] if diff_list else min(len(previous_name1), len(previous_name2))
-                        previous_name = previous_name1[:pos].replace("1:", "").strip()
-                        # Add submenu entry
+                        common_name = previous_name1[:pos].replace("1:", "").strip()
+                    # Create submenu
+                    if gsd_info_dict:
+                        # Add single ménu entry with GDS info dict
+                        previous_time_list = list(gsd_info_dict.values())[0][6]
                         download_submenu.append(
-                            ((common_label if raster_not_vector is None else raster_label if raster_not_vector else vector_label) % previous_name,
-                            None,
+                            (product_file_label_pattern % (common_name, os.path.splitext(filename)[1][1:]),
+                            (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
+                                self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, gsd_info_dict), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
-                            product_submenu))
-                    product_submenu = []
+                            True, True, previous_prefix_id)
+                            )
+                        gsd_info_dict = {}
+                    elif product_submenu:
+                        if len(product_submenu) == 1:
+                            # Add single menu entry with one product
+                            download_submenu.append(product_submenu[0])
+                        else:
+                            # Add submenu entry
+                            download_submenu.append(
+                                (product_label_pattern % common_name,
+                                None,
+                                QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
+                                product_submenu))
+                        product_submenu = []
+
+                # Store info in group (submenu or gsd group)
                 if id:
-                    # Add entry to temporal product submenu
                     vectorial_not_raster = not self.is_raster_file(filename)
-                    product_submenu.append((
-                        (vector_file_label if vectorial_not_raster else raster_file_label) % (self.FME_NAMES_DICT.get(id, id), os.path.splitext(filename)[1][1:]),
-                        (lambda _dummy, id=id, name=self.FME_NAMES_DICT.get(id, id), min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
-                        QIcon(self.FME_ICON_DICT.get(prefix_id, None)),
-                        True, True, id # Indiquem: actiu, checkable i un id d'acció
-                        ))
+                    file_label = product_file_label_pattern % (self.FME_NAMES_DICT.get(id, id), os.path.splitext(filename)[1][1:])
+                    if gsd:
+                        # Store product info in GSD dict
+                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple)
+                    else:
+                        # Add entry to temporal product submenu
+                        product_submenu.append((
+                            file_label,
+                            (lambda _dummy, id=id, name=self.FME_NAMES_DICT.get(id, id), min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
+                                self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
+                            QIcon(self.FME_ICON_DICT.get(prefix_id, None)),
+                            True, True, id # Indiquem: actiu, checkable i un id d'acció
+                            ))
 
         # Prepare "all in one" download submenu
         else:
             fme_extra_services_list = []
             # Add separators on change product prefix
             for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, filename, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_services_list): # 7 params
-                if id[:2] != fme_services_list[max(0, i-1)][0][:2]: # If change 2 first characters the inject a separator
+                if id[:2] != fme_extra_services_list[max(0, i-1)][0][:2]: # If change 2 first characters the inject a separator
                     fme_extra_services_list.append((None, None, None, None, None, None, None, None, None, None)) # 7 + 1 (vectorial_not_raster)
                 vectorial_not_raster = not self.is_raster_file(filename)
                 fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_side, filename, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple)) # 8 params
             # Create download menu
             download_submenu = [
-                ((vector_file_label if vectorial_not_raster else raster_file_label) % (name, os.path.splitext(filename)[1][1:]),
-                    (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
+                (product_file_label_pattern % (name, os.path.splitext(filename)[1][1:]),
+                    (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
+                        self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
                     QIcon(self.FME_ICON_DICT.get(id[:2], None)),
                     True, True, id # Indiquem: actiu, checkable i un id d'acció
                 ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple in fme_extra_services_list
@@ -875,19 +933,15 @@ class OpenICGC(PluginBase):
         if self.download_action:
             self.download_action.setChecked(status)
 
-    def disable_download_global_check(self):
+    def enable_last_download(self):
         """ Undo the change on button state we make when clicking on the Download button """
+        # Undo last check change and if previous download action is enabled, exit
         if self.download_action:
             self.download_action.setChecked(not self.download_action.isChecked())
-
-        # If not download action checked
-        if not self.download_action.isChecked():
-            if self.tool_subscene.download_type in ["dt_area", "dt_counties", "dt_municipalities"]:
-                self.download_action.setChecked(True)
-                self.gui.enable_tool(self.tool_subscene)
-            else:
-                self.tool_subscene.subscene()
-            #self.enable_download_subscene(data_type, name, min_side, max_download_area, min_px_side, max_px_area, download_list, filename, url_ref_or_wms_tuple)
+        if self.download_action.isChecked():
+            return
+        # Enable or execute current download tool
+        self.enable_download_tool()
 
     def pair_photo_search_checks(self, status):
         """ Synchronize the check of the button associated with Download button """
@@ -985,7 +1039,7 @@ class OpenICGC(PluginBase):
     def is_extension(self, ext, ext_list):
         return ext[1:].lower() in ext_list
 
-    def enable_download_subscene(self, data_type, name, min_side, max_download_area, min_px_side, max_px_area, download_list, filename, url_ref_or_wms_tuple):
+    def enable_download_subscene(self, data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple, gsd_dict={}):
         """ Enable subscene tool """
         title = self.tr("Download tool")
 
@@ -1000,9 +1054,11 @@ class OpenICGC(PluginBase):
             action.setChecked(False)
         self.gui.enable_tool(None)
 
+        is_photo = (data_type == "photo")
+        is_historic_ortho = (data_type.startswith("hc") or data_type.startswith("hi"))
+
         # Check photo search warning
         gsd = None
-        is_photo = (data_type == "photo")
         if is_photo:
             # If we want download a photogram, we need have select it one
             photo_id, _flight_year, _flight_code, _filename, _photo_name, gsd, _epsg = self.get_selected_photo_info()
@@ -1022,60 +1078,91 @@ class OpenICGC(PluginBase):
                 QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
                 self.project.set_epsg(25831)
 
-        # Download type selection
-        download_descriptions_list = [description for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST]
-        available_download_descriptions_list = [description for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list]
-        download_description, ok_pressed = QInputDialog.getItem(self.iface.mainWindow(), title,
-            set_html_font_size(self.tr("Select the type of download and then use the download tool\nto mark a point or area of interest, enter a rectangle coordinates\nor select a polygons layer\n\nDownload type:") +
-                " (%s)" % data_type),
-            available_download_descriptions_list, 0, editable=False)
+        if gsd_dict:
+            # With GSD dictionari, integrates all GSD years
+            time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _url_ref_or_wms_tuple in gsd_dict.values()]
+            time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])))
+            if not time_list:
+                time_list = [None]
+            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _url_ref_or_wms_tuple)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
+        else:
+            # Without GSD dictionari
+            download_type_dict = {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list}
+            if not time_list:
+                time_list = [None]
+            data_dict = {year: {None: download_type_dict} for year in time_list}
+        # Open dialog
+        if not self.download_dialog:
+            self.download_dialog = DownloadDialog(data_dict)
+        else:
+            self.download_dialog.set_data(data_dict)
+        ok_pressed = self.download_dialog.do_modal()
         if not ok_pressed:
             return
-        download_index = download_descriptions_list.index(download_description)
-        self.download_type, download_description, download_operation_code = self.FME_DOWNLOADTYPE_LIST[download_index]
-        # Show selection info
-        if self.download_type == 'dt_area':
-            message = self.tr("Select an area")
-        elif self.download_type == 'dt_municipalities':
-            message = self.tr("Select municipality")
-        elif self.download_type == 'dt_counties':
-            message = self.tr("Select county")
-        else:
-            message = None
-        if message:
-            self.iface.messageBar().pushMessage(title, message, level=Qgis.Info, duration=5)
+        # Gets download parameters for selected product
+        self.download_type = self.download_dialog.get_download_type()
+        fme_download_type_dict = {id: (description, op_code) for id, description, op_code in self.FME_DOWNLOADTYPE_LIST}
+        download_description, download_operation_code = fme_download_type_dict[self.download_type]
+        time_code = self.download_dialog.get_year()
+        gsd = self.download_dialog.get_gsd()
+        if gsd_dict and gsd: 
+            data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple = gsd_dict[gsd]
 
         # Changes icon and tooltip of download button
         self.gui.set_item_icon("download",
             QIcon(":/plugins/openicgc/images/download_%s.png" % self.download_type.replace("dt_", "")),
-            "%s: %s / %s" % (self.tr("Download tool"), download_description, name))
+            "%s: %s / %s%s" % (self.tr("Download tool"), download_description, name, (" / %s" % time_code if time_code else "")))
 
         # Disable all reference layers
         self.disable_ref_layers()
         # Load reference map layer
         if url_ref_or_wms_tuple:
+            # If it is historic ortho we need gets reference file dynamically
+            if is_historic_ortho:
+                ref_file, symbol_file = url_ref_or_wms_tuple
+                color_not_irc = data_type.startswith("hc")
+                ref_file = get_historic_ortho_ref(color_not_irc, gsd, time_code)
+                url_ref_or_wms_tuple = (ref_file, symbol_file) if ref_file else None
+                name += " %d" % time_code
             self.load_ref_layer(url_ref_or_wms_tuple, name)
 
         # Configure new option to download
         self.tool_subscene.set_callback(lambda geo, data_type=data_type,
             min_side=min_side, max_download_area=max_download_area, min_px_side=min_px_side, max_px_area=max_px_area,
-            download_operation_code=download_operation_code, filename=filename:
-            self.download_map_area(geo, data_type, min_side, max_download_area, min_px_side, max_px_area, download_operation_code, filename))
+            time_code=time_code, download_operation_code=download_operation_code, filename=filename, gsd_dict=gsd_dict:
+            self.download_map_area(geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, filename))
         self.tool_subscene.set_min_max(min_side, max_download_area, min_px_side, max_px_area)
         self.tool_subscene.set_gsd(gsd)
         self.tool_subscene.set_mode(self.download_type in ['dt_area', 'dt_coord', 'dt_layer_polygon'])
         # Configure new download action (for auto manage check/uncheck action button)
         self.tool_subscene.setAction(action)
+        # Enable or execute current download tool
+        self.enable_download_tool()
 
-        if self.download_type in ['dt_cat', 'dt_all', 'dt_coord', 'dt_layer_polygon']:
+    def enable_download_tool(self):
+        """ Enable or execute current download tool """
+        if not self.tool_subscene.callback:
+            return
+        if self.download_type in ["dt_area", "dt_counties", "dt_municipalities"]:
+            # Show download type info
+            title = self.tr("Download tool")
+            message = None
+            if self.download_type == 'dt_area':
+                message = self.tr("Select an area")
+            elif self.download_type == 'dt_municipalities':
+                message = self.tr("Select municipality")
+            elif self.download_type == 'dt_counties':
+                message = self.tr("Select county")
+            if message:
+                self.iface.messageBar().pushMessage(title, message, level=Qgis.Info, duration=5)
+            # Interactive point or rect is required, enable tool
+            self.download_action.setChecked(True)
+            self.gui.enable_tool(self.tool_subscene)
+        else:
             # No interactive geometry required, call download process
             self.tool_subscene.subscene()
-        else:
-            # Interactive point or rect is required, enable tool
-            action.setChecked(True)
-            self.gui.enable_tool(self.tool_subscene)
 
-    def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, download_operation_code, local_filename, default_point_buffer=50):
+    def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, local_filename, default_point_buffer=50):
         """ Download a FME server data area (limited to max_download_area) """
         title = self.tr("Download tool")
 
@@ -1153,9 +1240,9 @@ class OpenICGC(PluginBase):
         is_compressed = self.is_compressed_extension(ext)
         is_raster = self.is_raster_extension(ext)
         is_photo = (data_type == "photo")
+        is_historic_ortho = (data_type.startswith("hc") or data_type.startswith("hi"))
 
         epsg = 25831
-        gsd = None
         rect = None
 
         # Validate download path
@@ -1163,11 +1250,17 @@ class OpenICGC(PluginBase):
         if not download_folder:
             return
 
-        # If is photo download, change default out filename and add extra params to download
         if is_photo:
+            # If is photo download, change default out filename and add extra params to download
             _photo_id, flight_year, flight_code, filename, name, gsd, epsg = self.get_selected_photo_info()
             extra_params = [flight_year, flight_code, filename, name + ext]
             filename = os.path.splitext(filename)[0]
+        elif is_historic_ortho:
+            # If is historic ortho download, add extra param in_filename to download
+            rgb_not_irc = data_type.startswith("hc")
+            ortho_code = get_historic_ortho_code(rgb_not_irc, gsd, time_code)
+            extra_params = [ortho_code]
+            filename = "%s_%s" % (os.path.splitext(filename)[0], time_code)
         else:
             extra_params = []
 
@@ -1338,6 +1431,7 @@ class OpenICGC(PluginBase):
 
     def load_ref_layer(self, url_ref_or_wfs_or_wms_tuple, name):
         """ Load a reference layer in WMS, WFS or HTTP file format """
+        current_layer = self.layers.get_current_layer()
         # Load reference layer
         ref_pattern = self.tr("Reference %s")
         layer_name = ref_pattern % name
@@ -1359,13 +1453,15 @@ class OpenICGC(PluginBase):
                     extra_tags="referer=ICGC", group_name=self.backgroup_map_group_name, group_pos=0, style_file=style_file, only_one_visible_map_on_group=False)
             elif len(url_ref_or_wfs_or_wms_tuple) == 2: # Load HTTP
                 url_ref, style_file = url_ref_or_wfs_or_wms_tuple
-                is_raster = self.is_raster_file(url_ref)
+                is_raster = self.is_raster_file(url_ref) or url_ref.lower().find("orto") >= 0
                 if is_raster:
                     # Load raster layer from URL
                     layer = self.layers.add_raster_layer(layer_name, url_ref, self.backgroup_map_group_name, 0, transparency=70, style_file=style_file, only_one_visible_map_on_group=False)
                 else:
                     # Load vector layer from URL
                     layer = self.layers.add_vector_layer(layer_name, url_ref, self.backgroup_map_group_name, 0, transparency=70, style_file=style_file, only_one_visible_map_on_group=False)
+        # Restore current layer
+        self.layers.set_current_layer(current_layer)
         return layer
 
     def get_download_folder(self):
