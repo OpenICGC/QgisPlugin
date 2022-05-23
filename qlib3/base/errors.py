@@ -243,7 +243,7 @@ class CancelError(QgisError):
 class InputError(QgisError):
     """ L'usuari ha entrat dades invàlides """
     def __init__(self, message="Error de les dades d'entrada."):
-        super().__init__(message, level=Qgis.Warning, duration=5)
+        super().__init__(message, level=Qgis.Critical, duration=5)
     
 class ProcessError(QgisError):
     """ Algun procés ha acabat malament (scripts gdal, qgis processing, subprocess...)"""

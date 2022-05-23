@@ -271,8 +271,6 @@ class OpenICGC(PluginBase):
         "ph":":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png", # fototeca
         }
 
-    CAT_WKT = "POLYGON((304457.290340574458241 4758033.341267678886652, 300160.834704967564903 4683919.481553458608687, 283512.069116991071496 4639880.811288491822779, 266863.303529014694504 4608731.507930342108011, 251825.708804390684236 4504542.458766875788569, 295327.322114910115488 4476078.440180979669094, 339903.049334330891725 4505079.515721328556538, 322717.226791903492995 4527635.907808261923492, 445166.212406698206905 4567378.122437627054751, 452147.952814559219405 4582952.774116697721183, 527335.926437678863294 4628065.558290572836995, 534317.666845540050417 4704864.702777042984962, 469333.775356986618135 4713994.671002711169422, 443555.041543345665559 4707012.930594847537577, 388238.175234907655977 4722050.525319471955299, 368367.067920226138085 4741384.575679702684283, 304457.290340574458241 4758033.341267678886652))"
-
     download_action = None
     time_series_action = None
     photo_search_action = None
@@ -410,13 +408,23 @@ class OpenICGC(PluginBase):
             ("dt_counties", self.tr("County"), "co"),
             ("dt_cat", self.tr("Catalonia"), "cat"),
             ("dt_all", self.tr("Available data"), "tot")]
-        ## Inicitialize default download type
+        ## Inicitialize default download variables
         self.download_type = "dt_area"
-        self.cat_geo = QgsGeometry.fromWkt(self.CAT_WKT)
+        self.download_group_name = self.tr("Download")
+        self.download_ref_pattern = self.tr("Reference %s")
+        self.cat_limits_dict = {
+            "cat_rect": self.get_catalonia_limits("cat_rect_limits", buffer=0),
+            "cat_simple": self.get_catalonia_limits("cat_simple_limits", buffer=0),
+            "cat_limits": self.get_catalonia_limits("cat_limits", buffer=250),
+            "5k_limits": self.get_catalonia_limits("cat_tall5k_limits", buffer=0),
+            "25k_limits": self.get_catalonia_limits("cat_tall25k_limits", buffer=0),
+            }
+        # Lambda function with last download reference layer used
+        self.load_last_ref_layer = lambda: None
         # Get download services regex styles
         self.fme_regex_styles_list = get_fme_regex_styles()
-        # Initialize download group
-        self.download_group_name = self.tr("Download")
+        # Initialize reference to DownloadDialog
+        self.download_dialog = None
 
         # We created a GeoFinder object that will allow us to perform spatial searches
         self.geofinder = GeoFinder()
@@ -433,9 +441,6 @@ class OpenICGC(PluginBase):
         self.photo_layer_id = self.photo_label.replace(" ", "_").replace(":", "_") % ""
         self.photo_search_label = self.tr("Photo query: %s")
         self.photo_search_layer_id = self.photo_search_label.replace(" ", "_").replace(":", "_") % ""
-
-        # Initialize reference to DownloadDialog
-        self.download_dialog = None
 
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
@@ -461,6 +466,16 @@ class OpenICGC(PluginBase):
         self.download_dialog = None
         # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
+
+    def get_catalonia_limits(self, filename, buffer=0, segments=10):
+        """ Gets Catalonia limits from geojson resource file
+            Apply 250m of buffer to fix possible errors on CAT envolope scale 1:1,000,000 """
+        pathname = os.path.join(self.plugin_path, "data\%s.geojson" % filename)
+        with open(pathname, "r") as fin:
+            geojson_text = fin.read()
+        tmp_layer = QgsVectorLayer(geojson_text, "cat_geojson", "ogr")
+        geom = tmp_layer.getFeature(0).geometry().buffer(buffer, segments)
+        return geom
 
     def format_scale(self, scale):
         """ Format scale number with locale separator """
@@ -804,7 +819,7 @@ class OpenICGC(PluginBase):
         """ Create download submenu structure list """
         # Filter data type if required
         if raster_not_vector is not None:
-            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple) for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
+            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple) for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
 
         # Define text labels
         common_label = "%s"
@@ -816,12 +831,12 @@ class OpenICGC(PluginBase):
         # Prepare nested download submenu
         if nested_download_submenu:
             # Add a end null entry
-            fme_extra_services_list = fme_services_list + [(None, None, None, None, None, None, None, None, None, None, None, None)]
+            fme_extra_services_list = fme_services_list + [(None, None, None, None, None, None, None, None, None, None, None, None, None)]
             download_submenu = []
             product_submenu = []
             gsd_info_dict = {}
             # Create menu with a submenu for every product prefix
-            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_extra_services_list):
+            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_extra_services_list):
                 prefix_id = id[:2] if id else None
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
                 previous_prefix_id = previous_id[:2]
@@ -846,7 +861,7 @@ class OpenICGC(PluginBase):
                         download_submenu.append(
                             (product_file_label_pattern % (common_name, os.path.splitext(filename)[1][1:]),
                             (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
-                                self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, gsd_info_dict), self.pair_download_checks),
+                                self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, None, gsd_info_dict), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
                             True, True, previous_prefix_id)
                             )
@@ -870,13 +885,13 @@ class OpenICGC(PluginBase):
                     file_label = product_file_label_pattern % (self.FME_NAMES_DICT.get(id, id), os.path.splitext(filename)[1][1:])
                     if gsd:
                         # Store product info in GSD dict
-                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple)
+                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple)
                     else:
                         # Add entry to temporal product submenu
                         product_submenu.append((
                             file_label,
-                            (lambda _dummy, id=id, name=self.FME_NAMES_DICT.get(id, id), min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
-                                self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
+                            (lambda _dummy, id=id, name=self.FME_NAMES_DICT.get(id, id), min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
+                                self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(prefix_id, None)),
                             True, True, id # Indiquem: actiu, checkable i un id d'acció
                             ))
@@ -887,17 +902,17 @@ class OpenICGC(PluginBase):
             # Add separators on change product prefix
             for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, filename, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_services_list): # 7 params
                 if id[:2] != fme_extra_services_list[max(0, i-1)][0][:2]: # If change 2 first characters the inject a separator
-                    fme_extra_services_list.append((None, None, None, None, None, None, None, None, None, None)) # 7 + 1 (vectorial_not_raster)
+                    fme_extra_services_list.append((None, None, None, None, None, None, None, None, None, None,  None)) # 10 + 1 (vectorial_not_raster)
                 vectorial_not_raster = not self.is_raster_file(filename)
-                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_side, filename, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple)) # 8 params
+                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_side, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple)) # 8 params
             # Create download menu
             download_submenu = [
                 (product_file_label_pattern % (name, os.path.splitext(filename)[1][1:]),
-                    (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
-                        self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple), self.pair_download_checks),
+                    (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
+                        self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                     QIcon(self.FME_ICON_DICT.get(id[:2], None)),
                     True, True, id # Indiquem: actiu, checkable i un id d'acció
-                ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple in fme_extra_services_list
+                ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple in fme_extra_services_list
                 ]
 
         return download_submenu
@@ -940,8 +955,10 @@ class OpenICGC(PluginBase):
             self.download_action.setChecked(not self.download_action.isChecked())
         if self.download_action.isChecked():
             return
+        # Show last download reference layer
+        ref_layer = self.load_last_ref_layer()
         # Enable or execute current download tool
-        self.enable_download_tool()
+        self.enable_download_tool(with_ref_layer=(ref_layer is not None))
 
     def pair_photo_search_checks(self, status):
         """ Synchronize the check of the button associated with Download button """
@@ -1039,7 +1056,7 @@ class OpenICGC(PluginBase):
     def is_extension(self, ext, ext_list):
         return ext[1:].lower() in ext_list
 
-    def enable_download_subscene(self, data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple, gsd_dict={}):
+    def enable_download_subscene(self, data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple, gsd_dict={}):
         """ Enable subscene tool """
         title = self.tr("Download tool")
 
@@ -1080,11 +1097,11 @@ class OpenICGC(PluginBase):
 
         if gsd_dict:
             # With GSD dictionari, integrates all GSD years
-            time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _url_ref_or_wms_tuple in gsd_dict.values()]
+            time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _limits, _url_ref_or_wms_tuple in gsd_dict.values()]
             time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])))
             if not time_list:
                 time_list = [None]
-            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _url_ref_or_wms_tuple)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
+            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
         else:
             # Without GSD dictionari
             download_type_dict = {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list}
@@ -1106,16 +1123,15 @@ class OpenICGC(PluginBase):
         time_code = self.download_dialog.get_year()
         gsd = self.download_dialog.get_gsd()
         if gsd_dict and gsd: 
-            data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, url_ref_or_wms_tuple = gsd_dict[gsd]
+            data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple = gsd_dict[gsd]
 
         # Changes icon and tooltip of download button
         self.gui.set_item_icon("download",
             QIcon(":/plugins/openicgc/images/download_%s.png" % self.download_type.replace("dt_", "")),
             "%s: %s / %s%s" % (self.tr("Download tool"), download_description, name, (" / %s" % time_code if time_code else "")))
 
-        # Disable all reference layers
-        self.disable_ref_layers()
         # Load reference map layer
+        self.load_last_ref_layer = lambda:None
         if url_ref_or_wms_tuple:
             # If it is historic ortho we need gets reference file dynamically
             if is_historic_ortho:
@@ -1123,23 +1139,24 @@ class OpenICGC(PluginBase):
                 color_not_irc = data_type.startswith("hc")
                 ref_file = get_historic_ortho_ref(color_not_irc, gsd, time_code)
                 url_ref_or_wms_tuple = (ref_file, symbol_file) if ref_file else None
-                name += " %d" % time_code
-            self.load_ref_layer(url_ref_or_wms_tuple, name)
+                name += " %d" % time_code            
+            self.load_last_ref_layer = lambda:self.load_ref_layer(url_ref_or_wms_tuple, name)
+            self.load_last_ref_layer()
 
         # Configure new option to download
         self.tool_subscene.set_callback(lambda geo, data_type=data_type,
             min_side=min_side, max_download_area=max_download_area, min_px_side=min_px_side, max_px_area=max_px_area,
-            time_code=time_code, download_operation_code=download_operation_code, filename=filename, gsd_dict=gsd_dict:
-            self.download_map_area(geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, filename))
+            time_code=time_code, download_operation_code=download_operation_code, filename=filename, limits=limits:
+            self.download_map_area(geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, filename, limits))
         self.tool_subscene.set_min_max(min_side, max_download_area, min_px_side, max_px_area)
         self.tool_subscene.set_gsd(gsd)
         self.tool_subscene.set_mode(self.download_type in ['dt_area', 'dt_coord', 'dt_layer_polygon'])
         # Configure new download action (for auto manage check/uncheck action button)
         self.tool_subscene.setAction(action)
         # Enable or execute current download tool
-        self.enable_download_tool()
+        self.enable_download_tool(with_ref_layer=(url_ref_or_wms_tuple is not None))
 
-    def enable_download_tool(self):
+    def enable_download_tool(self, with_ref_layer=False):
         """ Enable or execute current download tool """
         if not self.tool_subscene.callback:
             return
@@ -1153,6 +1170,11 @@ class OpenICGC(PluginBase):
                 message = self.tr("Select municipality")
             elif self.download_type == 'dt_counties':
                 message = self.tr("Select county")
+            # Show reference layer info
+            if with_ref_layer:
+                if not message:
+                    message = self.tr("Select a zone")
+                message += self.tr(" with available information")
             if message:
                 self.iface.messageBar().pushMessage(title, message, level=Qgis.Info, duration=5)
             # Interactive point or rect is required, enable tool
@@ -1162,7 +1184,7 @@ class OpenICGC(PluginBase):
             # No interactive geometry required, call download process
             self.tool_subscene.subscene()
 
-    def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, local_filename, default_point_buffer=50):
+    def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, local_filename, limits="simple", default_point_buffer=50):
         """ Download a FME server data area (limited to max_download_area) """
         title = self.tr("Download tool")
 
@@ -1308,17 +1330,13 @@ class OpenICGC(PluginBase):
 
         # If coordinates are out of Catalonia, error
         out_of_cat = False
-        found_dict_list = None
         if self.download_type in ["dt_area", "dt_coord"]:
-            out_of_cat = not self.cat_geo.intersects(geo)
-        elif self.download_type in ["dt_layer_polygon"]:
+            out_of_cat = not self.cat_limits_dict[limits].intersects(geo)
+        elif self.download_type == "dt_layer_polygon":
             # With selfintersection multipolygon intersects fails, we can fix it using boundingbox
-            out_of_cat = not self.cat_geo.intersects(geo if geo.isGeosValid() else geo.boundingBox())
+            out_of_cat = not self.cat_limits_dict[limits].intersects(geo if geo.isGeosValid() else geo.boundingBox())
         elif self.download_type in ["dt_municipalities", "dt_counties"]:
-            # Find point on GeoFinder
-            center = geo.center()
-            found_dict_list = self.find_point_secure(center.x(), center.y(), 25831)
-            out_of_cat = not found_dict_list
+            out_of_cat = not self.cat_limits_dict["cat_limits"].intersects(geo)
         if out_of_cat:
             QMessageBox.warning(self.iface.mainWindow(), title, self.tr("The selected area is outside Catalonia"))
             return
@@ -1329,12 +1347,17 @@ class OpenICGC(PluginBase):
             confirmation_text = self.tr("Data type:\n   %s (%s)\nRectangle:\n   %.2f, %.2f %.2f, %.2f\nArea:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum(), rect.area(), self.SQUARE_CHAR, download_folder, ext[1:])
         elif self.download_type == "dt_layer_polygon":
             confirmation_text = self.tr("Data type:\n   %s (%s)\nPolygon area:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.area(), self.SQUARE_CHAR, download_folder, ext[1:])
-        elif self.download_type == "dt_municipalities":
-            municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, rect.center().x(), rect.center().y(), municipality, download_folder, ext[1:])
-        elif self.download_type == "dt_counties":
-            county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, rect.center().x(), rect.center().y(), county, download_folder, ext[1:])
+        elif self.download_type in ["dt_municipalities", "dt_counties"]:
+            # Find point on GeoFinder
+            center = geo.center()
+            found_dict_list = self.find_point_secure(center.x(), center.y(), 25831)
+            # Set download information
+            if self.download_type == "dt_municipalities":
+                municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, rect.center().x(), rect.center().y(), municipality, download_folder, ext[1:])
+            elif self.download_type == "dt_counties":
+                county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, rect.center().x(), rect.center().y(), county, download_folder, ext[1:])
         else:
             zone = self.tr("Catalonia") if self.download_type == "dt_cat" else self.tr("Available data")
             confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, zone, download_folder, ext[1:])
@@ -1401,6 +1424,9 @@ class OpenICGC(PluginBase):
                 QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("The download file could not be opened"))
 
+        # Disable all reference layers
+        self.disable_ref_layers()
+
         # Disable tool
         action = self.tool_subscene.action()
         if action:
@@ -1419,27 +1445,32 @@ class OpenICGC(PluginBase):
         photo_id, flight_year, flight_code, filename, name, gsd, epsg = (([photo_id] + list(photo_info_list[0])) if photo_info_list else (None, None, None, None, None, None, None))       
         return photo_id, flight_year, flight_code, filename, name, gsd, epsg
 
-    def disable_ref_layers(self):
+    def disable_ref_layers(self, hide_not_remove=False):
         """ Disable all reference layers """
-        ref_pattern = self.tr("Reference %s")
-
         group = self.legend.get_group_by_name(self.backgroup_map_group_name)
         if group:
-            for layer_tree in group.children():
-                if layer_tree.name().startswith(ref_pattern % ""):
-                    self.layers.set_visible(layer_tree.layer(), False)
+            disable_layers_list = [layer_tree.layer() for layer_tree in group.children() if layer_tree.name().startswith(self.download_ref_pattern % "")]
+            for layer in disable_layers_list:
+                if hide_not_remove:
+                    self.layers.set_visible(layer, False)
+                else:
+                    self.layers.remove_layer(layer)
 
     def load_ref_layer(self, url_ref_or_wfs_or_wms_tuple, name):
         """ Load a reference layer in WMS, WFS or HTTP file format """
         current_layer = self.layers.get_current_layer()
+        current_layer_id = current_layer.id() if current_layer else None
         # Load reference layer
-        ref_pattern = self.tr("Reference %s")
-        layer_name = ref_pattern % name
-        layer = self.layers.get_by_id(layer_name.replace(" ", "_"))
+        layer_name = self.download_ref_pattern % name
+        #layer = self.layers.get_by_id(layer_name.replace(" ", "_"))
+        layer = self.layers.get_by_name(layer_name)
         if layer:
             # If exist reference layer, only set visible
             self.layers.set_visible(layer)
         else:
+            # Disable all reference layers
+            self.disable_ref_layers()
+
             # If don't exist reference layer in project, we load it
             if len(url_ref_or_wfs_or_wms_tuple) == 4: # Load WMS layer
                 wms_url, wms_layer, wms_style, wms_format = url_ref_or_wfs_or_wms_tuple
@@ -1460,8 +1491,11 @@ class OpenICGC(PluginBase):
                 else:
                     # Load vector layer from URL
                     layer = self.layers.add_vector_layer(layer_name, url_ref, self.backgroup_map_group_name, 0, transparency=70, style_file=style_file, only_one_visible_map_on_group=False)
+            # Zoom to reference layer content
+            self.layers.zoom_to_full_extent(layer)
         # Restore current layer
-        self.layers.set_current_layer(current_layer)
+        if current_layer_id:
+            self.layers.set_current_layer_by_id(current_layer_id)
         return layer
 
     def get_download_folder(self):

@@ -1110,6 +1110,16 @@ class LayersBase(object):
             return None
         return layers_list[pos]
 
+    def get_by_name(self, name):
+        """ Retorna una capa segons un el seu nom
+            ---
+            Returns a layer by name
+            """
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.name() == name:
+                return layer
+        return None
+
     def get_by_pos(self, pos):
         """ Retorna una capa segons la seva posició
             ---
