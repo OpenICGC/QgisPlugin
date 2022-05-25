@@ -28,10 +28,13 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.5
-changelog=v1.1.5 (2022-05-16)
+version=1.1.6
+changelog=v1.1.6 (2022-05-25)
+	- Fixed problem reading geojson resources on linux
+
+	v1.1.5 (2022-05-16)
 	- Added different download zones control for every product
-	- Modified visualizacion of download reference layers (zoom to layer and messagebar info)
+	- Modified visualization of download reference layers (zoom to layer and messagebar info)
 
 	v1.1.4 (2022-05-03)
 	- Added download historic orthophotos

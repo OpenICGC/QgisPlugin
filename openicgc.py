@@ -470,7 +470,7 @@ class OpenICGC(PluginBase):
     def get_catalonia_limits(self, filename, buffer=0, segments=10):
         """ Gets Catalonia limits from geojson resource file
             Apply 250m of buffer to fix possible errors on CAT envolope scale 1:1,000,000 """
-        pathname = os.path.join(self.plugin_path, "data\%s.geojson" % filename)
+        pathname = os.path.join(self.plugin_path, "data", "%s.geojson" % filename)
         with open(pathname, "r") as fin:
             geojson_text = fin.read()
         tmp_layer = QgsVectorLayer(geojson_text, "cat_geojson", "ogr")
