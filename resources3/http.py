@@ -128,7 +128,7 @@ def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89
 
     return sheets_list
 
-def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/bm5m_ETRS89/json_unzip/",
+def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/bm5m_ETRS89/json_unzip",
     delimitation_http_file_pattern=r'(bm5mv\d+js\dt[cp][cmp][\d_]+\.json)',
     delimitation_type_patterns_list=[("Caps de Municipi", "bm5mv\d+js\dtcm[\d_]+\.json"), ("Municipis", "bm5mv\d+js\dtpm[\d_]+\.json"),
         ("Comarques", "bm5mv\d+js\dtpc[\d_]+\.json"), ("Províncies", "bm5mv\d+js\dtpp[\d_]+\.json")]):
@@ -153,7 +153,7 @@ def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/data
 
     return delimitations_list
 
-def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/divisions-administratives/json_unzip/",
+def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/divisions-administratives/json_unzip",
     delimitation_http_file_pattern=r'(divisions-administratives-v\d+r\d+\-(\D+)(?:-(\d+))*-(\d{8})\.json)'):
     """ Obté les URLs dels arxius de talls disponibles de l'ICGC
         Retorna: [(sheet_name, sheet_url)]
@@ -189,7 +189,7 @@ def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/dataclou
     delimitations_list = [(name, sorted(scale_list, key=lambda s: s[0])) for name, scale_list in delimitations_list]
     return delimitations_list
 
-def get_ndvis(urlbase="https://datacloud.icgc.cat/datacloud/ndvi/tif/",
+def get_ndvis(urlbase="https://datacloud.icgc.cat/datacloud/ndvi/tif",
     http_file_pattern=r'(ndvi-v\d+r\d+-(\d+)\.tif)'):
     """ Obté les URLs dels arxius NDVI disponibles de l'ICGC
         Retorna: [(year, ndvi_url)]
