@@ -1313,7 +1313,7 @@ class OpenICGC(PluginBase):
                 QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("Minimum download rect side not reached (%d px)") % (min_px_side))
                 return
-            if max_px_area and ((geo.area() / gsd / gsd) > max_px_area):
+            if max_px_area and gsd and ((geo.area() / gsd / gsd) > max_px_area):
                 QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("Maximum download area reached (%s px%s)") % (self.format_scale(max_px_area), self.SQUARE_CHAR))
                 return

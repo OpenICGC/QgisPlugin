@@ -1,12 +1,12 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis styleCategories="AllStyleCategories" maxScale="0" minScale="1e+08" hasScaleBasedVisibilityFlag="0" version="3.18.3-Zürich">
+<qgis hasScaleBasedVisibilityFlag="0" minScale="1e+08" version="3.18.3-Zürich" styleCategories="AllStyleCategories" maxScale="0">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
     <Private>0</Private>
   </flags>
-  <temporal mode="0" fetchMode="0" enabled="0">
+  <temporal fetchMode="0" enabled="0" mode="0">
     <fixedRange>
       <start></start>
       <end></end>
@@ -20,9 +20,9 @@
   </customproperties>
   <pipe>
     <provider>
-      <resampling maxOversampling="2" zoomedInResamplingMethod="nearestNeighbour" zoomedOutResamplingMethod="nearestNeighbour" enabled="false"/>
+      <resampling zoomedOutResamplingMethod="bilinear" zoomedInResamplingMethod="bilinear" maxOversampling="2" enabled="false"/>
     </provider>
-    <rasterrenderer azimuth="315" type="hillshade" alphaBand="-1" angle="45" opacity="1" nodataColor="" zfactor="1" multidirection="0" band="1">
+    <rasterrenderer angle="45" zfactor="1" type="hillshade" alphaBand="-1" band="1" azimuth="315" multidirection="0" opacity="1" nodataColor="">
       <rasterTransparency/>
       <minMaxOrigin>
         <limits>None</limits>
@@ -33,9 +33,9 @@
         <stdDevFactor>2</stdDevFactor>
       </minMaxOrigin>
     </rasterrenderer>
-    <brightnesscontrast contrast="0" brightness="0" gamma="1"/>
-    <huesaturation colorizeGreen="128" grayscaleMode="0" colorizeBlue="128" colorizeOn="0" colorizeStrength="100" colorizeRed="255" saturation="0"/>
-    <rasterresampler maxOversampling="2"/>
+    <brightnesscontrast brightness="0" gamma="1" contrast="0"/>
+    <huesaturation saturation="0" colorizeOn="0" grayscaleMode="0" colorizeGreen="128" colorizeBlue="128" colorizeStrength="100" colorizeRed="255"/>
+    <rasterresampler zoomedOutResampler="bilinear" maxOversampling="2" zoomedInResampler="bilinear"/>
     <resamplingStage>resamplingFilter</resamplingStage>
   </pipe>
   <blendMode>0</blendMode>

@@ -3506,6 +3506,7 @@ class LayersBase(object):
         filename, ext = os.path.splitext(os.path.basename(pathname.lower()))
         is_zipped_file = ext == ".zip"
         is_geopackage_file = ext == ".gpkg"
+        add_geopackage_group = is_geopackage_file and not self.parent.check_qgis_version(32200)
         if is_zipped_file:
             # Generem una llista amb tots els shapes dins el zip
             with zipfile.ZipFile(pathname) as zip_file:
@@ -3531,28 +3532,46 @@ class LayersBase(object):
             # Generem una llista amb totes les capes dins el geopackage
             layers_list = [layer.GetName() for layer in ogr.Open(pathname)]
             layers_list.sort(reverse=True)
-            pathnames_list = [("%s|layername=%s" % (pathname, layer_name),
-                re.sub("_\d+_", "", layer_name, 1)
-                ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
+            if add_geopackage_group:
+                # Si hem de crear un grup "manualment" generem una llista amb el nom de fitxer/capa i nom capa
+                pathnames_list = [("%s|layername=%s" % (pathname, layer_name),
+                    re.sub("_\d+_", "", layer_name, 1)
+                    ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
+            else:
+                # Si no cal afegir grup de geopackage "manualment", carreguem ja el fitxer...
+                layer = self.iface.addVectorLayer(pathname, filename, "ogr")
+                ## Si es crear un grup automàticament amb el nom de fitxer, només cal moure el grup dins del grup indicat
+                #if self.parent.legend.is_group_by_name(filename):
+                #    self.parent.legend.move_group_to_group_by_name(filename, group_name, True, group_pos)
+                self.parent.legend.collapse_group_by_name(filename)
+                #    group_name = None
+                # Generem una llista amb el nom de capes i nom "maco" per poder aplicar estils, si cal
+                pathnames_list = [(layer_name,
+                    re.sub("_\d+_", "", layer_name, 1)
+                    ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             styles_dict = None
         else:
             pathnames_list = [(pathname, name)]
             styles_dict = None
         if is_zipped_file or is_geopackage_file:
             # Creem una carpeta amb el nom del zip (dins d'una carpeta contenidora si cal)
-            self.parent.legend.add_group(filename, False)
+            if is_zipped_file or (is_geopackage_file and add_geopackage_group):
+                self.parent.legend.add_group(filename, False)
             if group_name:
-                group = self.parent.legend.get_group_by_name(group_name)
-                if group:
-                    self.parent.legend.set_group_visible(group)
+                self.parent.legend.set_group_visible_by_name(group_name)
                 self.parent.legend.move_group_to_group_by_name(filename, group_name, autocreate_parent_group=True, parent_group_pos=group_pos)
             # Marquem que les dades s'hauran de carregar dins la "carpeta zip"
-            group_name = filename
+            if self.parent.legend.is_group_by_name(filename):
+                group_name = filename
 
         # Obrim el fixer vectorial (pot ser N capes en cas d'arxius comprimits)
         for i, (vector_pathname, layer_name) in enumerate(pathnames_list):
-            #print("Arxiu:", vector_pathname)
-            layer = self.iface.addVectorLayer(vector_pathname, layer_name, "ogr")
+            if is_geopackage_file and not add_geopackage_group:
+                # Si es tracta d'un Geopackage i no cal crear grup manualment, ja està la capa carregada
+                layer = self.get_by_id(vector_pathname) # En aquest cas és el nom de la capa carregada prèviament ...
+            else:   
+                # Carreguem la capa indicada
+                layer = self.iface.addVectorLayer(vector_pathname, layer_name, "ogr")
             if layer:
                 # Canviem el nom de la capa si cal
                 if layer_name:
@@ -3573,8 +3592,8 @@ class LayersBase(object):
                             self.load_xml_style(layer, xml_style, refresh=True)
                     # Si tenim una expressió regular que concordi amb la capa, carreguem el seu estil
                     regex_style_file = None
-                    if  not xml_style and regex_styles_list:
-                        if is_geopackage_file:
+                    if not xml_style and regex_styles_list:
+                        if is_geopackage_file and add_geopackage_group:
                             layer_name = vector_pathname.split("|layername=")[1]
                         elif is_zipped_file:
                             layer_name = os.path.splitext(os.path.basename(vector_pathname))[0]
@@ -3590,15 +3609,14 @@ class LayersBase(object):
                                 break
                         if regex_style_file:
                             self.load_style(layer, regex_style_file, refresh=True)
-                # Canviem les propiedats de la capa
+                # Canviem les propiedats de la capa i movem la capa a un grup si cal
                 self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, None, set_current, properties_dict_list[i] if properties_dict_list else None)
         # Si carreguem arxiu multicapa, hem creat un grup per ell i volem el grup colapsat
         if group_name:
-           if is_zipped_file or is_geopackage_file:
-               #self.iface.mapCanvas().setCurrentLayer(layer) # seleccionem un capa del grup perquè no expandeixi un altre grup -> Ho desactivo deixa tonta la selecció...
-               self.parent.legend.collapse_group_by_name(group_name)
-           if collapsed_parent_group:
-               parent_group.setExpanded(False)
+            if is_zipped_file or (is_geopackage_file and add_geopackage_group):
+                self.parent.legend.collapse_group_by_name(group_name)
+            if parent_group and collapsed_parent_group:
+                parent_group.setExpanded(False)
 
         return layer
 
