@@ -18,6 +18,11 @@ import ssl
 import re
 import os
 
+# Configure internal library logger (Default is dummy logger)
+import logging
+log = logging.getLogger('dummy')
+log.addHandler(logging.NullHandler())
+
 
 styles_list = [ # (regex_file_pattern, qml_style)
     (r".+-caps-municipi-.+", "divisions-administratives-caps-municipi-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
@@ -49,15 +54,16 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
             remaining_retries = 0
         except socket.timeout:
             remaining_retries -= 1
-            #print("retries", remaining_retries)
-        except:
+            log.warning("HTTP resources timeout, retries: %s, URL: %s", retries, url)
+        except Exception as e:
             remaining_retries -= 1
-            #print("retries", remaining_retries)
-    if response:
+            log.exception("HTTP resources error (%s), retries: %s, URL: %s", e, retries, url)
+    if not response:
+        response_data = ""
+        log.error("HTTP resources error, exhausted retries")
+    else:
         response_data = response.read()
         response_data = response_data.decode('utf-8')
-    else:
-        response_data = ""
     return response_data
 
 def get_http_files(url, file_regex_pattern, replace_list=[]):
@@ -70,13 +76,15 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
     # LLegeixo les dades HTML del directori HTTP
     response_data = get_http_dir(url)
     if not response_data:
-        return []
-    # Reemplacem els textos indicats
-    for search, replace in replace_list:
-        response_data = response_data.replace(search, replace)
-    # Obtinc la informació de fitxers a partri de la regex
-    http_file_regex_pattern = r'<A HREF="[\/\w-]*%s">' % file_regex_pattern
-    files_list = re.findall(http_file_regex_pattern, response_data)
+        files_list = []
+    else:
+        # Reemplacem els textos indicats
+        for search, replace in replace_list:
+            response_data = response_data.replace(search, replace)
+        # Obtinc la informació de fitxers a partri de la regex
+        http_file_regex_pattern = r'<A HREF="[\/\w-]*%s">' % file_regex_pattern
+        files_list = re.findall(http_file_regex_pattern, response_data)
+    log.debug("HTTP resources files find URL: %s pattern: %s found: %s", url, file_regex_pattern, len(files_list))
     return files_list
 
 def get_dtms(dtm_urlbase_list=[
@@ -214,7 +222,7 @@ def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-
         """    
     info_list = get_http_files(urlbase, http_file_pattern)
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
-    file_tuple_list.sort(key=lambda f : f[0]) # Ordenem per any
+    file_tuple_list.sort(key=lambda f : f[0], reverse=True) # Ordenem per any
     return file_tuple_list
 
 def get_regex_styles():

@@ -16,8 +16,49 @@ import html
 import socket
 import re
 
+# Configure internal library logger (Default is dummy logger)
+import logging
+log = logging.getLogger('dummy')
+log.addHandler(logging.NullHandler())
 
-def get_full_ortho(timeout_seconds=5, retries=3):
+
+def get_wms_capabilities(url, version="1.1.1", timeout_seconds=5, retries=3):
+    """ Obté el text del capabilities d'un servei WMS
+        ---
+        Gets capabilities text from WMS service
+        """
+    capabilities_url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, version)
+    while retries:
+        try:
+            response = None
+            response = urllib.request.urlopen(capabilities_url, timeout=timeout_seconds)
+            retries = 0
+        except socket.timeout:
+            retries -= 1
+            log.warning("WMS resources timeout, retries: %s, URL: %s", retries, capabilities_url)
+        except Exception as e:
+            retries -= 1
+            log.exception("WMS resources error (%s), retries: %s, URL: %s", retries, e, capabilities_url)
+    if not response:
+        response_data = ""
+        log.error("WMS resources error, exhausted retries")      
+    else:
+        response_data = response.read()
+        response_data = response_data.decode('utf-8')
+    return response_data
+
+def get_wms_capabilities_info(url, reg_ex_filter):
+    """ Extreu informació del capabilies d'un WMS via expresions regulars
+        ---
+        Extract info from WMS capabilities using regular expressions
+        """
+    response_data = get_wms_capabilities(url)
+    data_list = re.findall(reg_ex_filter, response_data)
+    log.debug("WMS resources info URL: %s pattern: %s found: %s", url, reg_ex_filter, len(data_list))
+    return data_list
+
+def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+    reg_ex_filter="<Name>(.+)</Name>\s+<Title>(.+)</Title>"):
     """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista de capes disponibles (per rang d'anys)
         Retorna: URL, [(layer_id, layer_name, ortho_type, color_type, year_range)]
         ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"    
@@ -28,29 +69,9 @@ def get_full_ortho(timeout_seconds=5, retries=3):
         ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"
         olor_type: "rgb" | "ir" | "bw"
         """
-    # Consultem el Capabilities del servidor WMS d'ortofotos històriques
-    url_base = "http://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms"
-    url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
-    while retries:
-        try:
-            response = None
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
-            retries = 0
-        except socket.timeout:
-            retries -= 1
-            #print("retries", retries)
-        except:
-            retries -= 1
-            #print("retries", retries)
-    if response:
-        response_data = response.read()
-        response_data = response_data.decode('utf-8')
-    else:
-        response_data = ""
-
     # Recuperem les capes històriques
-    reg_ex = "<Name>(.+)</Name>\s+<Title>(.+)</Title>"
-    wms_list = re.findall(reg_ex, response_data)
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+    
     # Afegim escala i any com a llista
     wms_ex_list = [(
         layer_id,
@@ -66,9 +87,11 @@ def get_full_ortho(timeout_seconds=5, retries=3):
     # Ordenem per any
     wms_ex_list.sort(key=lambda p: int(p[4].split("-")[0]), reverse=False)
 
-    return url_base, wms_ex_list
+    return url, wms_ex_list
 
-def get_historic_ortho(only_full_coverage=True, timeout_seconds=5, retries=3):
+def get_historic_ortho(url="https://geoserveis.icgc.cat/icc_ortohistorica/wms/service",
+    reg_ex_filter="<Name>(\w+)</Name>\s+<Title>(.+)</Title>",
+    only_full_coverage=True):
     """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista "neta" de capes disponibles (sense dades redundants)
         Retorna: URL, [(layer_id, layer_name, color_type, scale, year)]
         color_type: "rgb"|"ir"|"bw"
@@ -77,29 +100,9 @@ def get_historic_ortho(only_full_coverage=True, timeout_seconds=5, retries=3):
             Returns: URL, [(layer_id, layer_name, color_type, scale, year)]
             color_type: "rgb" | "go" | "bw"
         """
-    # Consultem el Capabilities del servidor WMS d'ortofotos històriques
-    url_base = "https://geoserveis.icgc.cat/icc_ortohistorica/wms/service"
-    url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
-    while retries:
-        try:
-            response = None
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
-            retries = 0
-        except socket.timeout:
-            retries -= 1
-            #print("retries", retries)
-        except:
-            retries -= 1
-            #print("retries", retries)
-    if response:
-        response_data = response.read()
-        response_data = response_data.decode('utf-8')
-    else:
-        response_data = ""
 
     # Recuperem les capes històriques
-    reg_ex = "<Name>(\w+)</Name>\s+<Title>(.+)</Title>"
-    wms_list = re.findall(reg_ex, response_data)
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
 
     # Corregim noms de capa
     wms_list = [(layer_id, layer_name.replace("sèrie B 1:5.000", "sèrie B 1:5.000 (1956-57)"))
@@ -145,9 +148,10 @@ def get_historic_ortho(only_full_coverage=True, timeout_seconds=5, retries=3):
     # Ordenem per any
     clean_wms_ex_list.sort(key=lambda p: p[4], reverse=True)
 
-    return url_base, clean_wms_ex_list
+    return url, clean_wms_ex_list
 
-def get_lastest_ortoxpres(timeout_seconds=5, retries=3):
+def get_lastest_ortoxpres(url="https://geoserveis.icgc.cat/icc_ortoxpres/wms/service",
+    reg_ex_filter="<Name>(\w+(\d{4})\w*)</Name>\s+<Title>(.+)</Title>"):
     """ Obté la URL del servidor ortoXpres de l'ICGC i la llista capes actuals
         Retorna: URL, [(layer_id, layer_name, color_type, date_tag)]
         color_type: "rgb"|"ir"|"bw"
@@ -156,29 +160,9 @@ def get_lastest_ortoxpres(timeout_seconds=5, retries=3):
             Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
             color_type: "rgb" | "go" | "bw"
         """
-    # Consultem el Capabilities del servidor WMS d'ortofotos satèl·lit històriques
-    url_base = "https://geoserveis.icgc.cat/icc_ortoxpres/wms/service"
-    url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
-    while retries:
-        try:
-            response = None
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
-            retries = 0
-        except socket.timeout:
-            retries -= 1
-            #print("retries", retries)
-        except:
-            retries -= 1
-            #print("retries", retries)
-    if response:
-        response_data = response.read()
-        response_data = response_data.decode('latin1')
-    else:
-        response_data = ""
 
-    # Recuperem les capes
-    reg_ex = "<Name>(\w+(\d{4})\w*)</Name>\s+<Title>(.+)</Title>"
-    wms_list = re.findall(reg_ex, response_data)
+    # Recuperem les capes    
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
 
     # Ens quedem només amb les últimes dades de Catalunya
     cat_color_list = sorted([(layer_id, layer_name, "rgb", year) for layer_id, year, layer_name in wms_list if layer_name.lower().find("catalunya 25cm") >= 0], key=lambda p: p[2], reverse=True)
@@ -186,9 +170,11 @@ def get_lastest_ortoxpres(timeout_seconds=5, retries=3):
     cat_ndvi_list = sorted([(layer_id, layer_name, "bw", year) for layer_id, year, layer_name in wms_list if layer_name.lower().find("catalunya ndvi") >= 0], key=lambda p: p[2], reverse=True)
     clean_wms_ex_list = cat_color_list[0:1] + cat_infrared_list[0:1] + cat_ndvi_list[0:1]
 
-    return url_base, clean_wms_ex_list
+    return url, clean_wms_ex_list
 
-def get_superexpedita_ortho(timeout_seconds=5, retries=3, force_layers=False):
+def get_superexpedita_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/ortodarp/wms?VERSION=1.3.0",
+    reg_ex_filter="<Name>((\d{4})_.+_ortofoto_(rgb|irc))</Name>\s*<Title>(.+)</Title>",
+    force_layers=False):
     """ Obté la URL del servidor d'ortofoto superexpèdita de l'ICGC i la llista capes actuals
         Retorna: URL, [(layer_id, layer_name, color_type, date_tag)]
         color_type: "rgb"|"ir"|"bw"
@@ -197,45 +183,24 @@ def get_superexpedita_ortho(timeout_seconds=5, retries=3, force_layers=False):
         Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
         color_type: "rgb" | "go" | "bw"
         """
-    # Consultem el Capabilities del servidor WMS d'ortofotos satèl·lit històriques
-    url_base = "https://geoserveis.icgc.cat/servei/catalunya/ortodarp/wms?VERSION=1.3.0"
-    #url_base = "http://localhost:5000/fcgi-bin/fortodarp.py?VERSION=1.3.0"
-    #url_base = "http://localhost:5000/cgi-bin/ortodarp.py?VERSION=1.3.0"
     if not force_layers:
-        url = "%s?REQUEST=GetCapabilities&SERVICE=WMS" % url_base.split("?")[0]
-        while retries:
-            try:
-                response = None
-                response = urllib.request.urlopen(url, timeout=timeout_seconds)
-                retries = 0
-            except socket.timeout:
-                retries -= 1
-                #print("retries", retries)
-            except:
-                retries -= 1
-                #print("retries", retries)
-        if response:
-            response_data = response.read()
-            response_data = html.unescape(response_data.decode())
-        else:
-            response_data = ""
+        # Recuperem les capes    
+        wms_list = get_wms_capabilities_info(url, reg_ex_filter)
     else:
         # $$$ FAKE! per fer proves i per si està la capa oculta en el servidor ortoDARP
         response_data = """<Name>2019_catalunya_ortofoto_rgb</Name><Title>Ortofoto ràpida Catalunya 2019 RGB</Title>"""
-
-    # Recuperem les capes tipus: se_2019_catalunya_rgb
-    reg_ex = "<Name>((\d{4})_.+_ortofoto_(rgb|irc))</Name>\s*<Title>(.+)</Title>"
-    wms_list = re.findall(reg_ex, response_data)
-
+        wms_list = re.findall(reg_ex, response_data)
+    
     # Reorganitzem la informació
     wms_ex_list = [(layer_id, layer_name, color_type, date_tag) for layer_id, date_tag, color_type, layer_name in wms_list]
 
     # Ordenem per any
     wms_ex_list.sort(key=lambda p: p[3], reverse=True)
 
-    return url_base, wms_ex_list
+    return url, wms_ex_list
 
-def get_historic_satelite_ortho(timeout_seconds=5, retries=3):
+def get_historic_satelite_ortho(url="https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
+    reg_ex_filter="<Name>(sen2(\w+)_(\d+))</Name>\s+<Title>(.+)</Title>"):
     """ Obté la URL del servidor d'ortofotos històriques satèl·lt de l'ICGC i la llista capes disponibles
         Retorna: URL, [(layer_id, layer_name, color_type, date_tag)]
         color_type: "rgb"|"ir"|"bw"
@@ -244,29 +209,8 @@ def get_historic_satelite_ortho(timeout_seconds=5, retries=3):
             Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
             color_type: "rgb" | "go" | "bw"
         """
-    # Consultem el Capabilities del servidor WMS d'ortofotos satèl·lit històriques
-    url_base = "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service"
-    url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.1.1" % url_base
-    while retries:
-        try:
-            response = None
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
-            retries = 0
-        except socket.timeout:
-            retries -= 1
-            #print("retries", retries)
-        except:
-            retries -= 1
-            #print("retries", retries)
-    if response:
-        response_data = response.read()
-        response_data = response_data.decode('utf-8')
-    else:
-        response_data = ""
-
     # Recuperem les capes històriques
-    reg_ex = "<Name>(sen2(\w+)_(\d+))</Name>\s+<Title>(.+)</Title>"
-    wms_list = re.findall(reg_ex, response_data)
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
 
     # Reorganitzem la informació
     wms_ex_list = [(layer_id, layer_name, color_type, date_tag) for layer_id, color_type, date_tag, layer_name in wms_list]
@@ -274,4 +218,4 @@ def get_historic_satelite_ortho(timeout_seconds=5, retries=3):
     # Ordenem per any
     wms_ex_list.sort(key=lambda p: p[3], reverse=True)
 
-    return url_base, wms_ex_list
+    return url, wms_ex_list

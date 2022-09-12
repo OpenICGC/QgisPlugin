@@ -10,6 +10,9 @@
 		<file>images/cat_topo5k.png</file>
 		<file>images/cat_topo50k.png</file>
 		<file>images/cat_topo250k.png</file>
+		<file>images/cat_cmstandard.png</file>
+		<file>images/cat_cmgray.png</file>
+		<file>images/cat_cmortho.png</file>
 		<file>images/cat_geo250k.png</file>
 		<file>images/cat_vector.png</file>
 		<file>images/cat_dtm.png</file>
@@ -30,10 +33,12 @@
 		<file>images/icgc.png</file>
 		<file>images/icgc_banner.png</file>
 		<!-- Tools -->
+		<file>images/flask.png</file>
 		<file>images/python.png</file>
 		<file>images/console.png</file>
 		<file>images/help.png</file>
 		<file>images/bug.png</file>
+		<file>images/bug_target.png</file>
 		<file>images/git.png</file>
 		<file>images/new.png</file>
 		<file>images/new_icgc.png</file>

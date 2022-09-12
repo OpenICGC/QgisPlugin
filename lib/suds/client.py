@@ -104,8 +104,8 @@ class Client(object):
         options = Options()
         options.transport = HttpAuthenticated()
         self.options = options
-        self.options.location = url
-        options.cache = ObjectCache(days=1)
+        if 'cache' not in kwargs:
+            options.cache = ObjectCache(days=1)
         self.set_options(**kwargs)
         reader = DefinitionsReader(options, Definitions)
         self.wsdl = reader.open(url)
@@ -729,7 +729,7 @@ class SoapClient:
 
     def location(self):
         p = Unskin(self.options)
-        return p.get('location', self.method.location)
+        return p.get('location', self.method.location.decode('utf-8'))
 
     def last_sent(self, d=None):
         key = 'tx'

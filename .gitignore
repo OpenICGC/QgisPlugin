@@ -4,4 +4,5 @@
 **/*.bak
 **/*.pyc
 *.lnk
+*.log
 distrib

@@ -90,7 +90,7 @@ class DownloadManager(object):
             ---
             Data ready event that read and write data in output file
             """
-        #print("Ready")
+        ##print("Ready")
         data = reply.readAll()
         local_file.write(data)
 
@@ -99,7 +99,7 @@ class DownloadManager(object):
             ---
             Read event that update progress bar
             """
-        #print("%s / %s" % (read, total))
+        ##print("%s / %s" % (read, total))
         progress.set_steps(max(0, total))
         progress.set_value(max(0, read))
 
@@ -108,7 +108,7 @@ class DownloadManager(object):
             ---
             Download finished event that free resources
             """
-        #print("Finished!")
+        ##print("Finished!")
         download_key = reply.request().url().url()
         _reply, progress, local_file, callback, running, status_ok, error_msg = self.queries_dict[download_key]
         filename = local_file.name

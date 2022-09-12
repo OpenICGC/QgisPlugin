@@ -20,6 +20,10 @@ from PyQt5.QtGui import QPainter, QPen, QFont, QIcon, QColor
 from PyQt5.QtCore import Qt, QPoint, QSize, QTimer
 from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QTableWidgetItem, QHeaderView, QStyle, QMenu
 
+from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
+
+from ..base.qtextra import QtExtra
+
 from . import resources_rc
 
 Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_%s.ui' % os.path.basename(__file__).replace("dialog.py", "")))
@@ -48,6 +52,14 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Initialize time range and refresh / action callbacks """
         super().__init__(parent)
         self.setupUi(self)
+
+        # Connectem l'event de QRangeSlider.valueChanged (no funciona des del QtDesigner perquè rep dos paràmetres en lloc d'un)
+        self.horizontalSlider_range.valueChanged.connect(self.on_range_value_changed)
+
+        # Change QSliders style
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider)
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider_range)
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider_parallax)
 
         # Configure layers column names
         self.name_field_name = name_field_name
@@ -358,6 +370,9 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(len(time_series_list) - 1)
         self.horizontalSlider_range.setTickInterval(1)
+        # QRange slider requires 2 values, if timeserie length is 1 then we duplicate value
+        if len(time_series_list) == 1:
+            time_series_list.append(time_series_list[0])
         self.horizontalSlider_range.setMinimum(0)
         self.horizontalSlider_range.setMaximum(len(time_series_list) - 1)
         # Set current time
@@ -370,20 +385,25 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Set current sliders years """
         # Change value only when it is different that old value
         new_current_value = self.time_series_list.index(current_time) if current_time else 0
-        if new_current_value:
-            if self.horizontalSlider.value() != new_current_value:
-                self.horizontalSlider.setValue(new_current_value)
+        if self.horizontalSlider.value() != new_current_value:
+            self.horizontalSlider.setValue(new_current_value)
         new_range_value = self.time_series_list.index(range_time) if range_time else new_current_value
-        if new_range_value:
-            if self.horizontalSlider_range.value() != new_range_value:
-                self.horizontalSlider_range.setValue(new_range_value)
+        if self.horizontalSlider_range.value() != new_range_value:
+            self.set_range_value(new_range_value)
 
     def get_current_time_range(self):
         """ Return current selected years range (two years) """
         if not self.time_series_list:
             return None, None
-        current_time = self.time_series_list[self.horizontalSlider.value()]
-        current_range = self.time_series_list[self.horizontalSlider_range.value()] if self.checkBox_range.isChecked() else None
+        #current_time = self.time_series_list[self.horizontalSlider.value()]
+        #current_range = self.time_series_list[self.horizontalSlider_range.value()] if self.checkBox_range.isChecked() else None
+        if self.checkBox_range.isChecked():
+            begin, end = self.horizontalSlider_range.value()
+            current_time = self.time_series_list[begin]
+            current_range = self.time_series_list[end]
+        else:
+            current_time = self.time_series_list[self.horizontalSlider.value()]
+            current_range = None
         min_time = min(current_time, current_range) if current_range else current_time
         max_time = max(current_time, current_range) if current_range else None
         return min_time, max_time
@@ -409,20 +429,39 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
     def on_range_clicked(self, enabled):
         """ Mapped event to enable or disable second year slider and update photograms list"""
-        # Enable or disable second year slider
+        # Enable or disable year slider
+        self.horizontalSlider.setVisible(not enabled)
+        if not enabled:
+            self.horizontalSlider.setValue(self.horizontalSlider_range.value()[0])
+        self.label_begin.setVisible(not enabled)
+        self.label_end.setVisible(not enabled)
+
+        # Enable or disable years range slider
         self.horizontalSlider_range.setVisible(enabled)
         if enabled:
-            self.horizontalSlider_range.setValue(self.horizontalSlider.value())
+            #self.horizontalSlider_range.setValue(self.horizontalSlider.value())
+            self.set_range_value(self.horizontalSlider.value())
+
         self.label_begin_range.setVisible(enabled)
         self.label_end_range.setVisible(enabled)
+
         # Update filteredd photograms list
         self.update_filter()
+    
+    def set_range_value(self, new_value):
+        """ Set QRangeValue value with 1 value offset between begin and end"""
+        if new_value == self.horizontalSlider_range.maximum():
+            begin, end = new_value-1, new_value
+        else:
+            begin, end = new_value, new_value+1
+        self.horizontalSlider_range.setValue((begin, end))
 
     def on_value_changed(self, value=None):
         """ Mapped event to update filtered photograms list when change current year """
         self.update_filter(self.horizontalSlider.isSliderDown())
 
-    def on_range_value_changed(self, value=None):
+    #def on_range_value_changed(self, value=None):
+    def on_range_value_changed(self, begin=None, end=None):
         """ Mapped event to update filtered photograms list when change current year range """
         self.update_filter(self.horizontalSlider_range.isSliderDown())
 

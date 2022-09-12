@@ -17,7 +17,9 @@ import os
 from PyQt5 import uic
 from PyQt5.QtGui import QPainter, QPen, QFont
 from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip
+from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QStyleFactory
+
+from .qtextra import QtExtra
 
 Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_timeseries.ui'))
 
@@ -50,6 +52,8 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
             """
         super().__init__(parent)
         self.setupUi(self)
+        # Canviem l'estil del QSlider per fer que surti la "fletxeta"
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider)
 
         # Etiqueta opcional pel valors seleccionat
         self.current_value_prefix = current_label

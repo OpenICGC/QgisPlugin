@@ -32,4 +32,4 @@ and show help:
 
 More data and services will be added in the near future.
 
-This plugin uses [suds-py3](https://pypi.org/project/suds-py3/), [wsse](https://gist.github.com/copitux/5029872) libraries and spanish land registry [geo services](https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl)
+This plugin uses [suds-py3](https://pypi.org/project/suds-py3/), [wsse](https://gist.github.com/copitux/5029872), [QtRangeSlider](https://pypi.org/project/QtRangeSlider/) libraries and spanish land registry [geo services](https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl)

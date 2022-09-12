@@ -5,6 +5,7 @@
 """
 
 import re
+import logging
 from importlib import reload
 from osgeo import ogr, osr
 
@@ -17,6 +18,7 @@ from suds.wsse import Security
 from . import wsse
 reload(wsse)
 from .wsse import UsernameDigestToken
+
 
 
 class GeoFinder(object):
@@ -53,11 +55,19 @@ class GeoFinder(object):
             wsse_security.tokens.append(username_digest_token)
             # SOAP client configuration with Password Digest
             # Available functions: [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
-            self.icgc_geoencoder_client = Client(url="http://www.icc.cat/geocodificador/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
+			# DOC: https://intranet/pages/viewpage.action?pageId=185862094
+            self.icgc_geoencoder_client = Client(url=" https://eines.icgc.cat/geocodificador/soap/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
         return self.icgc_geoencoder_client
 
-    def __init__(self):
-        pass
+    def __init__(self, logger=None):
+        # Initializer class logger
+        if logger:
+            self.log = logger
+        else:
+            # Default is dummy logger
+            self.log = logging.getLogger('dummy')
+            self.log.addHandler(logging.NullHandler())
+
 
     ###########################################################################
     # Search implementation
@@ -66,11 +76,11 @@ class GeoFinder(object):
         """ Find the text indicated in the different web services available.
             Show results in a dialog and center the map on the item selected by the user """
 
-        print(u"Find: %s" % user_text)
+        self.log.info("Geoencoder find text: %s", user_text)
 
         # Find text and return a list of dictionaries with results
         dict_list = self.find_data(user_text, default_epsg)
-        print(u"Found %d: %s %s" % (len(dict_list), ", ".join([data_dict['nom'] for data_dict in dict_list[:10]]), "..." if len(dict_list) > 10 else ""))
+        self.log.debug("Geoencoder found %d: %s %s", len(dict_list), ", ".join([data_dict['nom'] for data_dict in dict_list[:10]]), "..." if len(dict_list) > 10 else "")
         return dict_list
 
     def find_data(self, text, default_epsg, find_all=False, recursive=True):
@@ -249,7 +259,7 @@ class GeoFinder(object):
         """ Returns a list with a dictionary with the coordinates of the rectangle """
 
         if show_log:
-            print(u"Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, epsg))
+            self.log.info("Geoencoder find rectangle: %s %s %s %s EPSG:%s", west, north, east, south, epsg)
         
         # Find central point (exclude last result: "Point x, y")
         central_x = west + (west-east) / 2.0
@@ -283,20 +293,20 @@ class GeoFinder(object):
         """ Returns a list of dictionaries with the sites found at the indicated point """
 
         if show_log:
-            print(u"Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+            self.log.info("Geoencoder find coordinate: %s %s EPSG:%s", x, y, epsg)
 
         # We convert the coordinates to ETRS89 UTM31N to do the query
         nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
         query_x, query_y = self.transform_point(x, y, epsg, 25831)
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_tuple_list = self.get_icgc_geoencoder_client().service.geocodificacioInversa(
                 puntUTMETRS89 = {'X': query_x, 'Y': query_y}
                 )
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
 
         # We convert the result to a unique format
@@ -346,17 +356,17 @@ class GeoFinder(object):
     def find_road(self, road, km):
         """ Returns a list of dictionaries with the roads found with the indicated nomenclature """
 
-        print(u"Road: %s %s" % (road, km))
+        url.info("Geoencoder find road: %s %s", road, km)
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        url.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaPK(
                 nomCarretera = road,
                 KM = km
                 )
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
 
         # We convert the result to a unique format
@@ -375,10 +385,10 @@ class GeoFinder(object):
     def find_crossing(self, municipality, type1, street1, type2, street2, find_all):
         """ Returns a list of dictionaries with crossings found with the indicated nomenclature """
 
-        print(u"Crossing %s, %s %s / %s %s" % (municipality, type1, street1, type2, street2))
+        self.log.info("Geoencoder find crossing %s, %s %s / %s %s", municipality, type1, street1, type2, street2)
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaCruilla(
                 Poblacio = municipality,
@@ -386,7 +396,7 @@ class GeoFinder(object):
                 {'Tipus':type2, 'Nom':street2}],
                 TrobaTots = ("SI" if find_all else "NO"))
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
 
         # We convert the result to a unique format
@@ -405,10 +415,10 @@ class GeoFinder(object):
     def find_adress(self, municipality, type, street, number, find_all, recursive):
         """ Returns a list of dictionaries with the addresses found with the indicated nomenclature """
 
-        print(u"Adress: %s, %s %s %s" % (municipality, type, street, number))
+        self.log.info("Geoencoder find adress: %s, %s %s %s", municipality, type, street, number)
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaAdreca(
                 Poblacio = municipality,
@@ -421,7 +431,7 @@ class GeoFinder(object):
                 TrobaTots = ("SI" if find_all else "NO"),
                 PortalTextual = number)
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
 
         # We convert the result to a unique format
@@ -451,14 +461,14 @@ class GeoFinder(object):
     def find_cadastral_ref(self, cadastral_ref):
         """ Returns a list with a dictionary with the indicated cadastral reference """
 
-        print(u"Cadastral ref: %s" % cadastral_ref)
+        self.log.info("Geoencoder find cadastral ref: %s", cadastral_ref)
         # Examples of cadastral reference:
         # 9872023 VH5797S 0001 WX
         # 13 077 A 018 00039 0000 FP
         # 13077A018000390000FP
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_cadastral_coordinates_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_cadastral_coordinates_client().wsdl.url)
         clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
         try:
             res_dict = self.get_cadastral_coordinates_client().service.Consulta_CPMRC(
@@ -467,7 +477,7 @@ class GeoFinder(object):
                 SRS = "EPSG:%s" % 25831,
                 RefCat = clean_cadastra_ref) ##Provincia, municipio, srs, ref catastral
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_cadastral_coordinates_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_cadastral_coordinates_client().last_sent())
             raise e
         if res_dict['control']['cuerr'] != '0':
             raise Exception(str(res_dict['lerr']['err']['des']))
@@ -506,16 +516,16 @@ class GeoFinder(object):
     def find_placename(self, text):
         """ Returns a list of dictionaries with the toponyms found with the indicated nomenclature """
 
-        print(u"Placement: %s" % text)
+        self.log.info("Geoencoder find placement: %s", text)
 
         # We execute the query
-        ##print(u"URL: %s" % self.get_icgc_geoencoder_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaToponim(
                 text
                 )
         except Exception as e:
-            print(u"Error: %s SOAP Request: %s" % (e, self.get_icgc_geoencoder_client().last_sent()))
+            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
 
         # We convert the result to a unique format
@@ -533,12 +543,12 @@ class GeoFinder(object):
 
     ### Alternative implementation not used ...
     ##def find_placename_json(self, text):
-    ##    print(u"Placement: %s" % text)
+    ##    self.log.info("Geoencoder find placement: %s" % text)
     ##    # We send a request for a place name and read the coordinates
     ##    ##url = "http://www.icc.cat/vissir2/php/getToponim.php?nom=%s" % urllib2.quote(text.toLatin1())
     ##    ##url = "http://www.icc.cat/web/content/php/getToponim/getToponim.php?nom=%s" % urllib2.quote(text.toLatin1())
     ##    url = "http://www.icc.cat/web/content/php/getToponim/getToponim.php?nom=%s" % urllib2.quote(text.encode('latin1'))
-    ##    print(u"URL: %s" % url)
+    ##    self.log.debug("Geoencoder URL: %s", url)
     ##    try:
     ##        response_data = None
     ##        response = urllib2.urlopen(url)
@@ -546,9 +556,9 @@ class GeoFinder(object):
     ##        response_data = response_data.decode('utf-8').replace('":"', '":u"').replace('null', '""')
     ##        topo_list = eval(response_data)
     ##    except Exception as e:
-    ##        print(u"Error %s %s" % (response_data, e))
+    ##        self.log.exception("Geoencoder error %s %s", response_data, e)
     ##        return
-    ##    #print(u"Return: %s" % topo_list)
+    ##    self.log.debug("Geoencoder return: %s", topo_list)
     ##
     ##    # Let's parse the answer (for example: Barcelona)
     ##    # [{"nom":"Barcelona","x":"431300","y":"4581740","idMunicipi":"080193","nomMunicipi":"Barcelona","idComarca":"13","nomComarca":"Barcelonès","idTipus":"1","nomTipus":"Cap de municipi","municipis":{"080193":"Barcelona"},"comarques":{"13":"Barcelonès"}},

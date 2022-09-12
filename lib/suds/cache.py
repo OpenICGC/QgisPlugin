@@ -20,7 +20,7 @@ Contains basic caching classes.
 
 import os
 import suds
-from tempfile import gettempdir as tmp
+import tempfile
 from suds.sax.parser import Parser
 from suds.sax.element import Element
 from datetime import datetime as dt
@@ -30,6 +30,7 @@ try:
     import cPickle as pickle
 except:
     import pickle
+import shutil
 
 log = getLogger(__name__)
 
@@ -117,6 +118,9 @@ class FileCache(Cache):
     A file-based URL cache.
     @cvar fnprefix: The file name prefix.
     @type fnsuffix: str
+    @cvar remove_default_location_on_exit: Whether to remove the default cache
+        location on process exit (default=True).
+    @type remove_default_location_on_exit: bool
     @ivar duration: The cached file duration which defines how
         long the file will be cached.
     @type duration: (unit, value)
@@ -124,10 +128,21 @@ class FileCache(Cache):
     @type location: str
     """
     fnprefix = 'suds'
+    __default_location = None
+    remove_default_location_on_exit = True
     units = ('months', 'weeks', 'days', 'hours', 'minutes', 'seconds')
 
     def __init__(self, location=None, **duration):
         """
+        Initialized a new FileCache instance.
+
+        If no cache location is specified, a temporary default location will be
+        used. Such default cache location will be shared by all FileCache
+        instances with no explicitly specified location within the same
+        process. The default cache location will be removed automatically on
+        process exit unless user sets the remove_default_location_on_exit
+        FileCache class attribute to False.
+
         @param location: The directory for the cached files.
         @type location: str
         @param duration: The cached file duration which defines how
@@ -136,7 +151,7 @@ class FileCache(Cache):
         @type duration: {unit:value}
         """
         if location is None:
-            location = os.path.join(tmp(), 'suds')
+            location = self.__get_default_location()
         self.location = location
         self.duration = (None, 0)
         self.setduration(**duration)
@@ -160,7 +175,7 @@ class FileCache(Cache):
         @type duration: {unit:value}
         """
         if len(duration) == 1:
-            arg = [x[0] for x in duration.items()]
+            arg = list(duration.items())[0]
             if not arg[0] in self.units:
                 raise Exception('must be: %s' % str(self.units))
             self.duration = arg
@@ -199,11 +214,11 @@ class FileCache(Cache):
     def putf(self, id, fp):
         try:
             fn = self.__fn(id)
-            f = self.open(fn, 'w')
+            f = self.open(fn, 'wb')
             f.write(fp.read())
             fp.close()
             f.close()
-            return open(fn)
+            return open(fn, 'rb')
         except:
             log.debug(id, exc_info=1)
             return fp
@@ -221,7 +236,7 @@ class FileCache(Cache):
         try:
             fn = self.__fn(id)
             self.validate(fn)
-            return self.open(fn)
+            return self.open(fn, 'rb')
         except:
             pass
 
@@ -265,15 +280,14 @@ class FileCache(Cache):
     def checkversion(self):
         path = os.path.join(self.location, 'version')
         try:
-
-            f = self.open(path)
+            f = self.open(path, 'rt')
             version = f.read()
             f.close()
             if version != suds.__version__:
                 raise Exception()
         except:
             self.clear()
-            f = self.open(path, 'w')
+            f = self.open(path, 'wt')
             f.write(suds.__version__)
             f.close()
 
@@ -282,6 +296,38 @@ class FileCache(Cache):
         suffix = self.fnsuffix()
         fn = '%s-%s.%s' % (self.fnprefix, name, suffix)
         return os.path.join(self.location, fn)
+
+    @staticmethod
+    def __get_default_location():
+        """
+        Returns the current process's default cache location folder.
+
+        The folder is determined lazily on first call.
+
+        """
+        if not FileCache.__default_location:
+            tmp = tempfile.mkdtemp("suds-default-cache")
+            FileCache.__default_location = tmp
+            import atexit
+            atexit.register(FileCache.__remove_default_location)
+        return FileCache.__default_location
+
+    @staticmethod
+    def __remove_default_location():
+        """
+        Removes the default cache location folder.
+
+        This removal may be disabled by setting the
+        remove_default_location_on_exit FileCache class attribute to False.
+
+        """
+        if FileCache.remove_default_location_on_exit:
+            # We must not load shutil here on-demand as under some
+            # circumstances this may cause the shutil.rmtree() operation to
+            # fail due to not having some internal module loaded. E.g. this
+            # happens if you run the project's test suite using the setup.py
+            # test command on Python 2.4.x.
+            shutil.rmtree(FileCache.__default_location, ignore_errors=True)
 
 
 class DocumentCache(FileCache):
@@ -294,17 +340,19 @@ class DocumentCache(FileCache):
 
     def get(self, id):
         try:
-            fp = FileCache.getf(self, id)
-            if fp is None:
-                return None
-            p = Parser()
-            return p.parse(fp)
+            with FileCache.getf(self, id) as fp:
+                if fp is None:
+                    return None
+                p = Parser()
+                return p.parse(fp)
         except:
             FileCache.purge(self, id)
 
     def put(self, id, object):
         if isinstance(object, Element):
-            FileCache.put(self, id, str(object))
+            FileCache.put(self, id, str(object).encode())
+        else:
+            log.warn("WARN: Given object is not an instance of Element. Skipping!")
         return object
 
 
@@ -321,11 +369,11 @@ class ObjectCache(FileCache):
 
     def get(self, id):
         try:
-            fp = FileCache.getf(self, id)
-            if fp is None:
-                return None
-            else:
-                return pickle.load(fp)
+            with FileCache.getf(self, id) as fp:
+                if fp is None:
+                    return None
+                else:
+                    return pickle.load(fp)
         except:
             FileCache.purge(self, id)
 

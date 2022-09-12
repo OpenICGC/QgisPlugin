@@ -137,7 +137,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.selected = self.get_selection_index()
         if self.selected < 0:
             return False
-        print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
+        ##print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
 
         return True
 

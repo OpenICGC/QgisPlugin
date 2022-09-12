@@ -12,24 +12,36 @@ description_ca=Accés a dades obertes ICGC
 description_es=Acceso a datos abiertos ICGC
 about=Plugin for accessing open data published by the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
 	Includes spatial toponymic searches, streets, roads, coordinates in different reference systems, acces to historical photo library and load of base data layers and download different vectorial and raster products.
-	This plugin uses suds-py3, wsse libraries and land registry geo services.
+	This plugin uses suds-py3, wsse, qtrangeslider libraries and land registry geo services.
 	---
 	Plugin per accedir a dades obertes de l'Institut Cartogràfic i Geològic de Catalunya.
 	Inclou cerques espacials de topònims, carrers, carreteres, coordenades en diferents sistemes de referència, càrrega de dades de capes base, accés a la fototeca històrica i descàrrega de diferents productes vectorials i ràster.
-	Aquest plugin utilitza les llibreries suds-py3, wsse i serveis web del cadastre.
+	Aquest plugin utilitza les llibreries suds-py3, wsse, qtrangeslider i serveis web del cadastre.
 	---
 	Plugin para acceder a datos abiertos del Instituto Cartográfico y Geológico de Cataluña.
 	Incluye búsquedas espaciales de topónimos, calles, carreteras, coordenadas en diferentes sistemas de referencia, carga datos de capas base, acceso a la fototeca histórica y descarga de diferentes productos vectoriales y raster.
-	Este plugin utiliza las llibrerías suds-py3, wsse y servicios web del catastro.
-tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,street,road,WMS
+	Este plugin utiliza las llibrerías suds-py3, wsse, qtrangeslider y servicios web del catastro.
+tags=ICGC,Catalunya,Cataluña,Catalonia,find,search,site,place,street,road,WMS,WFS,fototeca,photolibrary,foto,photo,ortofoto,orthophoto,topografia,topography
 icon=icon.png
 author=ICGC
 email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.8
-changelog=v1.1.8 (2022-06-03)
+version=1.1.9
+changelog=v1.1.9 (2022-09-12)
+	- Added polygon bounding box download option
+	- Added RangeSlider widget to select years in photo search dialog
+	- Added PDF report generation from visualized map
+	- Added Help/Debug button to enable debug log in local file and QGIS log window
+	- Added ContextMaps
+	- Updated download products code to simplify EPSG transformations
+	- Updated sliders to show "arrow" style (using global Windows style)
+	- Updated WMS links to use transparent png image format
+	- Updated DTM layers style to use bilinear interpolation
+	- Updated Land Coverage layer to show color legend and support GetFeatureInfo
+
+	v1.1.8 (2022-06-03)
 	- Added support to new QGIS vector files group management
 
 	v1.1.7 (2022-05-31)

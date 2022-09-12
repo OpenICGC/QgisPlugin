@@ -101,13 +101,19 @@ class ErrorReportManager():
             """
         self.console_last_lines = console_last_lines
 
-    def get_error_info(self):
+    def get_error_info(self, ex=None, show_param_values=True):
         """ Obté informació de l'error. Captura informació de traceback, consola QGIS, accés a BBDD i capa seleccionada
             ---
             Obtain error information. Capture traceback information, QGIS console, db access and selected layer
             """
         # Obtenim el traceback
-        traceback_info = traceback.format_exc().strip()
+        if ex and show_param_values:
+            try:
+                traceback_info = "".join(traceback.TracebackException.from_exception(ex, capture_locals=True).format()).strip()
+            except:
+                show_param_values = False
+        if not show_param_values:
+            traceback_info = traceback.format_exc().strip()
         # Obtenim la consola
         console_info = u"...\n%s" % u"\n".join(console.console._console.console.shellOut.text().split('\n')[-self.console_last_lines:])
         # Obtenim informació de la BBDD
@@ -127,19 +133,19 @@ class ErrorReportManager():
             ---
             Gets information about the exception produced and displays a dialog with the error data
             """
-        msg = str(e)
+        message = str(e)
         #msg = e.message
         #if not msg or type(msg) is not unicode and type(msg) is not str:
         #    msg = unicode(e)
-        return self.manage_error(msg)
+        #return self.manage_error(message)
 
-    def manage_error(self, message):
-        """ Mostra un diàleg amb les dades de l'error, amb la possibilitat d'enviar informes per email
-            ---
-            Shows a dialog with the error data, with the possibility to send reports by email
-            """
+    #def manage_error(self, message):
+        #""" Mostra un diàleg amb les dades de l'error, amb la possibilitat d'enviar informes per email
+        #    ---
+        #    Shows a dialog with the error data, with the possibility to send reports by email
+        #    """
         # Obtenim informació de l'error
-        trace_back_info, console_info, db_info, layer_info = self.get_error_info()
+        trace_back_info, console_info, db_info, layer_info = self.get_error_info(e)
 
         # Preparem un missatge d'error per mostrar a pantalla
         extra_info = "[ERROR:]\n%s\n\n[TRACE:]\n%s\n\n[QGIS CONSOLE:]\n%s" % (message, trace_back_info, console_info.strip())
@@ -198,7 +204,7 @@ def generic_handle_error(func):
 
     def handle_error(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception as e:
             QApplication.restoreOverrideCursor()
             #iface = args[0].iface if args and args[0].__dict__.get('iface', None) else None
@@ -221,30 +227,30 @@ class QgisError(Exception):
         self._message = message
         self._level = level
         self._duration = duration
-    
+
     @property
     def message(self):
         return self._message
-    
+
     @property
     def level(self):
         return self._level
-    
+
     @property
     def duration(self):
         return self._duration
-    
+
 
 class CancelError(QgisError):
     """ L'usuari ha abortat intencionadament """
     def __init__(self, message="Operació cancel·lada per l'usuari."):
         super().__init__(message, level=Qgis.Info, duration=2)
-    
+
 class InputError(QgisError):
     """ L'usuari ha entrat dades invàlides """
     def __init__(self, message="Error de les dades d'entrada."):
         super().__init__(message, level=Qgis.Critical, duration=5)
-    
+
 class ProcessError(QgisError):
     """ Algun procés ha acabat malament (scripts gdal, qgis processing, subprocess...)"""
     def __init__(self, message="Error de procés."):
@@ -264,46 +270,52 @@ def qgis_show_traceback(parent, function, error_message, traceback_info):
         """ Callback que printa el traceback a la consola de QGIS """
         parent.debug.show_console()
         print(traceback_info)
-        
+
     # Crea la barra amb el missatge d'error
     widget = parent.iface.messageBar().createMessage(function, error_message)
-    
+
     # Afegeix un botó a la barra per cridar el callback
     button = QPushButton(widget)
     button.setText("Vull veure més informació!")
     button.pressed.connect(on_button_pressed)
     widget.layout().addWidget(button)
-    
+
     # Mostra la barra
     parent.iface.messageBar().pushWidget(widget, Qgis.Critical)
-    
-    
+
+
 def qgis_handle_error(function):
     """ Decorador per gestionar excepcions d'un plugin de QGIS i informar de l'inici/final
     """
     @functools.wraps(function)
     def handle_error(*args, **kwargs):
         try:
-            QgsMessageLog.logMessage(f"Procés '{function.__name__}' iniciat", 'Missatges', level=Qgis.Info)
+            QgsMessageLog.logMessage('', 'Missatges', level=Qgis.Info)
+            QgsMessageLog.logMessage(f"{function.__name__}: Procés iniciat", 'Missatges', level=Qgis.Info)
             result = function(*args, **kwargs)
-            status_message = f"Procés '{function.__name__}' finalitzat amb èxit."
+            message = "Procés finalitzat amb èxit."
             return result
+        except CancelError as e:
+            # L'usuari ha cancel·lat intencionadament
+            title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')
+            args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
+            message = "Procés cancel·lat."
         except QgisError as e:
             # Error controlat (InputError, ProcessError...)
             title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')
             args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
-            status_message = e.message
+            message = "Procés finalitzat amb errors."
         except Exception as e:
-            # Error inesperat (amb l'opció d'imprimir el traceback a posteriori)
+            # Error no controlat (amb l'opció d'imprimir el traceback a posteriori)
             qgis_show_traceback(args[0], function.__name__, f"{type(e).__name__}: {e}", traceback.format_exc())
-            status_message = f"Error inesperat a: '{function.__name__}'"
+            message = "Procés finalitzat amb errors no controlats."
         finally:
             # Informem que el procés ha acabat
-            args[0].iface.statusBarIface().showMessage(f"AtQ: {status_message}")
-            QgsMessageLog.logMessage(f"Procés '{function.__name__}' finalitzat", 'Missatges', level=Qgis.Info)
-        
+            QgsMessageLog.logMessage(f"{function.__name__}: {message}", 'Missatges', level=Qgis.Info)
+            args[0].iface.statusBarIface().showMessage(message)
+
     return handle_error
-    
+
 
 
 if __name__ == '__main__':
@@ -313,8 +325,8 @@ if __name__ == '__main__':
     try:
         1/0
     except Exception as e:
-        #message, trace_back_info, console_info = get_exception_info(e)
-        #print "Message:", message, "\n"
-        #print "Trace:", trace_back_info, "\n"
-        #print "Console:", console_info
+        ##message, trace_back_info, console_info = get_exception_info(e)
+        ##print "Message:", message, "\n"
+        ##print "Trace:", trace_back_info, "\n"
+        ##print "Console:", console_info
         ermanager.manage_exception(e)

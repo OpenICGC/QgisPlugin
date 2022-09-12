@@ -19,6 +19,8 @@ from PyQt5.QtGui import QPainter, QPen, QFont
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip
 
+from .qtextra import QtExtra
+
 Ui_Anaglyph, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_anaglyph.ui'))
 
 
@@ -58,6 +60,8 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
             """
         super().__init__(parent)
         self.setupUi(self)
+        # Canviem l'estil del QSlider per fer que surti la "fletxeta"
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider_parallax)
 
         # Ens guardem la funció de callback si executar algun procés extern
         self.update_callback = update_callback

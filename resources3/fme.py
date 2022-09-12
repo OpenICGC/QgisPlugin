@@ -17,10 +17,17 @@ import re
 import os
 from .http import get_http_files
 
+# Configure internal library logger (Default is dummy logger)
+import logging
+log = logging.getLogger('dummy')
+log.addHandler(logging.NullHandler())
+
 
 #FME_URL = "http://qgis:qgis@sefme2020dev" # A linux no va bé el DNS, ca posar la IP (desenvolupament)
 #FME_URL = "https://qgis:qgis@sefme2020prod.icgc.local" # Test
 FME_URL = "https://qgis:qgis@descarregues.icgc.cat" # Servidor extern / adreça externa (producció)
+
+FME_DOWNLOAD_EPSG = 25831
 
 FME_AUTO_SEARCH = "Search"
 
@@ -236,6 +243,7 @@ def get_services():
         # Afegim els valors modificats a la llista
         final_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple))
 
+    log.debug("FME resources URL: %s found: %s", FME_URL.split("/")[0] + "//" +  FME_URL.split("@")[1], len(final_services_list))
     return final_services_list
 
 def get_clip_data_url(data_type, mode, xmin, ymin, xmax, ymax, points_list=[], extra_params=[], referrer=None, url_base=FME_URL):

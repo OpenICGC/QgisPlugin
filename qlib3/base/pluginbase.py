@@ -16,6 +16,7 @@ additional pre-programmed tools
 
 import os
 import sys
+import glob
 import re
 import random
 import console
@@ -28,23 +29,26 @@ import urllib.request
 import socket
 import configparser
 import subprocess
-from xml.etree import ElementTree
-from importlib import reload
 import base64
 import zipfile
+import io
+from xml.etree import ElementTree
+from importlib import reload
 try:
     import ogr, osr
 except:
     from osgeo import ogr, osr
+import unittest
+reload(unittest)
 
 from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication, QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices
+from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
 from PyQt5.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
+from qgis.core import QgsCoordinateReferenceSystem, QgsGeometry, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
 from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap, QgsContrastEnhancement
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
@@ -86,6 +90,10 @@ from .aboutdialog import AboutDialog
 from . import download
 reload(download)
 from .download import DownloadManager
+
+from . import log
+reload(log)
+from .log import PluginLogger
 
 
 ###############################################################################
@@ -180,8 +188,9 @@ class GuiBase(object):
         self.shortcuts = []
         # Els menús s'esborren sols quan no tenen actions
         self.menus = []
-        # Esborra les toolbars
+        # Esborra les toolbars (canviem el títol per no trobar-les metres s'esborren retardadament...)
         for toolbar in self.toolbars:
+            toolbar.setWindowTitle("[DELETE] %s" % toolbar.windowTitle())
             toolbar.deleteLater()
         self.toolbars = []
 
@@ -348,6 +357,7 @@ class GuiBase(object):
             if checkable:
                 action.setCheckable(True)
             if tooltip:
+                menu_or_toolbar.setToolTipsVisible(True)
                 if type(action) == QWidgetAction:
                     action.defaultWidget().defaultAction().setToolTip(tooltip)
                 else:
@@ -667,7 +677,8 @@ class GuiBase(object):
         toolbars_names = [unicode(t.windowTitle()) for t in toolbars_list]
         if name in toolbars_names:
             pos = toolbars_names.index(name)
-            return toolbars_list[pos]
+            toolbar = toolbars_list[pos]
+            return toolbar
         else:
             return None
 
@@ -829,18 +840,12 @@ class GuiBase(object):
                 pos_x = 0
                 self.iface.mainWindow().insertToolBarBreak(toolbar)
 
-    def get_toolbar_by_name(self, name):
-        """ Retorna un objecte toolbar a partir del seu nom
-            ---
-            Returns a toolbar from its name
-            """
-
     def enable_toolbar_by_name(self, toolbar_name, enable=True):
         """ Activa / Desactiva toolbar per nom de la toolbar
             ---
-            Enable / Disable toolbar by object name 
+            Enable / Disable toolbar by toolbar name 
             """
-        toolbar = self.gui.get_toolbar_by_name(toolbar_object_id)
+        toolbar = self.get_toolbar_by_name(toolbar_name)
         if not toolbar:
             return
         if enable:
@@ -848,12 +853,12 @@ class GuiBase(object):
         else:
             toolbar.hide()
 
-    def enable_toolbar_by_object_name(self, toolbar_object_id, enable=True):
+    def enable_toolbar_by_object_name(self, toolbar_object_name, enable=True):
         """ Activa / Desactiva toolbar per nom de l'objecte
             ---
             Enable / Disable toolbar by object name 
             """
-        toolbar = self.gui.get_toolbar_by_object_name(toolbar_object_id)
+        toolbar = self.get_toolbar_by_object_name(toolbar_object_name)
         if not toolbar:
             return
         if enable:
@@ -1081,6 +1086,11 @@ class LayersBase(object):
             Refresh the content of the map, if it is specified that you wait, the function does not return until the end event is received
             """
         self.map_refreshed = False
+        # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+        # self.iface.mapCanvas().refresh() 
+        # ATENCIÓ: A partir de la versió 3.16 refreshAllLayers deselecciona els elements. Anteriorment feiem server refresh però a vegades no refrescava correctament.
+        # Caldrà valorar quines de les dues deixem.
+        # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
         self.iface.mapCanvas().refreshAllLayers()
         if wait_refreshed:
             # Espera a que es refresqui el mapa
@@ -2790,18 +2800,21 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_nodata(layer, no_data)
-        return True
+        return self.set_nodata(layer, no_data)
 
     def set_nodata(self, layer, no_data):
         """ Assigna un valor no data a una capa raster
             ---
             Assign a no data value to a raster layer
             """
+        renderer = layer.renderer() # Si el WMS no carrega dades, el renderer és None
+        if not renderer:
+            return False
         if layer.bandCount() > 1:
-            layer.renderer().rasterTransparency().initializeTransparentPixelList(no_data, no_data, no_data) # Per imatges color
+            renderer.rasterTransparency().initializeTransparentPixelList(no_data, no_data, no_data) # Per imatges color
         else:
-            layer.renderer().rasterTransparency().initializeTransparentPixelList(no_data) # Per imatges BW
+            renderer.rasterTransparency().initializeTransparentPixelList(no_data) # Per imatges BW
+        return True
 
     def set_transparency_by_id(self, idprefix, transparency, pos=0):
         """ Canvia la transparència d'una capa per id
@@ -2811,8 +2824,7 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return False
-        self.set_transparency(layer, transparency)
-        return True
+        return self.set_transparency(layer, transparency)
 
     def set_transparency(self, layer, transparency):
         """ Canvia la transparència d'una capa
@@ -2823,7 +2835,11 @@ class LayersBase(object):
         if layer.type() == 0: # Si es vectorial
             layer.setOpacity(opacity)
         else:
-            layer.renderer().setOpacity(opacity)
+            renderer = layer.renderer() # Si el WMS no carrega dades, el renderer és None
+            if not renderer:
+                return False
+            renderer.setOpacity(opacity)
+        return True
 
     def set_custom_properties_by_id(self, idprefix, properties_dict, pos=0):
         """ Canvia propietats custom d'una capa per id
@@ -2995,7 +3011,7 @@ class LayersBase(object):
                     return False
                 qlr_pathname = pathnames_list[0]
                 # Carreguem les capes del QLR a partir del fitxer QLR descomprimit
-                print("Arxiu: %s" % (qlr_pathname))
+                ##print("Arxiu QLR: %s" % (qlr_pathname))
                 status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
             else:
                 # ATENCIÓ!! Treballar amb QLRs dins de zips sense descomprimir fa que els shapes associats no siguin editables
@@ -3004,7 +3020,7 @@ class LayersBase(object):
                     pathnames_list = [compressed_file for compressed_file in zip_file.namelist() if os.path.splitext(compressed_file.lower())[1] == ".qlr"]
                     if not pathnames_list:
                         return False
-                    print("Arxiu: %s/%s" % (qlr_pathname, pathnames_list[0]))
+                    ##print("Arxiu QLR: %s/%s" % (qlr_pathname, pathnames_list[0]))
                     # Llegim el primer QLR que trobem, els altres els IGNORA
                     with zip_file.open(pathnames_list[0]) as qlr_file:
                         qlr_data = qlr_file.read().decode('utf-8')
@@ -3031,7 +3047,7 @@ class LayersBase(object):
                 status, error = QgsLayerDefinition().loadLayerDefinition(qlr_doc, QgsProject.instance(), group, context)
         else:
             # Carreguem les capes del QLR a partir del fitxer QLR
-            print("Arxiu: %s" % (qlr_pathname))
+            ##print("Arxiu QLR: %s" % (qlr_pathname))
             status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
 
         return status
@@ -3285,79 +3301,6 @@ class LayersBase(object):
         self.download_manager.download(remote_file, local_pathname)
         return local_pathname
 
-    #def download_remote_file(self, remote_file, download_folder=None, select_folder_text=None, username="admin", password="USer123$"):
-    #    """ Descarrega un fitxer via http en la carpeta especificada
-    #        ---
-    #        Download a http file in the specified folder
-    #        """
-    #    # Si no ens la especifiquem, obtenim la carpeta de descàrrega de la
-    #    # configuració del plugin
-    #    if not download_folder:
-    #        download_folder = self.get_download_path(select_folder_text)
-    #        if not download_folder:
-    #            return None
-
-    #    # Configurem les credencials d'accés si cal
-    #    #if password:
-    #    #    print("1")
-    #    #    #p = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-    #    #    #p.add_password(None, remote_file, username, password)
-    #    #    #h = urllib.request.HTTPBasicAuthHandler(p)
-    #    #    h = urllib.request.HTTPBasicAuthHandler()
-    #    #    h.add_password(realm="OpenICGC plugin", uri=remote_file, user=username, passwd=password)
-    #    #    o = urllib.request.build_opener(h)
-    #    #    urllib.request.install_opener(o)
-    #    #    print("2")
-
-    #    # Detectem si ja tenim el fitxer o no
-    #    local_pathname = os.path.join(download_folder, os.path.basename(remote_file))
-    #    local_pathname = r"d:\z.geopkg"
-    #    if not os.path.exists(local_pathname):
-    #        print("Download: new file detected")
-    #        download = True
-    #    else:
-    #        # Detectem si existeix un fitxer més nou que el nostre
-    #        with urllib.request.urlopen(remote_file) as fin:
-    #            info_dict = dict(fin.getheaders()) if "getheaders" in dir(fin) else {}
-    #        remote_date = info_dict.get('Last-Modified', None)
-    #        if not remote_date:
-    #            print("Download: no remote data")
-    #            download = True
-    #        else:
-    #            local_date = os.path.getmtime(local_pathname)
-    #            print("Download: check dates %s %s" % (remote_date, local_date))
-    #            download = remote_date > local_date
-
-    #    # Descarreguem el fitxer si cal
-    #    if download:
-    #        print("Download: %s to %s" % (remote_file, local_pathname))
-
-    #        ##req = urllib.request.Request(remote_file)
-    #        ##credentials = ('%s:%s' % (username, password))
-    #        ##encoded_credentials = base64.b64encode(credentials.encode('ascii'))
-    #        ##req.add_header('Authorization', 'Basic %s' % encoded_credentials.decode("ascii"))
-    #        ##file_downloader = req.URLopener()
-    #        ##print("3")
-
-    #        ##file_downloader = urllib.request.URLopener(auth=(username, password))
-
-    #        file_downloader = urllib.request.URLopener()
-    #        ##remote_file +="&user=%s&password=%s" % (username, password)
-    #        with ProgressDialog(os.path.basename(local_pathname), 0, title="Downloading...") as progress:
-    #            file_downloader.retrieve(remote_file, local_pathname, lambda count, block_size, total_size: self.__download_progress__(progress, count, block_size, total_size))
-
-    #    return local_pathname
-
-    #def __download_progress__(self, progress, count, block_size, total_size):
-    #    """ Funció interna per mostrar progressbar durant les descàrregues de fitxers
-    #        ---
-    #        Internal function to show progressbar when downloading files
-    #        """
-    #    current_size = min(count*block_size, total_size)
-    #    progress.set_steps(total_size)
-    #    progress.set_value(current_size)
-    #    pass
-
     def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
@@ -3523,7 +3466,7 @@ class LayersBase(object):
                         filename = os.path.basename(pathname)
                         for index, (style_regex, _style_qml) in enumerate(regex_styles_list):
                             if re.match(style_regex, filename):
-                                #print("Filename order", index, filename)
+                                ##print("Filename order", index, filename)
                                 return index
                         return 9999
                     pathnames_list.sort(key=sort_file_index, reverse=True)
@@ -3654,7 +3597,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -3663,6 +3606,7 @@ class LayersBase(object):
             """
         # Obtenim la llista de capes temporals i la registrem associada a la url
         if time_series_list:
+            # Utilitzem la llista de (<time_name>, <time_url>) per simular una sèrie temporal
             if url:
                 if not default_time:
                     default_time = dict([(layer_id, time_name) for (time_name, layer_id) in time_series_list])[layer_id]
@@ -3673,7 +3617,18 @@ class LayersBase(object):
                     default_time = layer_id
                 default_layer = layer_id
                 url_time = dict(time_series_list)[default_layer]
+        elif time_series_regex:
+            # Utilitzem la expressió regular per cercar capes i simular una sèrie temporal
+            time_series_list, default_time2 = self.get_wms_t_time_series(url, None, time_series_regex)
+            if not time_series_list:
+                return None
+            default_time = default_time or default_time2
+            if not default_time:
+                default_time = time_series_list[-1][0]
+            default_layer = dict(time_series_list)[default_time]
+            url_time = url
         else:
+            # Obtenim els temps disponibles per una capa
             time_series_list, default_time2 = self.get_wms_t_time_series(url, layer_id)
             if not time_series_list:
                 return None
@@ -3741,13 +3696,13 @@ class LayersBase(object):
         layer.setName(new_name)
         return new_name
 
-    def get_wms_t_time_series(self, url, layer_id, version="1.1.1", timeout_seconds=5, retries=3):
-        """ Obté informació temporal d'una capa d'un servidor WMS-T
+    def get_wms_t_time_series(self, url, layer_id, ts_regex=None, version="1.1.1", timeout_seconds=5, retries=3):
+        """ Obté informació temporal d'una capa d'un servidor WMS-T o d'un grup de capes (via expresió regular)
             Retona:
             - llista de tuples [(<name>, <layer_id>), ...]
             - text <default_time>
             ---
-            Gets temporary informacion of a WMS-T layer
+            Gets temporary informacion of a WMS-T layer or a group layers (using regular expression)
             Returns:
             - list of tupes [(<name>, <layer_id>), ...]
             - string <default_time>
@@ -3767,55 +3722,67 @@ class LayersBase(object):
                 retries = 0
             except socket.timeout:
                 retries -= 1
-                print("retries", retries)
+                self.parent.log.warning("WMS-T URL: %s retries: %s", url, retries)
             except Exception as e:
                 retries = 0
-                print("Error WMS-T: %s" % e)
+                self.parent.log.exception("Error WMS-T: %s", e)
         if not capabilities_xml:
             return [], None
         ##print("xml", capabilities_xml)
 
         # Cerquem les capes amb el camp "Dimension" tipus "time" o "Dimension" + "Extent" tipus "time"
+        time_series_list = []
+        default_time = None
         root = ElementTree.fromstring(capabilities_xml)
         layers = root.find('Capability').find("Layer")
         for layer in layers.findall('Layer'):
-            if layer.find("Name").text != layer_id:
-                continue
-            ##print("layer", layer_id)
-
-            dimension = layer.find("Dimension")
-            if dimension is None or dimension.get("name") != "time":
-                continue
-            if dimension.text:
-                #<Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
-                #2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
-                #</Dimension>
-                dimension_text = dimension.text
-                default_time = dimension.get("default")
-            else:
-                #<Extent name="time" default="2018" nearestValue="0">#2015-12,...</Extent>
-                extent = layer.find("Extent")
-                if extent is None or extent.get("name") != "time" or not extent.text:
+            # Si tenim un identificador de capa, cerquem aquella capa i obtenim les seves marques temporals
+            if layer_id:
+                if layer.find("Name").text != layer_id:
                     continue
-                dimension_text = extent.text
-                default_time = extent.get("default")
-            #print("Dimensions", layer_id, dimension_text, default_time)
+                ##print("layer", layer_id)
 
-            # Recuperem les dimension (de tipus llista d1,d2... o de tipus rang d1/d2 o d1-d2)
-            # Els rangs de moment només funcionen per anys!
-            time_series_list = []
-            if dimension_text.find(',') > 0:
-                time_series_list = [(time.strip(), layer_id) for time in dimension_text.split(',')]
-            else:
-                for range_separator in ['/', '-']:
-                    if dimension_text.find(range_separator) > 0:
-                        time_begin, time_end = dimension_text.split(range_separator)[0:2]
-                        if time_begin.isdigit() and time_end.isdigit():
-                            time_series_list = [(str(time), layer_id) for time in range(int(time_begin), int(time_end) + 1)]
-                            break
-            ##print("time series", time_series_list)
-            ##print("Default time", default_time)
-            break
+                dimension = layer.find("Dimension")
+                if dimension is None or dimension.get("name") != "time":
+                    continue
+                if dimension.text:
+                    #<Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
+                    #2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
+                    #</Dimension>
+                    dimension_text = dimension.text
+                    default_time = dimension.get("default")
+                else:
+                    #<Extent name="time" default="2018" nearestValue="0">#2015-12,...</Extent>
+                    extent = layer.find("Extent")
+                    if extent is None or extent.get("name") != "time" or not extent.text:
+                        continue
+                    dimension_text = extent.text
+                    default_time = extent.get("default")
+                ##print("Dimensions", layer_id, dimension_text, default_time)
+
+                # Recuperem les dimension (de tipus llista d1,d2... o de tipus rang d1/d2 o d1-d2)
+                # Els rangs de moment només funcionen per anys!
+                if dimension_text.find(',') > 0:
+                    time_series_list = [(time.strip(), layer_id) for time in dimension_text.split(',')]
+                else:
+                    for range_separator in ['/', '-']:
+                        if dimension_text.find(range_separator) > 0:
+                            time_begin, time_end = dimension_text.split(range_separator)[0:2]
+                            if time_begin.isdigit() and time_end.isdigit():
+                                time_series_list = [(str(time), layer_id) for time in range(int(time_begin), int(time_end) + 1)]
+                                break
+                ##print("time series", time_series_list)
+                ##print("Default time", default_time)
+                break
+
+            # Si ens passen una expressió regular, cerquem totes les capes que compleixin amb la expressió
+            elif ts_regex:
+                layer_id = layer.find("Name").text
+                found = re.findall(ts_regex, layer_id)
+                if found:
+                    time = found[0]
+                    time_series_list.append((time, layer_id))
+                layer_id = None
 
         return time_series_list, default_time
 
@@ -3844,6 +3811,14 @@ class LayersBase(object):
             - collapsed: Indicates whether we want to load the layer with collapsed legend
             - visible: Indicates whether we want to load the layer by leaving it visible or not
             """
+        uri = self.generate_wms_layer_uri(url, layers_list, styles_list, image_format, epsg, extra_tags)
+        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
+
+    def generate_wms_layer_uri(self, url, layers_list, styles_list, image_format, epsg=None, extra_tags=""):
+        """ Retorna el string uri a partir dels paràmetres WMS
+            ---
+            Return WMS uri string from WMS paràmeters
+            """
         # Si no tenim EPSG agafem el del projecte
         if not epsg:
             epsg = self.parent.project.get_epsg()
@@ -3860,9 +3835,8 @@ class LayersBase(object):
         if extra_tags:
             uri += "&%s" % extra_tags
         uri += "&IgnoreGetMapUrl=1"
-
-        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
-
+        return uri
+        
     def add_wms_url_query_layer(self, layer_name, url_query, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
         """ Afegeix una capa WMS a partir d'una petició WMS (URL). Retorna la capa.
             Veure add_wms_layer per opcions
@@ -3952,7 +3926,7 @@ class LayersBase(object):
         # Configurem el nom de la capa WMS del servidor a la que accedirem
         wms_layer = "Catalunya %dcm. %d" % (gsd * 100, year)
         layer_name = "%s %s" % (layer_prefix, wms_layer)
-        print("WMS ortoXpres, capa:", layer_name)
+        ##print("WMS ortoXpres, capa:", layer_name)
         # Afegim la capa
         layer = self.add_wms_layer(layer_name, url, [wms_layer], styles_list, image_format, epsg, extra_tags, group_name, group_pos, only_one_map)
         return layer
@@ -4794,28 +4768,32 @@ class ComposerBase(object):
                 layout_designer.layoutToolbar().show()
                 layout_designer.atlasToolbar().hide()
         # Menús
-        layout_designer.viewMenu().setEnabled(True)
-        layout_designer.layoutMenu().setEnabled(enable_edit_tools or not enable_atlas)
-        layout_designer.atlasMenu().setEnabled(enable_edit_tools or enable_atlas)
+        layout_designer.atlasMenu().setEnabled(enable_edit_tools)
         layout_designer.editMenu().setEnabled(enable_edit_tools)
         layout_designer.itemsMenu().setEnabled(enable_edit_tools)
+        layout_designer.layoutMenu().setEnabled(enable_edit_tools or not enable_atlas)
         layout_designer.settingsMenu().setEnabled(enable_edit_tools)
+        layout_designer.viewMenu().setEnabled(True)
 
         return layout_designer
 
-    def get_composition(self, report_pathname, atlas_layer=None, atlas_filter=None, zoom_to_view=False, zoom_to_view_buffer=0, open_composer=True, enable_edit_tools=True):
+    def get_composition(self, report_pathname, atlas_layer=None, atlas_filter=None, zoom_to_view=False, zoom_to_view_buffer=0, zoom_to_view_map_id_list=[], open_composer=True, enable_edit_tools=True):
         """ Carrega un compositor a partir d'un fitxer i retorna l'objecte
             ---
             Load a composer from a file and return the object
             """
         # Carreguem el template en un document per poder pasar-li al QgsPrintLayout
+        if os.path.splitext(report_pathname)[1].lower() != '.qpt':
+            report_pathname += '.qpt'
         if not os.path.isabs(report_pathname):
             if os.path.exists(os.path.join(self.parent.plugin_path, report_pathname)):
                 report_pathname = os.path.join(self.parent.plugin_path, report_pathname)
+            elif os.path.exists(os.path.join(self.parent.plugin_path, "reports", report_pathname)):
+                report_pathname = os.path.join(self.parent.plugin_path, "reports", report_pathname)
             elif os.environ.get('APP_PATH', None) and os.path.exists(os.path.join(os.environ['APP_PATH'], report_pathname)):
-                report_pathname = os.path.join(os.environ['APP_PATH'], report_pathname)
-        if os.path.splitext(report_pathname)[1].lower() != '.qpt':
-            report_pathname += '.qpt'
+                report_pathname = os.path.join(os.path.abspath(os.environ['APP_PATH']), report_pathname)
+            elif os.environ.get('APP_PATH', None) and os.path.exists(os.path.join(os.environ['APP_PATH'], "reports", report_pathname)):
+                report_pathname = os.path.join(os.path.abspath(os.environ['APP_PATH']), "reports", report_pathname)
         with open(report_pathname, "r") as template_file:
             report_content = template_file.read()
         # Modifiquem els path relatius a paths absoluts a memòria
@@ -4832,8 +4810,10 @@ class ComposerBase(object):
         # Refresquem els objectes tipus mapa
         if zoom_to_view:
             for item in layout.items():
-               if type(item) is QgsLayoutItemMap:
+               if type(item) is QgsLayoutItemMap and (item.id() in zoom_to_view_map_id_list or not zoom_to_view_map_id_list):
                     item.zoomToExtent(self.parent.iface.mapCanvas().extent().buffered(zoom_to_view_buffer))
+                    item.setMapRotation(self.iface.mapCanvas().rotation())
+            layout.refresh()
 
         # Activem atles si cal
         if atlas_layer:
@@ -4988,6 +4968,49 @@ class CrsToolsBase(object):
         area = ct.transformBoundingBox(area)
         return area
 
+    def transform_polygon(self, poly, source_epsg, destination_epsg=None):
+        """ Converteix la geometria especificada d'un epsg origen a un destí,
+            en cas de no especificar el destí, s'utilitzarà el del projecte carregat
+            ---
+            Converts the specified geometry from an epsg source to a destination,
+            if the destination is not specified, the project loaded will be used
+            """
+        if not destination_epsg:
+            destination_epsg = int(self.parent.project.get_epsg())
+        if int(source_epsg) == int(destination_epsg):
+            return poly
+
+        # Preparem la transformació de les coordenades
+        ct = self.get_transform(source_epsg, destination_epsg)
+        poly = ct.transformPolygon(poly)
+        return poly
+
+    def transform(self, geo, source_epsg, destination_epsg=None):
+        """ Converteix la geometria especificada d'un epsg origen a un destí,
+            en cas de no especificar el destí, s'utilitzarà el del projecte carregat
+            ---
+            Converts the specified geometry from an epsg source to a destination,
+            if the destination is not specified, the project loaded will be used
+            """
+        if not destination_epsg:
+            destination_epsg = int(self.parent.project.get_epsg())
+        if int(source_epsg) == int(destination_epsg):
+            return geo
+
+        # Preparem la transformació de les coordenades
+        ct = self.get_transform(source_epsg, destination_epsg)
+        if type(geo) == QgsPointXY:
+            # Tranformació de punt
+            new_geo = ct.transform(geo) 
+        elif type(geo) == QgsRectangle:
+            # Tranformació de rectangle
+            new_geo = ct.transformBoundingBox(geo)
+        else:
+            # Transformació de geometria (in place, per això duplico la geometria)
+            new_geo = QgsGeometry(geo)
+            new_geo.transform(ct)
+        return new_geo
+
 
 class DebugBase(object):
     def __init__(self, parent):
@@ -5015,7 +5038,7 @@ class DebugBase(object):
             Initializes the QGIS console so that the plugins can be printed
             """
         # Forcem crear l'objecte consola del modul "console.console" perquè la resta de plugins
-        # pugin printar logs i l'amaguem
+        # puguin printar logs i l'amaguem
         if console.console._console is None:
             parent = self.iface.mainWindow() if self.iface else None
             console.console._console = console.console.PythonConsole( parent )
@@ -5061,11 +5084,94 @@ class DebugBase(object):
             ---
             Reload the plugin indicated by the id
             """
-        print("Reload:", plugin_id)
+        self.parent.log.debug("Reload: %s", plugin_id)
         with WaitCursor():
             reloadPlugin(plugin_id)
         # Restaurem el cursor, per si algún plugin l'ha deixat penjat
         QApplication.restoreOverrideCursor()
+
+    ###########################################################################
+    # Unit tests
+    #
+    def is_test_available(self, plugin_subfolder="test", test_files_pattern="test*.py"):
+        """ Retorna True si el plugin té UnitTest disponbiles
+            ---
+            Returns True if plugin has UnitTests availables
+            """
+        test_files_path = os.path.join(self.parent.plugin_path, plugin_subfolder)
+        if not os.path.exists(test_files_path):
+            return False        
+        return len(glob.glob(os.path.join(test_files_path, test_files_pattern))) > 0
+
+    def get_test_suite(self, plugin_subfolder="test", test_files_pattern="test*.py"):
+        """ Detecta arxius de test i retorna un UnitTestSuit 
+            ---
+            Detects test files and return a UnitTestSuit
+            """
+        test_files_path = os.path.join(self.parent.plugin_path, plugin_subfolder)
+        if not os.path.exists(test_files_path):
+            return None
+        test_suite = unittest.defaultTestLoader.discover(test_files_path, test_files_pattern)
+        return test_suite
+
+    def get_test_names(self, plugin_subfolder="test", test_files_pattern="test*.py", suite=None):
+        """ Retorna una llista de tuples amb els tests disponibles [(<test_name>, <test_class>), ...]
+            ---
+            Returns a tuple list with all availabes tests [(<test_name>, <test_class>), ...]
+            """
+        if not suite:
+            suite = self.get_test_suite()
+        names_list = []
+        if hasattr(suite, '__iter__'):
+            for t in suite:
+                names_list += self.get_test_names(suite=t)
+        else:
+            names_list.append(str(suite))
+        return names_list
+
+    def get_test(self, test_name, suite):
+        """ Retorna la funció de test corresponent a <test_name>
+            ---
+            Returns test call named as <test_name>
+            """
+        if not suite:
+            suite = self.get_test_suite()
+        test_call = None
+        if hasattr(suite, '__iter__'):
+            for t in suite:
+                test_call = self.get_test_names(suite=t)
+                if test_call:
+                    break
+        else:
+            test_call = suite if str(suite) == test_name else None
+        return test_call
+        
+    def test_plugin(self, test_name=None, plugin_subfolder="test", test_files_pattern="test*.py"):
+        """ Executa els UnitsTests del plugin i retorna objecte UnitTestResult i un text amb el resultat del test
+            ---
+            It execute UnitTests and return UnitTestResult objent and test text result
+            """
+        test_suite = self.get_test_suite(plugin_subfolder, test_files_pattern)
+        if test_name:
+            test_call = self.get_test(test_name, test_suite)
+            if test_call:
+                test_suit = test_call
+        with io.StringIO() as memory:
+            test_result = unittest.TextTestRunner(stream=memory, verbosity=2).run(test_suite)
+            memory.seek(0)
+            test_text = memory.read()
+        return test_result, test_text
+
+    def show_test_plugin(self, title="Unit Tests", test_name=None, plugin_subfolder="test", test_files_pattern="test*.py"):
+        """ Mostra el resultat dels UnitTests en un diàleg
+            ---
+            Show UnitTest results in a dialog
+            """
+        test_result, test_text = self.test_plugin(test_name, plugin_subfolder, test_files_pattern)
+        # Test result attributes: test_result.errors, test_result.failures, test_result.skipped
+        log_info_mode = LogInfoDialog.mode_info if not test_result.errors and not test_result.failures else LogInfoDialog.mode_error
+        LogInfoDialog(test_text, title, log_info_mode, width=1000, height=800)
+
 
     ###########################################################################
     # Gestió de timestamps
@@ -5861,7 +5967,6 @@ class TranslationBase(object):
         return self.parent.settings.value('locale/userLocale', '').split('_')[0]
 
 class PluginBase(QObject):
-    # Inicialització de la classe
     def __init__(self, iface, plugin_pathname):
         """ Inicialització d'informació del plugin, accés a iface i accés a classes auxiliar de gestió
             ---
@@ -5869,7 +5974,7 @@ class PluginBase(QObject):
             """
         super().__init__()
 
-        self.plugin_pathname = plugin_pathname
+        self.plugin_pathname = os.path.abspath(plugin_pathname)
         self.plugin_path = os.path.dirname(self.plugin_pathname)
         self.plugin_id = os.path.basename(self.plugin_path)
 
@@ -5886,6 +5991,7 @@ class PluginBase(QObject):
         self.tools = ToolsBase(self)
         self.metadata = MetadataBase(self, plugin_pathname)
         self.translation = TranslationBase(self)
+        self.log = PluginLogger(self)
 
         self.about_dlg = None
 
@@ -5909,6 +6015,8 @@ class PluginBase(QObject):
         self.metadata = None
         self.translation = None
         self.about_dlg = None
+        self.log.remove()
+        self.log = None
 
     def get_plugins_id(self):
         """ Retorna una llista amb els ids dels plugins carregats
@@ -5932,7 +6040,10 @@ class PluginBase(QObject):
         self.debug.reload_plugin(self.plugin_id)
 
     def show_about(self, checked=None, title=None, pixmap=None): # I add checked param, because the mapping of the signal triggered passes a parameter
-        """ Show plugin information (about dialog) """
+        """ Mostra el diàleg d'informació del plugin
+            ---
+            Show plugin information (about dialog)
+            """
         # About dialog configuration
         if not self.about_dlg:
             if not title:
@@ -5949,7 +6060,10 @@ class PluginBase(QObject):
         self.about_dlg.do_modal()
 
     def show_changelog(self, checked=None, title=None): # I add checked param, because the mapping of the signal triggered passes a parameter
-        """ Show plugin changelog """
+        """ Mostra el diàleg de canvis del plugin
+            ---
+            Show plugin changelog dialog
+            """
         if not title:
             locale = self.translation.get_qgis_language()
             if locale == self.translation.LANG_CA:
@@ -5961,7 +6075,10 @@ class PluginBase(QObject):
         LogInfoDialog(self.metadata.get_changelog(), title, LogInfoDialog.mode_info)
 
     def show_help(self, checked=None, path="help", basename="index"): # I add checked param, because the mapping of the signal triggered passes a parameter
-        """ Show plugin help """
+        """ Mostra l'ajuda del plugin
+            ---
+            Show plugin help
+            """
         if not os.path.isabs(path):
             path = os.path.join(self.plugin_path, path)
         filename = os.path.join(path, basename)
@@ -5984,10 +6101,10 @@ class PluginBase(QObject):
             Reproject the coordinate to the project reference system if necessary
             """
         # Cal, transformem les coordenades al sistema del projecte        
-        #print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+        ##print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
         if epsg and epsg != int(self.project.get_epsg()):
             x, y = self.crs.transform_point(x, y, epsg)
-            #print("Coordinate: %s %s EPSG:%s" % (x, y, self.project.get_epsg()))
+            ##print("Coordinate: %s %s EPSG:%s" % (x, y, self.project.get_epsg()))
 
         ## Detectem si estem en geogràfiques o no i configurem la escala
         #if not scale:
@@ -6009,11 +6126,11 @@ class PluginBase(QObject):
             Reproject the coordinates to the project reference system if necessary
             """
         # Cal, transformem les coordenades al sistema del projecte
-        #print("Rectangle: %s %s %s %s EPSG:%s" % west, north, east, south, epsg)
+        ##print("Rectangle: %s %s %s %s EPSG:%s" % west, north, east, south, epsg)
         if epsg and epsg != int(self.project.get_epsg()):
             west, north = self.crs.transform_point(west, north, epsg)
             east, south = self.crs.transform_point(east, south, epsg)
-            #print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
+            ##print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
 
         # Resituem el mapa
         rect = QgsRectangle(west, south, east, north) # minx, miny, maxx, maxy
@@ -6022,16 +6139,27 @@ class PluginBase(QObject):
         mc.refresh()
 
     def check_qgis_version(self, version):
-        """ Checks QGIS version is greater than or equal to the one indicated (31004, 30400, 31600, ...) """
+        """ Verifica que la versió de QGIS sigui igual o superior a la indicada
+            ---
+            Checks QGIS version is greater than or equal to the one indicated (31004, 30400, 31600, ...)
+            """
         return Qgis.QGIS_VERSION_INT >= version
 
     def get_settings(self, group_name=None):
+        """ Retorna un diccionari amb les variables de configuració del plugin
+            ---
+            Returns plugin settings dict
+            """
         self.settings.beginGroup(group_name or self.plugin_id)
         settings_dict = dict([(key, self.settings.value(key, None)) for key in self.settings.childKeys()])
         self.settings.endGroup();
         return settings_dict
 
     def get_setting_value(self, key, default_value=None, group_name=None):
+        """ Retorna un valor de la configuració del plugin
+            ---
+            Returns a plugin setting value
+            """
         self.settings.beginGroup(group_name or self.plugin_id)
         value = self.settings.value(key, default_value)
         # When setting file qgis.ini has values "@Invalid()" function "value" ignore default_value...
@@ -6041,6 +6169,10 @@ class PluginBase(QObject):
         return value
 
     def set_settings(self, settings_dict, group_name=None):
+        """ Carrega un diccionari de valors de configuració del plugin
+            ---
+            Loads plugin settings dict
+            """
         self.settings.beginGroup(group_name or self.plugin_id)
         for key, value in settings_dict.items():
             if value is None:
@@ -6050,6 +6182,10 @@ class PluginBase(QObject):
         self.settings.endGroup();
 
     def set_setting_value(self, key, value, group_name=None):
+        """ Carrega un valor de configuració del plugin
+            ---
+            Loads a setting plugin value
+            """
         self.settings.beginGroup(group_name or self.plugin_id)
         if value is None:
             self.settings.remove(key)
@@ -6079,3 +6215,35 @@ class PluginBase(QObject):
     #            self.settings.setValue(key, value)
     #        self.settings.endArray()
     #    self.settings.endGroup();
+
+    def load_fonts(self, fonts_path=None, file_filter_list=["*.ttf", "*.otf"]):
+        """ Carrega totes les fonts trobades en una carpeta. Per defecte en <plugin_path>\fonts
+            ---
+            Load all found fonts in a folder. Default <plugin_path>\fonts
+            """
+        if not fonts_path:
+            fonts_path = os.path.join(self.plugin_path, "fonts")
+        if not os.path.exists(fonts_path):
+            return False
+        status = True
+        for file_filter in file_filter_list:
+            for font_pathname in glob.glob(os.path.join(fonts_path, file_filter)):
+                status &= self.load_font(font_pathname)
+        return status
+
+    def load_font(self, font_pathname_or_filename, file_types_list=["ttf", "otf"]):
+        """ Carrega un fitxer de font (si no és un path absolut utlitza <plugin_path>/fonts com a path base)
+            ---
+            Loads a font file (if not it is a absolute path use <plugin_path>/fonts as source path)
+            """
+        # Afegim el path si cal
+        font_pathname = font_pathname_or_filename if os.path.isabs(font_pathname_or_filename) \
+            else os.path.join(self.plugin_path, "fonts", font_pathname_or_filename)
+        # Afegim la extensió si cal
+        if not os.path.splitext(font_pathname_or_filename)[1]:
+            for file_type in file_types_list:
+                if os.path.exists(font_pathname + "." + file_type):
+                    font_pathname += ("." + file_type)
+                    break
+        # Carreguem la font
+        return QFontDatabase.addApplicationFont(font_pathname) == 0

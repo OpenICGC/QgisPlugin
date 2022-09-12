@@ -203,7 +203,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QSlider" name="horizontalSlider_range">
+         <widget class="QRangeSlider" name="horizontalSlider_range">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -223,7 +223,7 @@
            <enum>Qt::Horizontal</enum>
           </property>
           <property name="tickPosition">
-           <enum>QSlider::TicksAbove</enum>
+           <enum>QSlider::TicksBelow</enum>
           </property>
           <property name="tickInterval">
            <number>25</number>
@@ -659,6 +659,13 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QRangeSlider</class>
+   <extends>QSlider</extends>
+   <header>qtrangeslider</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -712,22 +719,6 @@
   <connection>
    <sender>horizontalSlider_range</sender>
    <signal>sliderReleased()</signal>
-   <receiver>DockWidget</receiver>
-   <slot>on_range_value_changed()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>271</x>
-     <y>116</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>271</x>
-     <y>249</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>horizontalSlider_range</sender>
-   <signal>valueChanged(int)</signal>
    <receiver>DockWidget</receiver>
    <slot>on_range_value_changed()</slot>
    <hints>

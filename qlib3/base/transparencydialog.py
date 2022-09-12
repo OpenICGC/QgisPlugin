@@ -17,6 +17,8 @@ import os
 from PyQt5 import uic
 from PyQt5.QtWidgets import QDockWidget
 
+from .qtextra import QtExtra
+
 Ui_Transparency, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_transparency.ui'))
 
 
@@ -47,6 +49,8 @@ class TransparencyDialog(QDockWidget, Ui_Transparency):
             """
         super().__init__(parent)
         self.setupUi(self)        
+        # Canviem l'estil del QSlider per fer que surti la "fletxeta"
+        QtExtra.forceQSliderArrowStyle(self.horizontalSlider)
 
         # Canviem el títol
         if title:
