@@ -33,7 +33,7 @@ class Encoder:
     """
 
     encodings = (
-        ('&', '&amp;'),
+        ('&(?!(amp|lt|gt|quot|apos);)', '&amp;'),
         ('<', '&lt;'),
         ('>', '&gt;'),
         ('"', '&quot;'),

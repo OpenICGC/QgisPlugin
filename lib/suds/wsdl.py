@@ -618,7 +618,7 @@ class Binding(NamedObject):
         if parts is None:
             body.parts = ()
         else:
-            body.parts = re.split(r'[\s,]', parts)
+            body.parts = re.split('[\s,]', parts)
         body.use = root.get('use', default='literal')
         ns = root.get('namespace')
         if ns is None:
@@ -857,7 +857,7 @@ class Service(NamedObject):
         for p in self.ports:
             for m in p.methods.values():
                 if names is None or m.name in names:
-                    m.location = url.encode('utf-8')
+                    m.location = url
 
     def resolve(self, definitions):
         """

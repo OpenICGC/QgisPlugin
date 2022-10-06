@@ -28,8 +28,14 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.9
-changelog=v1.1.9 (2022-09-12)
+version=1.1.10
+changelog=v1.1.10 (2022-10-6)
+	- Added QGIS plugin log window to show extra process information
+	- Fixed python deprecated warnings
+	- Fixed issues checking download spatial limits on some computers
+	- Restored the previous version of the web service library to handle toponym lookup
+
+	v1.1.9 (2022-09-12)
 	- Added polygon bounding box download option
 	- Added RangeSlider widget to select years in photo search dialog
 	- Added PDF report generation from visualized map

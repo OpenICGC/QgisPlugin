@@ -35,9 +35,9 @@ import io
 from xml.etree import ElementTree
 from importlib import reload
 try:
-    import ogr, osr
-except:
     from osgeo import ogr, osr
+except:
+    import ogr, osr
 import unittest
 reload(unittest)
 
@@ -956,6 +956,51 @@ class GuiBase(object):
             """
         return [w for w in self.iface.mainWindow().children() if type(w) == QDockWidget]
 
+    ###########################################################################
+    # Other
+    #
+    def get_icon(self, icon_name):
+        """ Carrega una icona a partir del seu path (relatiu o absolut) 
+            o el seu nom (a partir d'un fitxer de recursos)
+            --- 
+            Loads icon by pathname (relative or absolut) or by name
+            (from resource file)
+            """
+        if os.path.isabs(icon_name):
+            return QIcon(icon_name)
+        # Cerquem a la carpeta del plugin
+        icon_pathname = os.path.join(self.parent.plugin_path, icon_name)
+        if os.path.exists(icon_pathname):
+            return QIcon(icon_pathname)
+        # Cerquem a la carpeta del plugin / images
+        icon_pathname = os.path.join(self.parent.plugin_path, "images", icon_name)
+        if os.path.exists(icon_pathname):
+            return QIcon(icon_pathname)
+        # Cerquem a la carpeta de QLib3 / images
+        icon_pathname = os.path.join(os.path.dirname(__file__), "images", icon_name)
+        if os.path.exists(icon_pathname):
+            return QIcon(icon_pathname)
+        # Cerquem als recursos del plugin
+        icon = QIcon(":/plugins/%s/images/%s" % (self.parent.plugin_id, icon_name))
+        if not icon.isNull():
+            return icon
+        # Cerquem als recursos de QLib
+        icon = QIcon(":/lib/qlib3/base/images/%s" % icon_name)
+        if not icon.isNull():
+            return icon
+        return None
+
+    def open_file_folder(self, folder):
+        """ Obre una carpeta en el navegador d'arxius del sistema 
+            ---
+            Open folder in system file explorer 
+            """
+        if sys.platform == "win32":
+            os.startfile(folder)
+        else:
+            opener ="open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, folder])       
+
 
 class ProjectBase(object):
     def __init__(self, parent):
@@ -974,8 +1019,7 @@ class ProjectBase(object):
             ---
             Returns EPSG code of the project, as text or text prefixed with EPSG
             """
-        crs = self.get_crs()
-        text = crs.authid()
+        text = self.get_crs().authid()
         return self.parent.crs.format_epsg(text, asPrefixedText)
 
     def set_epsg(self, epsg):
@@ -983,9 +1027,7 @@ class ProjectBase(object):
             ---
             Assign EPSG code to the project
             """
-        if type(epsg) == str:
-            epsg = int(epsg.upper().replace("EPSG:", ""))
-        crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
+        crs = self.parent.crs.get_crs(epsg)
         self.iface.mapCanvas().mapSettings().setDestinationCrs(crs)
         QgsProject.instance().setCrs(crs)
 
@@ -1438,30 +1480,30 @@ class LayersBase(object):
 
         return selection
 
-    def get_attribute_by_area_by_id(self, layer_idprefix, field_name, area, area_epsg=None, pos=0):
+    def get_attribute_by_area_by_id(self, layer_idprefix, field_name, area, area_epsg=None, use_boundingbox_intersection=True, pos=0):
         """ Retorna una llista amb l'atribut especificat de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list with the specified attribute of the layer of the selected elements for the specified area
             """
         layer = self.get_by_id(layer_idprefix, pos)
-        return self.get_attributes_by_area(layer, [field_name], area, area_epsg)
+        return self.get_attributes_by_area(layer, [field_name], area, area_epsg, use_boundingbox_intersection)
 
-    def get_attribute_by_area(self, layer, field_name, area, area_epsg=None):
+    def get_attribute_by_area(self, layer, field_name, area, area_epsg=None, use_boundingbox_intersection=True):
         """ Retorna una llista amb l'atribut especificat de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list with the specified attribute of the layer of the selected elements for the specified area
             """
-        return self.get_attributes_by_area(layer, [field_name], area, area_epsg)
+        return self.get_attributes_by_area(layer, [field_name], area, area_epsg, use_boundingbox_intersection)
 
-    def get_attributes_by_area_by_id(self, layer_idprefix, fields_name_list, area, area_epsg=None, pos=0):
+    def get_attributes_by_area_by_id(self, layer_idprefix, fields_name_list, area, area_epsg=None, use_boundingbox_intersection=True, pos=0):
         """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area
             """
         layer = self.get_by_id(layer_idprefix, pos)
-        return self.get_attributes_by_area(layer, fields_name_list, area, area_epsg)
+        return self.get_attributes_by_area(layer, fields_name_list, area, area_epsg, use_boundingbox_intersection)
 
-    def get_attributes_by_area(self, layer, fields_name_list, area, area_epsg=None):
+    def get_attributes_by_area(self, layer, fields_name_list, area, area_epsg=None, use_boundingbox_intersection=True):
         """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area
@@ -1470,14 +1512,20 @@ class LayersBase(object):
         if area_epsg and self.get_epsg(layer) != area_epsg:
             area = self.parent.crs.transform_bounding_box(area, area_epsg, self.parent.layers.get_epsg(layer))
 
-        # Cerquem elements que intersequin amb l'àrea
-        index = QgsSpatialIndex(layer.getFeatures())
-        intersect_id_list = index.intersects(area)
+        if use_boundingbox_intersection:
+            # Cerquem elements que intersequin amb l'àrea
+            index = QgsSpatialIndex(layer.getFeatures())
+            intersect_id_list = index.intersects(area)
 
-        # Recuperem la informació dels elements trobats
-        request = QgsFeatureRequest()
-        request.setFilterFids(intersect_id_list)
-        features_list = layer.getFeatures(request)
+            # Recuperem la informació dels elements trobats
+            request = QgsFeatureRequest()
+            request.setFilterFids(intersect_id_list)
+            features_list = layer.getFeatures(request)
+        else:
+            features_list = []
+            for f in layer.getFeatures():
+                if f.geometry().intersects(area):
+                    features_list.append(f)
 
         # Recuperem els camps demanats
         if len(fields_name_list) == 1:
@@ -2294,10 +2342,10 @@ class LayersBase(object):
             b_factor = (end_color.blue() - begin_color.blue()) / substeps
             a_factor = (end_color.alpha() - begin_color.alpha()) / substeps
 
-            r = begin_color.red() + (float(i) - (base_color_index * substeps)) * r_factor
-            g = begin_color.green() + (float(i) - (base_color_index * substeps)) * g_factor
-            b = begin_color.blue() + (float(i) - (base_color_index * substeps)) * b_factor
-            a = begin_color.alpha() + (float(i) - (base_color_index * substeps)) * a_factor
+            r = int(begin_color.red() + (float(i) - (base_color_index * substeps)) * r_factor)
+            g = int(begin_color.green() + (float(i) - (base_color_index * substeps)) * g_factor)
+            b = int(begin_color.blue() + (float(i) - (base_color_index * substeps)) * b_factor)
+            a = int(begin_color.alpha() + (float(i) - (base_color_index * substeps)) * a_factor)
             colors_list.append(QColor(r, g, b, a))
         # Round problems can do than we don't arrive to last color, we force it
         colors_list[-1] = base_color_list[-1]
@@ -2311,10 +2359,10 @@ class LayersBase(object):
         a_factor = float(end_color.alpha() - begin_color.alpha()) / steps
         colors_list = []
         for i in range(steps):
-            r = begin_color.red() + i * r_factor
-            g = begin_color.green() + i * g_factor
-            b = begin_color.blue() + i * b_factor
-            a = begin_color.alpha() + i * a_factor
+            r = int(begin_color.red() + i * r_factor)
+            g = int(begin_color.green() + i * g_factor)
+            b = int(begin_color.blue() + i * b_factor)
+            a = int(begin_color.alpha() + i * a_factor)
             colors_list.append(QColor(r, g, b, a))
         return colors_list
 
@@ -2687,7 +2735,9 @@ class LayersBase(object):
             ---
             Save the contents of a vector layer as a vectorial file
             """
-        crs = QgsCoordinateReferenceSystem(self.parent.crs.format_epsg(epsg, True) if epsg else None)
+        if not epsg:
+            epsg = self.get_epsg(layer)
+        crs = self.parent.crs.get_crs(epsg)
         return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, crs, format) == QgsVectorFileWriter.NoError
 
     def rename_fields_by_id(self, idprefix, rename_dict, pos=0):
@@ -3274,11 +3324,7 @@ class LayersBase(object):
         if filename:
             download_folder = os.path.join(download_folder, filename)
         if download_folder and os.path.exists(download_folder):
-            if sys.platform == "win32":
-                os.startfile(download_folder)
-            else:
-                opener ="open" if sys.platform == "darwin" else "xdg-open"
-                subprocess.call([opener, download_folder])
+            self.parent.gui.open_file_folder(download_folder)
 
     def download_remote_file(self, remote_file, local_filename=None, download_folder=None, select_folder_text=None):
         """ Descarrega un fitxer via http en la carpeta especificada
@@ -3478,7 +3524,7 @@ class LayersBase(object):
             if add_geopackage_group:
                 # Si hem de crear un grup "manualment" generem una llista amb el nom de fitxer/capa i nom capa
                 pathnames_list = [("%s|layername=%s" % (pathname, layer_name),
-                    re.sub("_\d+_", "", layer_name, 1)
+                    re.sub(r"_\d+_", "", layer_name, 1)
                     ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             else:
                 # Si no cal afegir grup de geopackage "manualment", carreguem ja el fitxer...
@@ -3490,7 +3536,7 @@ class LayersBase(object):
                 #    group_name = None
                 # Generem una llista amb el nom de capes i nom "maco" per poder aplicar estils, si cal
                 pathnames_list = [(layer_name,
-                    re.sub("_\d+_", "", layer_name, 1)
+                    re.sub(r"_\d+_", "", layer_name, 1)
                     ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             styles_dict = None
         else:
@@ -4886,10 +4932,10 @@ class CrsToolsBase(object):
 
     def format_epsg(self, text, asPrefixedText):
         """ Formateja un codi epsg text segons si volem prefix o no
-            Retorna "epsg:25831" o "25831" (string)
+            Retorna "EPSG:25831" o "25831" (string)
             ---
             Format an epsg text code based on whether we want to prefix or not
-            Returns "epsg: 25831" or "25831" (string)
+            Returns "EPSG: 25831" or "25831" (string)
             """
         if not text:
             return text
@@ -4898,7 +4944,7 @@ class CrsToolsBase(object):
             if len(parts) > 1:
                 return text
             else:
-                return "epsg:" + text
+                return "EPSG:" + text
         else:
             if len(parts) > 1:
                 return parts[1]
@@ -4923,7 +4969,8 @@ class CrsToolsBase(object):
             ---
             Obtain a CRS object from an epsg code
             """
-        crs = QgsCoordinateReferenceSystem(int(epsg), type=QgsCoordinateReferenceSystem.EpsgCrsId)
+        epsg = self.format_epsg(str(epsg), True) # Gets "EPSG:<code>"
+        crs = QgsCoordinateReferenceSystem(epsg)
         return crs
 
     def get_transform(self, in_epsg, out_epsg):
@@ -5084,7 +5131,8 @@ class DebugBase(object):
             ---
             Reload the plugin indicated by the id
             """
-        self.parent.log.debug("Reload: %s", plugin_id)
+        if self.parent.log:
+            self.parent.log.debug("Reload: %s", plugin_id)
         with WaitCursor():
             reloadPlugin(plugin_id)
         # Restaurem el cursor, per si algún plugin l'ha deixat penjat
@@ -5868,7 +5916,7 @@ class MetadataBase(object):
 
     def get_qgis_repository_plugin_version(self, plugin_tag=None, \
             repository_plugin_template="https://plugins.qgis.org/plugins/%s", \
-            regex_version_template="\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=1):
+            regex_version_template=r"\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS
             ---
             Returns plugin version hosted in QGIS plugins repository
@@ -5880,15 +5928,19 @@ class MetadataBase(object):
             ---
             Returns plugin version hosted in QGIS repository if it is newer than current version
             """
+        def get_version_number(version_text, normalize_parts=4, parts_digits=3):
+            version_text += (".0" * (normalize_parts - len(version_text.split("."))))
+            version_number = sum([int(value) * ((10 ** parts_digits) ** pos) for pos, value in enumerate(version_text.split(".")[::-1])])
+            return version_number
         repo_version = self.get_qgis_repository_plugin_version(plugin_tag)
         current_version = self.get_version()
         if not repo_version or not current_version:
             return None
-        return repo_version if repo_version > current_version else None
+        return repo_version if get_version_number(repo_version) > get_version_number(current_version) else None
 
     def get_github_repository_plugin_version(self, plugin_tag=None, \
             repository_plugin_template="https://raw.githubusercontent.com/%s/master/metadata.txt", \
-            regex_version_template="version=(.+)\s", timeout_seconds=1):
+            regex_version_template=r"version=(.+)\s", timeout_seconds=1):
         """ Retorna la versió del plugin hostajat en el repositori GitHub
             ---
             Returns plugin version hosted in GitHub repository

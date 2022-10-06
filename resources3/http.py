@@ -138,8 +138,8 @@ def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89
 
 def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/bm5m_ETRS89/json_unzip",
     delimitation_http_file_pattern=r'(bm5mv\d+js\dt[cp][cmp][\d_]+\.json)',
-    delimitation_type_patterns_list=[("Caps de Municipi", "bm5mv\d+js\dtcm[\d_]+\.json"), ("Municipis", "bm5mv\d+js\dtpm[\d_]+\.json"),
-        ("Comarques", "bm5mv\d+js\dtpc[\d_]+\.json"), ("Províncies", "bm5mv\d+js\dtpp[\d_]+\.json")]):
+    delimitation_type_patterns_list=[("Caps de Municipi", r"bm5mv\d+js\dtcm[\d_]+\.json"), ("Municipis", r"bm5mv\d+js\dtpm[\d_]+\.json"),
+        ("Comarques", r"bm5mv\d+js\dtpc[\d_]+\.json"), ("Províncies", r"bm5mv\d+js\dtpp[\d_]+\.json")]):
     """ Obté les URLs dels arxius de talls disponibles de l'ICGC
         Retorna: [(sheet_name, sheet_url)]
         ---

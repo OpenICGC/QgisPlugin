@@ -146,7 +146,7 @@ styles_list = [ # (regex_file_pattern, qml_style)
 
 
 def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-territorial/gpkg_unzip", \
-        file_pattern="(ortofoto-(\w+)-(\d+)(c*m)-(\w+)-(\d{4})\.gpkg)"):
+        file_pattern=r"(ortofoto-(\w+)-(\d+)(c*m)-(\w+)-(\d{4})\.gpkg)"):
     """ Obté les ortofotos històriques disponibles per descàrrega """
     def add_data(data_dict, color_not_irc, gsd, year, filename, source_gsd):
         if color_not_irc not in data_dict:

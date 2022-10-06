@@ -19,6 +19,7 @@ reference systems and load of WMS base layers of Catalonia.
 
 import os
 import sys
+import platform
 
 # Import base libraries
 import re
@@ -286,17 +287,18 @@ class OpenICGC(PluginBase):
     ###########################################################################
     # Plugin initialization
 
-    def __init__(self, iface):
+    def __init__(self, iface, debug_mode=False):
         """ Plugin variables initialization """
         # Save reference to the QGIS interface
         super().__init__(iface, __file__)
 
         # Detection of developer enviroment
-        self.debug_mode = __file__.find("pyrepo") >= 0
+        self.debug_mode = debug_mode or __file__.find("pyrepo") >= 0
         if self.debug_mode:
             self.enable_debug_log()
         # Dectection of plugin mode (lite or full)
         self.lite = os.environ.get("openicgc_lite", "").lower() in ["true", "1", "enabled"]
+        self.log.info("Initializing %s%s", self.metadata.get_name(), " Lite" if self.lite else "")
         self.extra_countries = self.lite
         # Detection of test environment
         self.test_available = self.debug.is_test_available()
@@ -423,7 +425,7 @@ class OpenICGC(PluginBase):
         self.download_type = "dt_area"
         self.download_group_name = self.tr("Download")
         self.download_ref_pattern = self.tr("Reference %s")
-        self.cat_limits_dict = {
+        self.cat_limits_dict = { # key: (geometry, epsg)
             "cat_rect": self.get_catalonia_limits("cat_rect_limits", buffer=0),
             "cat_simple": self.get_catalonia_limits("cat_simple_limits", buffer=0),
             "cat_limits": self.get_catalonia_limits("cat_limits", buffer=250),
@@ -458,17 +460,20 @@ class OpenICGC(PluginBase):
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
         self.iface.layerTreeView().clicked.connect(self.on_click_legend)
 
-        # Log plugin started
-        self.log.info("Init OpenICGC" + (" Lite" if self.lite else ""))
-
     def unload(self):
         """ Release of resources """
         # Unmap signals
         self.iface.layerTreeView().currentLayerChanged.disconnect(self.on_change_current_layer)
         self.iface.layerTreeView().clicked.disconnect(self.on_click_legend)
         self.combobox.activated.disconnect()
+        photo_search_layer = self.layers.get_by_id(self.photo_search_layer_id)
+        if photo_search_layer:
+            photo_search_layer.selectionChanged.disconnect(self.on_change_photo_selection)
+            if self.photo_search_dialog:
+                photo_search_layer.willBeDeleted.disconnect(self.photo_search_dialog.reset)
         # Remove photo dialog
         if self.photo_search_dialog:
+            self.photo_search_dialog.visibilityChanged.disconnect()
             self.photo_search_dialog.reset()
             self.iface.removeDockWidget(self.photo_search_dialog)
         self.photo_search_dialog = None
@@ -480,7 +485,7 @@ class OpenICGC(PluginBase):
         # Remove Download dialog
         self.download_dialog = None
         # Log plugin unloaded
-        self.log.info("Unload OpenICGC" + (" Lite" if self.lite else ""))
+        self.log.info("Unload %s%s", self.metadata.get_name(), " Lite" if self.lite else "")
         # Parent PluginBase class release all GUI resources created with their functions
         super().unload()
 
@@ -490,9 +495,21 @@ class OpenICGC(PluginBase):
         pathname = os.path.join(self.plugin_path, "data", "%s.geojson" % filename)
         with open(pathname, "r") as fin:
             geojson_text = fin.read()
-        tmp_layer = QgsVectorLayer(geojson_text, "cat_geojson", "ogr")
+        if not os.path.exists(pathname):
+            self.log.warning("Geometry limits %s file not found %s", filename, pathname)
+            return None, None
+        tmp_layer = QgsVectorLayer(pathname, "cat_geojson", "ogr")
+        if tmp_layer.featureCount() < 1:
+            self.log.warning("Load geometry limits %s error: %s\nFeatures: %s\nGeoJson: %s", 
+                filename, pathname, tmp_layer.featureCount(), geojson_text)
         geom = tmp_layer.getFeature(0).geometry().buffer(buffer, segments)
-        return geom
+        if not geom or geom.isEmpty():
+            self.log.warning("Load geometry limits %s empty: %s\nFeatures: %s\nGeoJson: %s", 
+                filename, pathname, tmp_layer.featureCount(), geojson_text)
+        epsg = tmp_layer.crs().authid()
+        self.log.info("Load geometry limits: %s (features: %s, empty: %s, buffer: %s, segments: %s, EPSG:%s)", 
+            pathname, tmp_layer.featureCount(), geom.isEmpty(), buffer, segments, epsg)
+        return geom, epsg
 
     def format_scale(self, scale):
         """ Format scale number with locale separator """
@@ -503,6 +520,9 @@ class OpenICGC(PluginBase):
 
     def initGui(self, check_qgis_updates=True, check_icgc_updates=False):
         """ GUI initializacion """
+        # Log plugin started
+        self.log.info("Initializing GUI")
+
         # Plugin registration in the plugin manager
         self.gui.configure_plugin()
 
@@ -581,7 +601,7 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/cat_topo250k.png")),
                 (self.tr("Territorial topographic referential"), None, QIcon(":/lib/qlib3/base/images/cat_topo5k.png"), enable_http_files, [
                     (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
-                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png", topo5k_time_series_list, None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png", topo5k_time_series_list[::-1], None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_topo5k.png"))
                     for topo5k_year, _url in topo5k_time_series_list]),
                 (self.tr("Topographic map 1:50,000"),
@@ -731,6 +751,9 @@ class OpenICGC(PluginBase):
                             QIcon(":/lib/qlib3/base/images/spain_cadastral.png")),
                         ]),
                     (self.tr('Andorra'), None, QIcon(":/lib/qlib3/base/images/andorra_topo50k.png"), [
+                        (self.tr("Andorra topographic 1:50,000 2020"),
+                            lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 2020"), "https://www.ideandorra.ad/Serveis/wmscarto50kraster_2020/wms", ["mta50m2020geotif"], [], "image/png",  27563, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                            QIcon(":/lib/qlib3/base/images/andorra_topo50k.png")),
                         (self.tr("Andorra topographic 1:25,000 1989"),
                             lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:25,000 1989"), "http://www.ideandorra.ad/Serveis/wmscarto25kraster_1989/wms", ["carto_25k_1989"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_topo25k.png")),
@@ -738,15 +761,15 @@ class OpenICGC(PluginBase):
                             lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 1987"), "http://www.ideandorra.ad/Serveis/wmscarto50kraster_1987/wms", ["carto_50k_1987"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_topo50k.png")),
                         "---",
-                        (self.tr("Andorra orthophoto 1:5,000 2003"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2003"), "http://www.ideandorra.ad/Serveis/wmsorto2003/wms", ["Orto5000_2003"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        (self.tr("Andorra orthophoto 1:5,000 2012"),
+                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2012"), "https://www.ideandorra.ad/Serveis/wmsorto2012/wms", ["orto2012"], [], "image/png",  27563, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_orto2003.png")),
-                        (self.tr("Andorra Infrared orthophoto 1:5,000 2003"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra Infrared orthophoto 1:5,000 2003"), "http://www.ideandorra.ad/Serveis/wmsortoIRC/wms", ["mosaic_IRC"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                            QIcon(":/lib/qlib3/base/images/andorra_orto2003i.png")),
                         (self.tr("Andorra orthophoto 1:500-1,000 20cm 2008"),
                             lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:500-1,000 20cm 2008"), "http://www.ideandorra.ad/Serveis/wmsorto2008/wms", ["orto2008"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_orto2008.png")),
+                        (self.tr("Andorra orthophoto 1:5,000 2003"),
+                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2003"), "http://www.ideandorra.ad/Serveis/wmsorto2003/wms", ["Orto5000_2003"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                            QIcon(":/lib/qlib3/base/images/andorra_orto2003.png")),
                         ]),
                     (self.tr("World"), None, QIcon(":/lib/qlib3/base/images/world.png"), [
                          (self.tr("NASA blue marble"),
@@ -817,9 +840,12 @@ class OpenICGC(PluginBase):
                 (self.tr("Software Repository"), lambda _checked:self.show_help_file("plugin_github"), QIcon(":/lib/qlib3/base/images/git.png")),
                 (self.tr("Send us an email"), lambda _checked:self.tools.send_email("qgis.openicgc@icgc.cat", "OpenICGC QGIS plugin"), QIcon(":/lib/qlib3/base/images/send_email.png")),
                 "---",
-                (self.tr("Enable debug log info"), self.enable_debug_log, QIcon(":/lib/qlib3/base/images/bug_target.png"), True, True, "enable_debug_log"),
                 (self.tr("Report an issue"), lambda _checked:self.show_help_file("plugin_issues"), QIcon(":/lib/qlib3/base/images/bug.png")),
-
+                (self.tr("Debug"), None, QIcon(":/lib/qlib3/base/images/bug_target.png"), [
+                    (self.tr("Enable debug log info"), self.enable_debug_log, QIcon(":/lib/qlib3/base/images/bug_target.png"), True, True, "enable_debug_log"),
+                    (self.tr("Open debug log file"), lambda _checked:self.gui.open_file_folder(self.log.getLogFilename()), style.standardIcon(QStyle.SP_FileIcon), self.log.getLogFilename() is not None),
+                    (self.tr("Open plugin installation folder"), lambda _checked:self.gui.open_file_folder(self.plugin_path), style.standardIcon(QStyle.SP_DirIcon)),
+                    ]),
                 ]),
             ]) + ([] if not new_qgis_plugin_version or self.lite else [
                 self.tr("Update\n available: v%s") % new_qgis_plugin_version,
@@ -865,6 +891,9 @@ class OpenICGC(PluginBase):
 
         # Add a tool to search photograms in photo library (set action to manage check/uncheck tools)
         self.tool_photo_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), self.search_photos, self.photo_search_action)
+
+        # Log plugin started
+        self.log.info("Initialization complete")
 
     def get_download_menu(self, fme_services_list, raster_not_vector=None, nested_download_submenu=True):
         """ Create download submenu structure list """
@@ -1484,19 +1513,27 @@ class OpenICGC(PluginBase):
                 self.log.debug("Geometry (point) buffered %s", 1)
 
         # If coordinates are out of Catalonia, error
-        out_of_cat = False
+        geo_limits = None
+        geo_limits_epsg = None
         if self.download_type in ["dt_area", "dt_coord"]:
-            self.log.debug("Check Catalonia limits %s", limits)
-            out_of_cat = not self.cat_limits_dict[limits].intersects(geo)
+            geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
         elif self.download_type == "dt_layer_polygon":
+            geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
             # With selfintersection multipolygon intersects fails, we can fix it using boundingbox
-            self.log.debug("Check Catalonia limits %s", limits)
-            out_of_cat = not self.cat_limits_dict[limits].intersects(geo if geo.isGeosValid() else geo.boundingBox())
+            if not geo.isGeosValid():
+                geo = geo.boundingBox()
         elif self.download_type in ["dt_municipalities", "dt_counties"]:
-            self.log.debug("Check Catalonia limits %s", "cat_limits")
-            out_of_cat = not self.cat_limits_dict["cat_limits"].intersects(geo)
+            limits = "cat_limits"
+            geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
+        if not geo_limits or geo_limits.isEmpty():
+            self.log.warning("Catalonia limits %s are empty %s (EPSG: %s)", limits, geo_limits, geo_limits_epsg)
+            out_of_cat = False
+        else:
+            self.log.debug("Check geometry limits %s" % limits)
+            out_of_cat = not geo_limits.intersects(geo)
         if out_of_cat:
-            self.log.warning("The selected area is outside Catalonia: %s", geo)
+            self.log.warning("The selected area is outside Catalonia %s", limits)
+            self.log.debug("Limits geometry: %s (EPSG: %s)", geo_limits, geo_limits_epsg)
             QMessageBox.warning(self.iface.mainWindow(), title, self.tr("The selected area is outside Catalonia"))
             return None            
                         
@@ -1863,7 +1900,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         self.log.debug("Search photo: %s" % photolib_wfs)
 
         with WaitCursor():
-            photo_layer = None
+            photo_search_layer = None
 
             # Search by coordinates
             if x and y:    
@@ -1883,7 +1920,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
                 # Search point in photo library (EPSG 4326)
                 x, y = self.crs.transform_point(x, y, epsg, 4326)
-                photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                photo_search_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
                     ["icgc:fotogrames"], 4326,
                     filter="SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (x, y),
                     extra_tags="referer=ICGC",
@@ -1893,17 +1930,17 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             # Search by name
             if name and len(name) > 7: # at least flight code...
                 layer_name = self.photo_search_label % name
-                photo_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                photo_search_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
                     ["icgc:fotogrames"], 4326,
                     filter="SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name),
                     extra_tags="referer=ICGC",
                     group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
                     collapsed=False, visible=True, transparency=None, set_current=True)
 
-            if not photo_layer:
+            if not photo_search_layer:
                 return
             # Translate field names
-            self.layers.set_fields_alias(photo_layer, {
+            self.layers.set_fields_alias(photo_search_layer, {
                "name": self.tr("Name"),
                "flight_code": self.tr("Flight code"),
                "flight_date": self.tr("Flight date"),
@@ -1933,25 +1970,25 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                })
             # Get years of found photograms
             self.search_photos_year_list = sorted(list(set([(f[date_field].date().year() if type(f[date_field]) == QDateTime \
-                else int(f[date_field].split("-")[0])) for f in photo_layer.getFeatures()])), reverse=True)
+                else int(f[date_field].split("-")[0])) for f in photo_search_layer.getFeatures()])), reverse=True)
             # Set layer colored by year style
-            self.layers.classify(photo_layer, 'to_int(left("flight_date", 4))', values_list=self.search_photos_year_list,
+            self.layers.classify(photo_search_layer, 'to_int(left("flight_date", 4))', values_list=self.search_photos_year_list,
                 color_list=[QColor(0, 127, 255, 25), QColor(100, 100, 100, 25)], # Fill with transparence
                 border_color_list=[QColor(0, 127, 255), QColor(100, 100, 100)],  # Border without transparence
                 interpolate_colors=True)
-            self.layers.set_categories_visible(photo_layer, self.search_photos_year_list[1:], False)
-            self.layers.enable_feature_count(photo_layer)
-            self.layers.zoom_to_full_extent(photo_layer)
-            self.layers.set_visible(photo_layer, False)
+            self.layers.set_categories_visible(photo_search_layer, self.search_photos_year_list[1:], False)
+            self.layers.enable_feature_count(photo_search_layer)
+            self.layers.zoom_to_full_extent(photo_search_layer)
+            self.layers.set_visible(photo_search_layer, False)
 
             # Show photo search dialog
             self.search_photos_year_list.reverse()
-            self.show_photo_search_dialog(photo_layer, self.search_photos_year_list, self.search_photos_year_list[-1] if self.search_photos_year_list else None)
+            self.show_photo_search_dialog(photo_search_layer, self.search_photos_year_list, self.search_photos_year_list[-1] if self.search_photos_year_list else None)
 
             # Map change selection feature event
-            photo_layer.selectionChanged.connect(self.on_change_photo_selection)
+            photo_search_layer.selectionChanged.connect(self.on_change_photo_selection)
             if self.photo_search_dialog:
-                photo_layer.willBeDeleted.connect(self.photo_search_dialog.reset)
+                photo_search_layer.willBeDeleted.connect(self.photo_search_dialog.reset)
 
         # Disable search tool
         self.gui.enable_tool(None)
@@ -2140,7 +2177,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         
         # Open PDF if Ok
         if status_ok and os.path.exists(pathname):
-            os.startfile(pathname)
+            self.gui.open_file_folder(pathname)
         else:
             QMessageBox.warning(self.iface.mainWindow(), title, self.tr("Error saving PDF file"))
         return status_ok
@@ -2165,4 +2202,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         self.log.setLevel(logging.DEBUG if enable else logging.WARNING)
         if enable:
             self.log.info("Debug log enabled: %s", self.log.log_filename)
+            self.log.info("OS: %s (%s)", platform.system(), sys.platform)
+            self.log.info("QGIS version: %s", Qgis.QGIS_VERSION)
+            self.log.info("Python version: %s", sys.version)
+            self.log.info("%s version: %s", self.metadata.get_name(), self.metadata.get_version())
 

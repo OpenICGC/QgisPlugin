@@ -170,7 +170,7 @@ class XTime(XBuiltin):
             else:
                 return None
         else:
-            if isinstance(value, datetime.time):
+            if isinstance(value, dt.time):
                 return str(dt.Time(value))
             else:
                 return value

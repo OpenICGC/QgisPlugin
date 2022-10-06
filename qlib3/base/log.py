@@ -16,6 +16,7 @@ import os
 import html
 import logging
 import sys
+import traceback
 from qgis.core import QgsApplication, Qgis
 from PyQt5.QtWidgets import QDockWidget, QDialog, QTabWidget, QTabBar, QStackedWidget
 
@@ -151,6 +152,8 @@ class PluginLogger():
     
     def remove(self):
         """ Remove handlers """
+        if self.file_handler:
+            self.file_handler.close()
         self.logger.handlers.clear()
         self.logger = None
 
