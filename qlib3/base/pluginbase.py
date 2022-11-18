@@ -197,12 +197,15 @@ class GuiBase(object):
     ###########################################################################
     # Plugins menú
     #
-    def configure_plugin(self, name=None, callback=None, icon=None):
+    def configure_plugin(self, name=None, callback=None, icon=None, \
+        add_to_plugins_toolbar=True, add_to_plugins_menu=True, standard_menu_or_button_menu=True):
         """ Crea una entrada en el menú de plugins, amb una funcionalitat i icona associada
             Per defecte utilitza el nom del plugin, icona i obre l'about
+            Retorna QAction que executa el callback
             ---
             Create an entry in the plugins menu, with a functionality and associated icon
             Default uses plugin name, icon and open about dialog
+            Returns QAction with triggered callback
             """
         if not name:
             name = self.parent.metadata.get_name()
@@ -213,8 +216,15 @@ class GuiBase(object):
 
         self.action_plugin = QAction(icon, name, self.iface.mainWindow())
         self.action_plugin.triggered.connect(callback)
-        self.iface.addToolBarIcon(self.action_plugin) # Afageix l'acció a la toolbar general de complements
-        self.iface.addPluginToMenu(name, self.action_plugin) # Afageix l'acció al menú de complements
+        
+        if add_to_plugins_toolbar:
+            self.iface.addToolBarIcon(self.action_plugin) # Afegeix l'acció com un botó a la toolbar general de complements
+        if add_to_plugins_menu:
+            if standard_menu_or_button_menu:
+                self.iface.addPluginToMenu(name, self.action_plugin) # Afegeix l'acció com un submenú al menú de complements
+            else:
+                self.iface.pluginMenu().addAction(self.action_plugin) # Afegeix l'acció com un botó al menú de complements
+        return self.action_plugin
 
     ###########################################################################
     # Toolbars & Menús
@@ -497,18 +507,24 @@ class GuiBase(object):
                    return subaction
         return None
 
-    def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True):
+    def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True, recursive=True):
         """ Activa una llista d'items pel seu id d'una toolbar
             ---
             Activates toolbars items by id
             """
-        actions_list = [action for action in menu_or_toolbar.actions() if action.objectName() in items_id_list]
-        for action in actions_list:
+        actions_count = 0
+        for action in menu_or_toolbar.actions():
             if type(action) == QWidgetAction:
-                action.defaultWidget().defaultAction().setEnabled(enable)
+                if recursive:
+                    self.enable_gui_items(action.defaultWidget().menu(), items_id_list, enable, recursive)
+                if action.objectName() in items_id_list:
+                    action.defaultWidget().defaultAction().setEnabled(enable)
+                    actions_count += 1
             else:
-                action.setEnabled(enable)
-        return len(actions_list)
+                if action.objectName() in items_id_list:
+                    action.setEnabled(enable)
+                    actions_count += 1
+        return actions_count
 
     ###########################################################################
     # Menus
@@ -1480,52 +1496,42 @@ class LayersBase(object):
 
         return selection
 
-    def get_attribute_by_area_by_id(self, layer_idprefix, field_name, area, area_epsg=None, use_boundingbox_intersection=True, pos=0):
+    def get_attribute_by_area_by_id(self, layer_idprefix, field_name, area, area_epsg=None, pos=0):
         """ Retorna una llista amb l'atribut especificat de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list with the specified attribute of the layer of the selected elements for the specified area
             """
         layer = self.get_by_id(layer_idprefix, pos)
-        return self.get_attributes_by_area(layer, [field_name], area, area_epsg, use_boundingbox_intersection)
+        return self.get_attributes_by_area(layer, [field_name], area, area_epsg)
 
-    def get_attribute_by_area(self, layer, field_name, area, area_epsg=None, use_boundingbox_intersection=True):
+    def get_attribute_by_area(self, layer, field_name, area, area_epsg=None):
         """ Retorna una llista amb l'atribut especificat de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list with the specified attribute of the layer of the selected elements for the specified area
             """
-        return self.get_attributes_by_area(layer, [field_name], area, area_epsg, use_boundingbox_intersection)
+        return self.get_attributes_by_area(layer, [field_name], area, area_epsg)
 
-    def get_attributes_by_area_by_id(self, layer_idprefix, fields_name_list, area, area_epsg=None, use_boundingbox_intersection=True, pos=0):
+    def get_attributes_by_area_by_id(self, layer_idprefix, fields_name_list, area, area_epsg=None, pos=0):
         """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada
             ---
             Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area
             """
         layer = self.get_by_id(layer_idprefix, pos)
-        return self.get_attributes_by_area(layer, fields_name_list, area, area_epsg, use_boundingbox_intersection)
+        return self.get_attributes_by_area(layer, fields_name_list, area, area_epsg)
 
-    def get_attributes_by_area(self, layer, fields_name_list, area, area_epsg=None, use_boundingbox_intersection=True):
-        """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada
+    def get_attributes_by_area(self, layer, fields_name_list, area, area_epsg=None):
+        """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada (rectangle)
             ---
-            Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area
+            Returns a list of tuples with the specified attributes of the layer of the selected elements for the specified area (rect)
             """
         # Obtenim l'area a buscar, i la reprojectem si cal a coordenades de la serie50k
         if area_epsg and self.get_epsg(layer) != area_epsg:
             area = self.parent.crs.transform_bounding_box(area, area_epsg, self.parent.layers.get_epsg(layer))
 
-        if use_boundingbox_intersection:
-            # Cerquem elements que intersequin amb l'àrea
-            index = QgsSpatialIndex(layer.getFeatures())
-            intersect_id_list = index.intersects(area)
-
-            # Recuperem la informació dels elements trobats
-            request = QgsFeatureRequest()
-            request.setFilterFids(intersect_id_list)
-            features_list = layer.getFeatures(request)
-        else:
-            features_list = []
-            for f in layer.getFeatures():
-                if f.geometry().intersects(area):
-                    features_list.append(f)
+        # Cerquem elements que intersequin amb l'àrea
+        request = QgsFeatureRequest()
+        request.setFilterRect(area) 
+        features_list = layer.getFeatures(request)
 
         # Recuperem els camps demanats
         if len(fields_name_list) == 1:
@@ -3100,6 +3106,10 @@ class LayersBase(object):
             ##print("Arxiu QLR: %s" % (qlr_pathname))
             status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
 
+        # Colapsem el grup
+        if status and create_qlr_group:
+            self.parent.legend.collapse_group_by_name(filename)
+
         return status
 
     def add_raster_files(self, files_list, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
@@ -3529,15 +3539,19 @@ class LayersBase(object):
             else:
                 # Si no cal afegir grup de geopackage "manualment", carreguem ja el fitxer...
                 layer = self.iface.addVectorLayer(pathname, filename, "ogr")
-                ## Si es crear un grup automàticament amb el nom de fitxer, només cal moure el grup dins del grup indicat
-                #if self.parent.legend.is_group_by_name(filename):
-                #    self.parent.legend.move_group_to_group_by_name(filename, group_name, True, group_pos)
-                self.parent.legend.collapse_group_by_name(filename)
-                #    group_name = None
-                # Generem una llista amb el nom de capes i nom "maco" per poder aplicar estils, si cal
-                pathnames_list = [(layer_name,
-                    re.sub(r"_\d+_", "", layer_name, 1)
-                    ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
+                if self.parent.legend.is_group_by_name(filename):                               
+                    # Si es crear un grup automàticament amb el nom de fitxer, només cal moure el grup dins del grup indicat
+                    self.parent.legend.collapse_group_by_name(filename)
+                    pathnames_list = [(layer.id(), 
+                        re.sub(r"_\d+_", "", layer.name(), 1)                    
+                        ) for layer in self.get_group_layers_by_id(filename)]
+                else:
+                    # Si tenim les capes per separat, estaran totes prefixades pel nom de fitxer
+                    # Generem una llista amb el nom de capes i nom "maco" per poder aplicar estils, si cal
+                    pathnames_list = [(
+                        self.get_by_name("%s — %s" % (filename, layer_name)).id(),
+                        "%s — %s" % (filename, re.sub(r"_\d+_", "", layer_name, 1))
+                        ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
             styles_dict = None
         else:
             pathnames_list = [(pathname, name)]
@@ -4105,7 +4119,7 @@ class LayersBase(object):
                 model.sort(0, Qt.DescendingOrder)
                 model.sort(model.sortColumn(), not model.sortOrder())
 
-    def show_attributes_table_by_id(self, idprefix, multiinstance = False, pos=0):
+    def show_attributes_table_by_id(self, idprefix, multiinstance=False, filter_expression=None, pos=0):
         """ Mostra la taula de atributs d'una capa a partir del seu id
             ---
             Shows the table of contents of a layer from its id
@@ -4113,21 +4127,21 @@ class LayersBase(object):
         layer = self.get_by_id(idprefix, pos)
         if not layer:
             return None
-        return self.show_attributes_table(layer, multiinstance)
+        return self.show_attributes_table(layer, multiinstance, filter_expression)
 
-    def show_attributes_table(self, layer, multiinstance = False):
+    def show_attributes_table(self, layer, multiinstance=False, filter_expression=None):
         """ Mostra la taula de continguts d'una capa
             ---
             Shows the table of contents of a layer
             """
         table_dialog = self.get_attributes_table(layer)
         if multiinstance or not table_dialog:
-            return self.iface.showAttributeTable(layer)
+            table_dialog = self.iface.showAttributeTable(layer, filter_expression)
         else:
             table_dialog.showNormal()
             table_dialog.activateWindow()
             table_dialog.setFocus()
-            return table_dialog
+        return table_dialog
 
     def get_attributes_table_by_id(self, idprefix, pos=0):
         """ Obté la taula d'atributs d'una capa a partir del seu id
@@ -5789,8 +5803,10 @@ class MetadataBase(object):
             ---
             Gets plugin default QIcon object (:/plugins/<plugin_name>/icon.png)
             """
-        icon_ref = ":/plugins/%s/%s" % (self.parent.plugin_id.lower(), icon_name)
-        icon = QIcon(icon_ref)
+        #icon_ref = ":/plugins/%s/%s" % (self.parent.plugin_id.lower(), icon_name)
+        #icon = QIcon(icon_ref)
+        icon_pathname = os.path.join(self.parent.plugin_path, icon_name)
+        icon = QIcon(icon_pathname)
         return icon
 
     def get_version(self):
@@ -5916,7 +5932,7 @@ class MetadataBase(object):
 
     def get_qgis_repository_plugin_version(self, plugin_tag=None, \
             repository_plugin_template="https://plugins.qgis.org/plugins/%s", \
-            regex_version_template=r"\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=1):
+            regex_version_template=r"\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=5):
         """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS
             ---
             Returns plugin version hosted in QGIS plugins repository
@@ -5940,7 +5956,7 @@ class MetadataBase(object):
 
     def get_github_repository_plugin_version(self, plugin_tag=None, \
             repository_plugin_template="https://raw.githubusercontent.com/%s/master/metadata.txt", \
-            regex_version_template=r"version=(.+)\s", timeout_seconds=1):
+            regex_version_template=r"version=(.+)\s", timeout_seconds=5):
         """ Retorna la versió del plugin hostajat en el repositori GitHub
             ---
             Returns plugin version hosted in GitHub repository

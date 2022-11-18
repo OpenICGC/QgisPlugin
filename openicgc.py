@@ -530,6 +530,7 @@ class OpenICGC(PluginBase):
         self.combobox = QComboBox()
         self.combobox.setFixedSize(QSize(250,24))
         self.combobox.setEditable(True)
+        self.combobox.setInsertPolicy(QComboBox.InsertAtTop)
         self.combobox.setToolTip(self.TOOLTIP_HELP)
         self.combobox.addItems(self.get_setting_value("last_searches", []))
         self.combobox.setCurrentText("")
@@ -838,7 +839,10 @@ class OpenICGC(PluginBase):
                 (self.tr("Cartographic and Geological Institute of Catalonia web"), lambda _checked:self.show_help_file("icgc"), QIcon(":/lib/qlib3/base/images/icgc.png")),
                 (self.tr("QGIS plugin repository"), lambda _checked:self.show_help_file("plugin_qgis"), QIcon(":/lib/qlib3/base/images/plugin.png")),
                 (self.tr("Software Repository"), lambda _checked:self.show_help_file("plugin_github"), QIcon(":/lib/qlib3/base/images/git.png")),
-                (self.tr("Send us an email"), lambda _checked:self.tools.send_email("qgis.openicgc@icgc.cat", "OpenICGC QGIS plugin"), QIcon(":/lib/qlib3/base/images/send_email.png")),
+                (self.tr("Send us an email"), lambda _checked:self.tools.send_email(
+                    "qgis.openicgc@icgc.cat", "OpenICGC QGIS plugin", "\n\n%s v%s / QGIS v%s / EPSG: %s" % (\
+                     self.metadata.get_name(), self.metadata.get_version(), Qgis.QGIS_VERSION, self.project.get_epsg())
+                    ), QIcon(":/lib/qlib3/base/images/send_email.png")),
                 "---",
                 (self.tr("Report an issue"), lambda _checked:self.show_help_file("plugin_issues"), QIcon(":/lib/qlib3/base/images/bug.png")),
                 (self.tr("Debug"), None, QIcon(":/lib/qlib3/base/images/bug_target.png"), [
@@ -1055,7 +1059,7 @@ class OpenICGC(PluginBase):
         """ Basic plugin call, which reads the text of the combobox and the search for the different web services available """
         self.find(self.combobox.currentText())
         # Save last searches in persistent app settings
-        searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][-self.combobox.maxVisibleItems():]
+        searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
 
     def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):

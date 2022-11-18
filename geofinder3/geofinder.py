@@ -56,7 +56,7 @@ class GeoFinder(object):
             # SOAP client configuration with Password Digest
             # Available functions: [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
 			# DOC: https://intranet/pages/viewpage.action?pageId=185862094
-            self.icgc_geoencoder_client = Client(url=" https://eines.icgc.cat/geocodificador/soap/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
+            self.icgc_geoencoder_client = Client(url="https://eines.icgc.cat/geocodificador/soap/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
         return self.icgc_geoencoder_client
 
     def __init__(self, logger=None):
@@ -356,10 +356,10 @@ class GeoFinder(object):
     def find_road(self, road, km):
         """ Returns a list of dictionaries with the roads found with the indicated nomenclature """
 
-        url.info("Geoencoder find road: %s %s", road, km)
+        self.log.info("Geoencoder find road: %s %s", road, km)
 
         # We execute the query
-        url.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
         try:
             res_dicts_list = self.get_icgc_geoencoder_client().service.localitzaPK(
                 nomCarretera = road,
@@ -481,36 +481,39 @@ class GeoFinder(object):
             raise e
         if res_dict['control']['cuerr'] != '0':
             raise Exception(str(res_dict['lerr']['err']['des']))
+        coord_dict_list = res_dict['coordenadas']['coord'] if type(res_dict['coordenadas']['coord']) is list else [res_dict['coordenadas']['coord']]
 
         # We evaluate the result
-        # If we have found a match int the response, we separate the street, municipality and district
-        adress = res_dict['coordenadas']['coord']['ldt']
-        expression = r"([\D]+ \d+) ([\D]+) \(([\D]+)\)"
-        found = re.search(expression, adress, re.IGNORECASE)
-        if not found:
-            expression = r"(.+)\.([\D]+) \(([\D]+)\)"
+        dicts_list = []
+        for coord_dict in coord_dict_list:
+            # If we have found a match int the response, we separate the street, municipality and district
+            adress = coord_dict['ldt']
+            expression = r"([\D]+ \d+) ([\D]+) \(([\D]+)\)"
             found = re.search(expression, adress, re.IGNORECASE)
-        if not found:
-            expression = r"(.+)()\(([\D]+)\)"
-            found = re.search(expression, adress, re.IGNORECASE)
-        if found:
-            street, municipality1, municipality2 = found.groups()
-        else:
-            street = adress
-            municipality1 = u''
-            municipality2 = u''
+            if not found:
+                expression = r"(.+)\.([\D]+) \(([\D]+)\)"
+                found = re.search(expression, adress, re.IGNORECASE)
+            if not found:
+                expression = r"(.+)()\(([\D]+)\)"
+                found = re.search(expression, adress, re.IGNORECASE)
+            if found:
+                street, municipality1, municipality2 = found.groups()
+            else:
+                street = adress
+                municipality1 = u''
+                municipality2 = u''
 
-        # We convert the result to a unique format
-        dicts_list = [{
-            'nom': "%s%s (%s)" % (res_dict['coordenadas']['coord']['pc']['pc1'], res_dict['coordenadas']['coord']['pc']['pc2'], street),
-            'idTipus': '',
-            'nomTipus': u'Referència Cadastral',
-            'nomMunicipi': municipality1,
-            'nomComarca': municipality2,
-            'x': float(res_dict['coordenadas']['coord']['geo']['xcen']),
-            'y': float(res_dict['coordenadas']['coord']['geo']['ycen']),
-            'epsg': int(res_dict['coordenadas']['coord']['geo']['srs'].replace('EPSG:', ''))
-            }]
+            # We convert the result to a unique format
+            dicts_list.append({
+                'nom': "%s%s (%s)" % (coord_dict['pc']['pc1'], coord_dict['pc']['pc2'], street),
+                'idTipus': '',
+                'nomTipus': u'Referència Cadastral',
+                'nomMunicipi': municipality1,
+                'nomComarca': municipality2,
+                'x': float(coord_dict['geo']['xcen']),
+                'y': float(coord_dict['geo']['ycen']),
+                'epsg': int(coord_dict['geo']['srs'].replace('EPSG:', ''))
+                })
         return dicts_list
 
     def find_placename(self, text):

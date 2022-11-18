@@ -28,8 +28,17 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.10
-changelog=v1.1.10 (2022-10-6)
+version=1.1.11
+changelog=v1.1.11 (2022-11-17)
+	- Added plugin and QGIS version information when sending a email
+	- Improved loading of vector data in zip format
+	- Changed place name search history order
+	- Fixed problem searching cadastral references with multiple results
+	- Fixed problem downloading two or more geopackages in the same work session
+	- Fixed problem detecting new plugin version
+	- Fixed problem searching roads
+
+	v1.1.10 (2022-10-06)
 	- Added QGIS plugin log window to show extra process information
 	- Fixed python deprecated warnings
 	- Fixed issues checking download spatial limits on some computers
