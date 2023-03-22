@@ -28,8 +28,15 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.11
-changelog=v1.1.11 (2022-11-17)
+version=1.1.12
+changelog=v1.1.12 (2023-03-22)
+	- Added product information links on map layers and download tool
+	- Added sort columns option to geofinder dialog
+	- Fixed compatibility problems with QGIS v3.30
+	- Fixed problem searching coordinates without loaded map
+	- Fixed problem showing save PDF options in products list
+
+	v1.1.11 (2022-11-17)
 	- Added plugin and QGIS version information when sending a email
 	- Improved loading of vector data in zip format
 	- Changed place name search history order

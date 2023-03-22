@@ -26,6 +26,7 @@ import fnmatch
 import pathlib
 import urllib
 import urllib.request
+import urllib.parse
 import socket
 import configparser
 import subprocess
@@ -41,9 +42,11 @@ except:
 import unittest
 reload(unittest)
 
-from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication, QVariant, QDateTime, QDate, QLocale, QUrl
+from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
+from PyQt5.QtCore import QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout
 from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
 from PyQt5.QtXml import QDomDocument
 
@@ -139,6 +142,9 @@ def showPluginHelp(packageName: str = None, filename: str = "index", section: st
 
 
 class WaitCursor:
+    """ Classe per mostrar el cursor d'espera en un context 
+        ---
+        Class to display the wait cursor in a given context """
     def __enter__(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
 
@@ -147,6 +153,64 @@ class WaitCursor:
 
 
 class GuiBase(object):
+    """ Classe per manegar les operacions GUI
+        ---
+        Class to manage GUI operations
+        """
+    class MenuItemWidget(QWidget):
+        """ Classe per crear entrades de menú amb botons
+            ---
+            SubClass to creates menu items with buttons 
+            """
+        def __init__(self, text, icon, buttons_list, parent, icon_size=20, font_size=9):
+            """ Crea una entrada de menú amb text, icona i botons extra
+                buttons_list = [(name, callback, icon), ...]
+                ---
+                Creates a menu item with text, icon and extra buttons
+                buttons_list = [(name, callback, icon), ...]
+                """
+            super().__init__(parent)
+        
+            self.label_icon = QLabel()
+            self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
+            self.label_icon.setFixedSize(QSize(icon_size, icon_size))
+        
+            self.label_text = QLabel(text)
+        
+            self.push_button_list = []
+            for button_text, button_callback, button_icon in buttons_list:
+                push_button = QPushButton()
+                push_button.setFlat(True)
+                push_button.setToolTip(button_text)
+                if button_icon:
+                    push_button.setIcon(button_icon)
+                push_button.setFixedSize(QSize(icon_size, icon_size))
+                if button_callback:
+                    push_button.released.connect(button_callback)
+                self.push_button_list.append(push_button)
+
+            self.layout = QHBoxLayout(self)
+            self.layout.addWidget(self.label_icon)
+            self.layout.addWidget(self.label_text)
+            for push_button in self.push_button_list:
+                self.layout.addWidget(push_button)
+            self.layout.setContentsMargins(7, 3, 7, 3)
+            self.layout.setSpacing(6)
+
+            self.container = QWidget()
+            self.container.setLayout(self.layout)
+        
+            self.container_layout = QHBoxLayout(self)
+            self.container_layout.setContentsMargins(0, 0, 0, 0)
+            self.container_layout.addWidget(self.container)
+        
+            self.setLayout(self.container_layout)
+            self.setStyleSheet(
+                #"QWidget:hover {background: palette(highlight); color: white;} " \
+                "QWidget:hover {background: palette(highlight);} " \
+                "QLabel {font-size: %dpt;}" \
+                % font_size)
+
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare i a l'iface.
             Creació d'estructures per manager la GUI del plugin.
@@ -257,7 +321,7 @@ class GuiBase(object):
             if entry is None:
                 continue
             # Recollim les dades de usuari
-            eseparator, elabel, eaction, econtrol, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list = self.__parse_entry(entry)
+            eseparator, elabel, eaction, econtrol, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list, subentries_as_buttons = self.__parse_entry(entry)
 
             # Creem el menu o toolbar
             if eseparator != None:
@@ -318,12 +382,35 @@ class GuiBase(object):
                     action.triggered.connect(callback)
                 if toggle_callback:
                     action.toggled.connect(toggle_callback)
-                if subentries_list == None:
+                if not subentries_list:
                     # Menú "normal"
                     if ref_action:
                         menu_or_toolbar.insertAction(ref_action, action)
                     else:
                         menu_or_toolbar.addAction(action)
+                elif subentries_as_buttons:
+                    # Menú amb botons a la dreta
+                    # Obtenim tots els botons a generar
+                    buttons_list = [(name, callback, icon) \
+                        for _eseparator, _elabel, _eaction, _econtrol, name, callback, _toggle_callback, icon, _enabled, _checkable, _id, _tooltip, _subentries_list, _subentries_as_buttons \
+                        in [self.__parse_entry(entry) for entry in subentries_list]]
+                    # Creem el control d'entrada de menú amb els botons extra
+                    menu_item = self.MenuItemWidget(name, icon, buttons_list, menu_or_toolbar)
+                    self.widget_actions_set.add(menu_item)
+                    # Inserim el control
+                    if type(menu_or_toolbar) == QToolBar:
+                        if ref_action:
+                            action = menu_or_toolbar.insertWidget(ref_action, menu_item)
+                        else:
+                            action = menu_or_toolbar.addWidget(menu_item)
+                    elif type(menu_or_toolbar) == QMenu:
+                        action = QWidgetAction(menu_or_toolbar)
+                        action.setDefaultWidget(menu_item)
+                        if ref_action:
+                            menu_or_toolbar.insertAction(ref_action, action)
+                        else:
+                            menu_or_toolbar.addAction(action)
+                    action.triggered.connect(callback)
                 else:
                     # Submenú
                     submenu = QMenu()
@@ -368,7 +455,7 @@ class GuiBase(object):
                 action.setCheckable(True)
             if tooltip:
                 menu_or_toolbar.setToolTipsVisible(True)
-                if type(action) == QWidgetAction:
+                if type(action) == QWidgetAction and not subentries_as_buttons:
                     action.defaultWidget().defaultAction().setToolTip(tooltip)
                 else:
                     action.setToolTip(tooltip)
@@ -383,7 +470,7 @@ class GuiBase(object):
                 QAction --> Acció amb icona i funció a executar
                 Altres_tipus --> Suposem que és un control (combobox, lineedit, ...)
                 Tupla:
-                    (Nom, [funció | (funció_activació, funció_toggle)], [icona], [enabled], [checkable], [id], [tooltip], [submenu_llista])
+                    (Nom, [funció | (funció_activació, funció_toggle)], [icona], [enabled], [checkable], [id], [tooltip], [submenu_llista], [submenu_com_botons])
             ---
             Types of accepted menus / toolbars, lists of:
                  None or "---" or "" -> separator
@@ -391,7 +478,7 @@ class GuiBase(object):
                  QAction -> Action with icon and function to execute
                  Other_type -> Suppose it is a control (combobox, lineedit, ...)
                  Tuple:
-                     (Name, [function | (enable_fuction, toggle_function)], [icon], [enabled], [checkable], [id], [sub-menu])
+                     (Name, [function | (enable_fuction, toggle_function)], [icon], [enabled], [checkable], [id], [sub-menu], [sub-menu_as_buttons])
 
             Exemple:
                 [
@@ -435,6 +522,7 @@ class GuiBase(object):
         id = None
         tooltip = None
         subentries_list = None
+        subentries_as_buttons = False
 
         if type(entry) != tuple:
             if entry == None or entry == "---" or entry == "":
@@ -464,32 +552,37 @@ class GuiBase(object):
                 if len(entry) > 3:
                     if type(entry[3]) == list:
                         subentries_list = entry[3]
+                        subentries_as_buttons = entry[4] if len(entry) > 4 else False
                     else:
                         enabled = entry[3]
                         if len(entry) > 4:
                             if type(entry[4]) == list:
                                 subentries_list = entry[4]
+                                subentries_as_buttons = entry[5] if len(entry) > 5 else False
                             else:
                                 checkable = entry[4]
                                 if len(entry) > 5:
                                     if type(entry[5]) == list:
                                         subentries_list = entry[5]
+                                        subentries_as_buttons = entry[6] if len(entry) > 6 else False
                                     else:
                                         id = entry[5]
                                         if len(entry) > 6:
                                             if type(entry[6]) == list:
                                                 subentries_list = entry[6]
+                                                subentries_as_buttons = entry[7] if len(entry) > 7 else False
                                             else:
                                                 tooltip = entry[6]
                                                 if len(entry) > 7:
                                                     if type(entry[7]) == list:
-                                                        subentries_list = entry[6]
+                                                        subentries_list = entry[7]
+                                                        subentries_as_buttons = entry[8] if len(entry) > 8 else False
 
         # Si la entrada no té callback (i no és un control) la desactivem
         if self.disable_unmapped_gui and not separator and not label and not action and not control and not callback \
             and not toggle_callback and not subentries_list:
             enabled = False
-        return separator, label, action, control, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list
+        return separator, label, action, control, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list, subentries_as_buttons
 
     def find_action(self, id, actions_list=None):
         """ Cerca una acció a partir del seu objectName
@@ -1019,6 +1112,10 @@ class GuiBase(object):
 
 
 class ProjectBase(object):
+    """ Classe per accedir a informació del projecte
+        ---
+        Class to access project information
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare i a l'iface
             ---
@@ -1107,6 +1204,10 @@ class ProjectBase(object):
 
 
 class LayersBase(object):
+    """ Classe per manegar capes de QGIS
+        ---
+        Class to manage QGIS layers
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare a i l'iface
             ---
@@ -1169,6 +1270,8 @@ class LayersBase(object):
             ---
             Returns a layer according to an identifier prefix and the prefix repeat
             """
+        if not idprefix:
+            return None
         layers_dict = QgsProject.instance().mapLayers()
         layer = layers_dict.get(idprefix, None)
         if layer:
@@ -3545,13 +3648,15 @@ class LayersBase(object):
                     pathnames_list = [(layer.id(), 
                         re.sub(r"_\d+_", "", layer.name(), 1)                    
                         ) for layer in self.get_group_layers_by_id(filename)]
-                else:
+                elif len(layers_list) > 1:
                     # Si tenim les capes per separat, estaran totes prefixades pel nom de fitxer
                     # Generem una llista amb el nom de capes i nom "maco" per poder aplicar estils, si cal
                     pathnames_list = [(
                         self.get_by_name("%s — %s" % (filename, layer_name)).id(),
                         "%s — %s" % (filename, re.sub(r"_\d+_", "", layer_name, 1))
                         ) for layer_name in layers_list if layer_name != "layer_styles"] # En saltem la taula d'estils...
+                else:
+                    pathnames_list = [(layer.id(), layer.name())]
             styles_dict = None
         else:
             pathnames_list = [(pathname, name)]
@@ -4302,6 +4407,10 @@ class LayersBase(object):
 
 
 class LegendBase(object):
+    """ Classe per manegar la llegenda de QGIS
+        ---
+        Class to manage QGIS lengend
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare, a l'iface i a l'arrel de la llegenda
             ---
@@ -4758,6 +4867,10 @@ class LegendBase(object):
 
 
 class ComposerBase(object):
+    """ Classe per manegar el compositor d'informes de QGIS
+        ---
+        Class to manage QGIS composer
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare a l'iface
             ---
@@ -4891,23 +5004,20 @@ class ComposerBase(object):
         return layout
 
     def export_composition(self, composition, out_pathname):
+        # Només suportem exportar PDFs
+        if os.path.splitext(out_pathname)[1].lower() != ".pdf":
+            return False
+
         # Si tenim atles, renderitzem totes les pàgines
         atlas = composition.atlas()
-        if atlas:
-            atlas.beginRender()
-            if atlas.first():
-                for i in range(atlas.count()):
-                    atlas.refreshCurrentFeature()
-                    atlas.next()
-            atlas.endRender()
-
-        # Generem el fitxer de sortida
-        exporter = QgsLayoutExporter(composition)
-        if os.path.splitext(out_pathname)[1].lower() == ".pdf":
-            status = exporter.exportToPdf(out_pathname, QgsLayoutExporter.PdfExportSettings())
-            return status == QgsLayoutExporter.ExportResult.Success
+        if atlas and atlas.enabled():
+            exporter = QgsLayoutExporter(atlas.layout())
+            status, error = exporter.exportToPdf(atlas, out_pathname, QgsLayoutExporter.PdfExportSettings())
         else:
-            return False
+            # Generem el fitxer de sortida
+            exporter = QgsLayoutExporter(composition)
+            status = exporter.exportToPdf(out_pathname, QgsLayoutExporter.PdfExportSettings())
+        return status == QgsLayoutExporter.ExportResult.Success
 
     def export_composition_as_image(self, composition, filepath):
         """ Exporta el contingut d'un composer com una imatge
@@ -4936,6 +5046,10 @@ class ComposerBase(object):
 
 
 class CrsToolsBase(object):
+    """ Classe per manegar sistemes de coordenades
+        ---
+        Class to manages coordinates systems
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare a l'iface
             ---
@@ -5074,6 +5188,10 @@ class CrsToolsBase(object):
 
 
 class DebugBase(object):
+    """ Classe per amb funcions de debug i test
+        ---
+        Class with debug and test functions
+        """
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare, a l'iface,
             inicialització de llista de timestamps i consola de QGIS
@@ -5268,6 +5386,15 @@ class DebugBase(object):
             """
         self.timestamps.append((description, datetime.datetime.now() if timestamp is None else timestamp))
 
+    def get_timestamps_total_time(self):
+        """ Retorna el temps total registrat 
+            --- 
+            Retuns registered total time
+            """
+        if len(self.timestamps) < 2:
+            return None
+        return self.timestamps[-1][1] - self.timestamps[0][1]
+    
     def get_timestamps_info(self, info = "Load times"):
         """ Obté informació dels timestamps existents
             ---
@@ -5288,6 +5415,10 @@ class DebugBase(object):
 
 
 class ToolsBase(object):
+    """ Classe amb eines d'alt nivell a afegir opcionalment a QGIS
+        ---
+        Class with high level tools to optionally add to QGIS
+        """
     # Components a desactivar de QGIS per defecte
     disable_menus_ids = [u'mProjectMenu', u'mEditMenu', u'mViewMenu', u'mLayerMenu', u'mSettingsMenu', u'mPluginMenu', u'mVectorMenu',
         u'mRasterMenu', u'processing', u'mHelpMenu', u'mDatabaseMenu', u'mWebMenu', u'mMeshMenu'
@@ -5512,13 +5643,13 @@ class ToolsBase(object):
                 (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
                 ], add_separator=add_separator)
 
-    def add_tool_reload_plugins(self, tool_name = "&Recarregar plugins ICGC", toolbar_and_menu_name = "&Manteniment", plugins_id_wildcard = "qp*"):
+    def add_tool_reload_plugins(self, plugins_id_list=[], plugins_id_wildcard = "*Q", tool_name="&Recarregar plugins ICGC", toolbar_and_menu_name="&Manteniment"):
         """ Afegeix eina per recarregar els plugins que coincideixin amb el wildcard
             ---
             Add tool to reload plugins that match the wildcard
             """
         self.parent.gui.configure_GUI(toolbar_and_menu_name, [
-            (tool_name, lambda p = plugins_id_wildcard : self.parent.debug.reload_plugins(p), QIcon(":/lib/qlib3/base/images/python.png"))
+            (tool_name, lambda l=plugins_id_list, w=plugins_id_wildcard : self.parent.debug.reload_plugins(l, w), QIcon(":/lib/qlib3/base/images/python.png"))
             ])
 
     def add_tool_refresh_map_and_legend(self, tool_name, remove_refresh_map, id="ToolRefreshMapAndLegend"):
@@ -5759,17 +5890,20 @@ class ToolsBase(object):
             ---
             Send email using system email client
             """
-        QDesktopServices.openUrl(
-            QUrl("mailto:%s?subject=%s%s%s%s" % (
-                mail_to,
-                subject or " ",
-                ("&body=%s" % body) if body else "",
-                ("&cc=%s" % copy_to) if copy_to else "",
-                ("&bcc=%s" % hidden_copy) if hidden_copy_to else "",
-                ), QUrl.TolerantMode))
+        mail_url = "mailto:%s?subject=%s%s%s%s" % (
+            mail_to,
+            subject or " ",
+            ("&body=%s" % urllib.parse.quote(body, safe="")) if body else "",
+            ("&cc=%s" % copy_to) if copy_to else "",
+            ("&bcc=%s" % hidden_copy) if hidden_copy_to else "")
+        return self.parent.show_url(mail_url)
 
 
 class MetadataBase(object):
+    """ Classe per accedir a les metadades del plugin
+        ---
+        Class to access to plugin metadata
+        """
     def __init__(self, parent, plugin_pathname):
         """ Inicialització de variables membre apuntant al pare, a l'iface i
             càrrega del fitxer de metadades del plugin
@@ -5975,6 +6109,10 @@ class MetadataBase(object):
         return repo_version if repo_version > current_version else None
 
 class TranslationBase(object):
+    """ Classe per manegar la traducció del plugin
+        ---
+        Class to manage plugin translation
+        """
     LANG_CA = "ca"
     LANG_ES = "es"
     LANG_EN = "en"
@@ -6035,6 +6173,10 @@ class TranslationBase(object):
         return self.parent.settings.value('locale/userLocale', '').split('_')[0]
 
 class PluginBase(QObject):
+    """ Classe per facilitar la creació d'un plugin de QGIS amb un conjunt d'utilitats incloses
+        ---
+        Class to facilitate the creation of a QGIS plugin with a set of utilities included
+        """
     def __init__(self, iface, plugin_pathname):
         """ Inicialització d'informació del plugin, accés a iface i accés a classes auxiliar de gestió
             ---
@@ -6149,8 +6291,19 @@ class PluginBase(QObject):
             """
         if not os.path.isabs(path):
             path = os.path.join(self.plugin_path, path)
-        filename = os.path.join(path, basename)
-        showPluginHelp(filename=filename)
+        pathname = os.path.join(path, basename)
+        filename, ext = os.path.splitext(basename)
+        if not ext or ext == ".html":        
+            showPluginHelp(filename=pathname)
+        else:
+            self.gui.open_file_folder(pathname)
+
+    def show_url(self, url, parse_mode=QUrl.TolerantMode):
+        """ Mostra una URL en el navegador per defecte 
+            ---
+            Show URL in default web navigator 
+            """
+        return QDesktopServices.openUrl(QUrl(url, parse_mode))
 
     def refresh_all(self):
         """ Refresca mapa, llegenda i taules de contingut

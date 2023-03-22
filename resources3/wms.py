@@ -22,7 +22,7 @@ log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
 
-def get_wms_capabilities(url, version="1.1.1", timeout_seconds=5, retries=3):
+def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
     """ Obté el text del capabilities d'un servei WMS
         ---
         Gets capabilities text from WMS service

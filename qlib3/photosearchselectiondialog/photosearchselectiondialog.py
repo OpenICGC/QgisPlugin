@@ -48,7 +48,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         download_callback=None, request_certificate_callback=None, request_scan_callback=None, report_bug_callback=None,
         name_field_name="name", gsd_field_name="gsd", date_field_name="flight_date", image_field_name="image_filename",
         publishable_field_name=None, available_field_name=None, analog_field_name="analog",
-        autoshow=True, show_buttons_text=True, parent=None):
+        autoshow=True, show_buttons_text=True, show_only_one_button=False, parent=None):
         """ Initialize time range and refresh / action callbacks """
         super().__init__(parent)
         self.setupUi(self)
@@ -76,7 +76,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.tableWidget_photos.setColumnWidth(1, 130)
         self.tableWidget_photos.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
         self.tableWidget_photos.setColumnWidth(2, 60)
-        self.tableWidget_photos.keyPressEvent  = self.on_table_key_press
+        self.tableWidget_photos.keyPressEvent = self.on_table_key_press
 
         # Map year sliders keypress event
         self.horizontalSlider.keyPressEvent = lambda event:self.on_slider_key_press(event, self.horizontalSlider)
@@ -143,6 +143,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_request_scan.setToolTip(self.tr("Request scan"))
         self.label_parallax.setText(self.tr("Parallax: %+d%%") % 0)
         self.checkBox_inverted_stereo.setText(self.tr("Inverted stereo"))
+        self.checkBox_show_only_one.setText(self.tr("Show only selection"))
 
         # Configure small help in tooltip
         self.tableWidget_photos.setToolTip(self.tr("""When photograms list is focused you can use\n"""
@@ -155,6 +156,9 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
             update_callback, photo_selection_callback, show_info_callback, 
             preview_callback, rectified_preview_callback, stereo_preview_callback, adjust_callback,
             download_callback, request_certificate_callback, request_scan_callback, report_bug_callback)
+
+        # Show or hide "only one" button
+        self.checkBox_show_only_one.setVisible(show_only_one_button)
 
         # Hide second time slider (date range slider)
         self.horizontalSlider_range.setVisible(False)
@@ -672,3 +676,6 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
     def is_inverted_stereo(self):
         return self.checkBox_inverted_stereo.checkState() == Qt.Checked
+
+    def is_only_one_photo(self):
+        return self.checkBox_show_only_one.isChecked()

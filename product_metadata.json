@@ -1,0 +1,254 @@
+[
+   {
+      "Producte": "Cartografia topogràfica 1:1.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic cartography 1:1,000",
+      "Formats de fitxer": "shz/zip",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia%201000&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%20(ICGC)&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title&sortOrder=reverse"
+   },
+   {
+      "Producte": "Divisions administratives",
+      "Cobertura": "Vigent",
+      "Carpeta": "Administrative divisions",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=divisions%20administratives&sortBy=title"
+   },
+   {
+      "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Land cover map (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=cobertes%20sol&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+   },
+   {
+      "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
+      "Cobertura": "Vigent",
+      "Carpeta": "Land cover map",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=cobertes%20sol&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%26category%2FrccState&sortBy=title"
+   },
+   {
+      "Producte": "Mapa geològic 1:25.000 (GT1)",
+      "Cobertura": "Vigent",
+      "Carpeta": "Geological map 1:25,000 (GT I)",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa geològic 1:250.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Geological map 1:250,000",
+      "Formats de fitxer": "shz/zip",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa geològic 1:50.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Geological map 1:50,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa per a la prevenció dels riscos geològics 1:25.000 (GT6)",
+      "Cobertura": "Vigent",
+      "Carpeta": "Geological map for the prevention of geological hazards 1:25,000 (GT VI)",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:1.000.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:1,000,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:100.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:100,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:2.000.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:2,000,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:25.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:25,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:250.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:250,000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:50.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:50,000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Mapa topogràfic 1:500.000",
+      "Cobertura": "Vigent",
+      "Carpeta": "Topographic map 1:500,000",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Model d'elevacions del terreny 2x2m (MET2)",
+      "Cobertura": "Vigent",
+      "Carpeta": "Digital Terrain Model 2m 2008-2011",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/model-digital-terreny-2x2-201605"
+   },
+   {
+      "Producte": "Model d'elevacions del terreny 5x5m (MET5)",
+      "Cobertura": "Vigent",
+      "Carpeta": "Digital Terrain Model 5m 2020",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/model-digital-terreny-5x5-v1r0"
+   },
+   {
+      "Producte": "NDVI",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "NDVI (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=ndvi&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+   },
+   {
+      "Producte": "Ortofoto 25 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto color 25cm 1:2.500",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-25cm-v4r0-color"
+   },
+   {
+      "Producte": "Ortofoto 250 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto color 2.5m 1:25.000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-250cm-v7r0-color"
+   },
+   {
+      "Producte": "Ortofoto 50 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto color 50cm 1:5.000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-50cm-v7r0-color"
+   },
+   {
+      "Producte": "Ortofoto infraroja 25 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto infraroja 25cm 1:2.500",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-25cm-v4r0-infraroja"
+   },
+   {
+      "Producte": "Ortofoto infraroja 250 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto infraroja 2.5m 1:25.000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-250cm-v7r0-infraroja"
+   },
+   {
+      "Producte": "Ortofoto infraroja 50 cm",
+      "Cobertura": "Vigent",
+      "Carpeta": "Ortofoto infraroja 50cm 1:5.000",
+      "Formats de fitxer": "gtiff",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-50cm-v7r0-infraroja"
+   },
+   {
+      "Producte": "Ortofoto territorial",
+      "Cobertura": "Sèrie temporal color",
+      "Carpeta": "Color orthophoto (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=ortofoto%20color&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+   },
+   {
+      "Producte": "Ortofoto territorial",
+      "Cobertura": "Sèrie temporal infraroja",
+      "Carpeta": "Infrared orthophoto (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=ortofoto%20infraroja&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+   },
+   {
+      "Producte": "Ortofoto territorial",
+      "Cobertura": "Vigent color",
+      "Carpeta": "Current color orthophoto",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=ortofoto%20color%20vigent&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+   },
+   {
+      "Producte": "Ortofoto territorial",
+      "Cobertura": "Vigent infraroja",
+      "Carpeta": "Current infrared orthophoto",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&resultType=details&sortBy=title&type=dataset&title=ortofoto%20infraroja%20vigent&from=1&to=20"
+   },
+   {
+      "Producte": "Ortoimatge de satèl·lit Sentinel-2 mensual 10 m",
+      "Cobertura": "Sèrie mensual IRC",
+      "Carpeta": "Satellite infrared orthophoto (monthly serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=sentinel-2-mensual&sortBy=changeDate"
+   },
+   {
+      "Producte": "Ortoimatge de satèl·lit Sentinel-2 mensual 10 m",
+      "Cobertura": "Sèrie mensual RGB",
+      "Carpeta": "Satellite color orthophoto (monthly serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=sentinel-2-mensual&sortBy=changeDate"
+   },
+   {
+      "Producte": "Piràmide del mapa topogràfic",
+      "Cobertura": "Vigent UTM",
+      "Carpeta": "Topographic map (topographical pyramid)",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Referencial topogràfic territorial",
+      "Cobertura": "2018",
+      "Carpeta": "Territorial topographic referential 2018 (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-territorial-v1r0-2018"
+   },
+   {
+      "Producte": "Referencial topogràfic territorial",
+      "Cobertura": "2019",
+      "Carpeta": "Territorial topographic referential 2019 (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-territorial-v1r0-2019"
+   },
+   {
+      "Producte": "Referencial topogràfic territorial",
+      "Cobertura": "2020",
+      "Carpeta": "Territorial topographic referential 2020 (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-territorial-v1r0-2020"
+   },
+   {
+      "Producte": "Referencial topogràfic territorial",
+      "Cobertura": "Vigent",
+      "Carpeta": "Territorial topographic referential",
+      "Formats de fitxer": "",
+      "Metadades": "https://ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=referencial%20topografic%20territorial&facet.q=category%2FrccState"
+   },
+   {
+      "Producte": "Talls ETRS89",
+      "Cobertura": "Vigent",
+      "Carpeta": "Cartographic series",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   }
+]

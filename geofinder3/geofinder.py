@@ -6,6 +6,7 @@
 
 import re
 import logging
+import math
 from importlib import reload
 from osgeo import ogr, osr
 
@@ -298,6 +299,9 @@ class GeoFinder(object):
         # We convert the coordinates to ETRS89 UTM31N to do the query
         nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
         query_x, query_y = self.transform_point(x, y, epsg, 25831)
+        if query_x is None or query_y is None:
+            self.log.exception("Coordinates error: %s %s EPSG:%s", x, y, epsg)
+            raise(Exception("Coordinates error: %s %s EPSG:%s" % (x, y, epsg)))
 
         # We execute the query
         self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().wsdl.url)
@@ -351,6 +355,8 @@ class GeoFinder(object):
 
         ct = osr.CoordinateTransformation(source_crs, destination_crs)
         destination_x, destination_y, _h = ct.TransformPoint(x, y)
+        destination_x = None if math.isinf(destination_x) else destination_x
+        destination_y = None if math.isinf(destination_y) else destination_y
         return destination_x, destination_y
 
     def find_road(self, road, km):

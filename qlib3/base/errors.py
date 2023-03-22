@@ -85,6 +85,20 @@ class ErrorReportManager():
         self.width = width
         self.height = height
 
+    def set_width(self, width):
+        """ Configura la mida del diàleg
+            ---
+            Configure dialog size
+            """
+        self.width = width
+ 
+    def set_height(self, height):
+        """ Configura la mida del diàleg
+            ---
+            Configure dialog size
+            """
+        self.height = height
+
     def set_email(self, email_subject, email_to, email_cc = ""):
         """ Configura els emails d'informe d'errors
             ---
@@ -133,20 +147,17 @@ class ErrorReportManager():
             ---
             Gets information about the exception produced and displays a dialog with the error data
             """
-        message = str(e)
-        #msg = e.message
-        #if not msg or type(msg) is not unicode and type(msg) is not str:
-        #    msg = unicode(e)
-        #return self.manage_error(message)
-
-    #def manage_error(self, message):
-        #""" Mostra un diàleg amb les dades de l'error, amb la possibilitat d'enviar informes per email
-        #    ---
-        #    Shows a dialog with the error data, with the possibility to send reports by email
-        #    """
         # Obtenim informació de l'error
+        message = str(e)
         trace_back_info, console_info, db_info, layer_info = self.get_error_info(e)
+        # Mostrem l'error
+        return self.manage_error(message, trace_back_info, console_info, db_info, layer_info)
 
+    def manage_error(self, message, trace_back_info="", console_info="", db_info="", layer_info=""):
+        """ Mostra un diàleg amb les dades de l'error, amb la possibilitat d'enviar informes per email
+            ---
+            Shows a dialog with the error data, with the possibility to send reports by email
+            """
         # Preparem un missatge d'error per mostrar a pantalla
         extra_info = "[ERROR:]\n%s\n\n[TRACE:]\n%s\n\n[QGIS CONSOLE:]\n%s" % (message, trace_back_info, console_info.strip())
         if(db_info):
@@ -175,7 +186,7 @@ class ErrorReportManager():
             email_button_text = u"Reportar", email_subject = self.email_subject, email_to = self.email_to, email_cc = self.email_cc,
             width = self.width, height = self.height, parent = self.parent
             )
-
+    
     def generic_handle_error(self, func):
         """ Funció que decora la gestió d'errors de manera genèrica
             ---

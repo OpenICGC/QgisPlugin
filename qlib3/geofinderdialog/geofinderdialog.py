@@ -80,6 +80,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.tableWidget.setSortingEnabled(True)
 
         # Setup column names
         if columns_list:
