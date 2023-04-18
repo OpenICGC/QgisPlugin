@@ -28,7 +28,7 @@ log.addHandler(logging.NullHandler())
 FME_URL = "https://qgis:qgis@descarregues.icgc.cat" # Servidor extern / adreça externa (producció)
 
 FME_DOWNLOAD_EPSG = 25831
-
+FME_MAX_POLYGON_POINTS = 100
 FME_AUTO_SEARCH = "Search"
 
 services_list = [

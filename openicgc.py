@@ -28,8 +28,6 @@ import zipfile
 import io
 import logging
 import json
-import locale
-locale.setlocale(locale.LC_ALL, '')
 from urllib.request import urlopen, Request
 from urllib.parse import urljoin, quote
 from importlib import reload
@@ -63,7 +61,8 @@ if is_import_relative:
     from .qlib3.downloaddialog.downloaddialog import DownloadDialog
     # Import wms resources access functions
     from .resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
-    from .resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref, get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG
+    from .resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref
+    from .resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
     from .resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 else:
@@ -95,7 +94,8 @@ else:
     from resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
     import resources3.fme
     reload(resources3.fme)
-    from resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref, get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG
+    from resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref
+    from resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     import resources3.http
     reload(resources3.http)
     from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
@@ -106,7 +106,7 @@ set_html_font_size = lambda text, size=9: ('<html style="font-size:%spt;">%s</ht
 
 # Constants
 PHOTOLIB_WFS_MAX_FEATURES = 1000
-PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/" 
+PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/"
 PHOTOLIB_WMS = PHOTOLIB_WFS
 
 
@@ -189,7 +189,7 @@ class QgsMapToolSubScene(QgsMapTool):
         if event.button() == Qt.LeftButton:
             self.subscene(event.pos().x(), event.pos().y())
 
-    def subscene(self, x=0, y=0):
+    def subscene(self, x=None, y=None):
         # Gets selection geometry
         area = None
         if self.mode_area_not_point:
@@ -197,7 +197,7 @@ class QgsMapToolSubScene(QgsMapTool):
             geo = self.rubberBand.asGeometry()
             if geo:
                 area = geo.boundingBox()
-        if not area:
+        if not area and x is not None and y is not None:
             # If not area then we takes a point
             point = self.toMapCoordinates(QPoint(x, y))
             area = QgsRectangle(point.x(), point.y(), point.x(), point.y())
@@ -243,7 +243,7 @@ class UpdateType:
     plugin_manager = 0
     qgis_web = 1
     icgc_web = 2
-      
+
 
 class OpenICGC(PluginBase):
     """ Plugin for accessing open data published by ICGC """
@@ -312,7 +312,7 @@ class OpenICGC(PluginBase):
         #"photo": "Photo library",
         }
 
-    PRODUCT_METADATA_FILE = os.path.join(os.path.dirname(__file__), "product_metadata.json")
+    PRODUCT_METADATA_FILE = os.path.join(os.path.dirname(__file__), "data", "product_metadata.json")
 
     download_action = None
     time_series_action = None
@@ -346,6 +346,9 @@ class OpenICGC(PluginBase):
         http_resources.log = self.log
         wms_resources.log = self.log
         fme_resources.log = self.log
+
+        # Load extra fonts (Fira Sans)
+        self.load_fonts()
 
         # Translated long tooltip text
         self.TOOLTIP_HELP = self.tr("""Find:
@@ -541,27 +544,25 @@ class OpenICGC(PluginBase):
         """ Gets Catalonia limits from geojson resource file
             Apply 250m of buffer to fix possible errors on CAT envolope scale 1:1,000,000 """
         pathname = os.path.join(self.plugin_path, "data", "%s.geojson" % filename)
-        with open(pathname, "r") as fin:
-            geojson_text = fin.read()
         if not os.path.exists(pathname):
             self.log.warning("Geometry limits %s file not found %s", filename, pathname)
             return None, None
-        tmp_layer = QgsVectorLayer(pathname, "cat_geojson", "ogr")
+        tmp_layer = QgsVectorLayer(pathname, "cat_limits", "ogr")
         if tmp_layer.featureCount() < 1:
-            self.log.warning("Load geometry limits %s error: %s\nFeatures: %s\nGeoJson: %s", 
-                filename, pathname, tmp_layer.featureCount(), geojson_text)
-        geom = tmp_layer.getFeature(0).geometry().buffer(buffer, segments)
+            self.log.warning("Load geometry limits %s error: %s\nFeatures: %s",
+                filename, pathname, tmp_layer.featureCount())
+        geom = list(tmp_layer.getFeatures())[0].geometry().buffer(buffer, segments)
         if not geom or geom.isEmpty():
-            self.log.warning("Load geometry limits %s empty: %s\nFeatures: %s\nGeoJson: %s", 
-                filename, pathname, tmp_layer.featureCount(), geojson_text)
+            self.log.warning("Load geometry limits %s empty: %s\nFeatures: %s",
+                filename, pathname, tmp_layer.featureCount())
         epsg = tmp_layer.crs().authid()
-        self.log.info("Load geometry limits: %s (features: %s, empty: %s, buffer: %s, segments: %s, EPSG:%s)", 
+        self.log.info("Load geometry limits: %s (features: %s, empty: %s, buffer: %s, segments: %s, EPSG:%s)",
             pathname, tmp_layer.featureCount(), geom.isEmpty(), buffer, segments, epsg)
         return geom, epsg
 
     def format_scale(self, scale):
         """ Format scale number with locale separator """
-        text = locale.format_string("%d", scale, grouping=True)
+        text = format(scale, ",d")
         if self.translation.get_qgis_language() in ['ca', 'es']:
             text = text.replace(',', '.')
         return text
@@ -615,8 +616,8 @@ class OpenICGC(PluginBase):
         ortoxpres_color_list = [(str(year), layer_id, layer_name) for layer_id, layer_name, ortho_type, color, year in historic_ortho_list if ortho_type == "ortoxpres" and color != "irc"]
         ortoxpres_color_year, ortoxpres_color_layer_id, ortoxpres_color_layer_name = ortoxpres_color_list[-1] if ortoxpres_color_list else (None, None, None)
         ortoxpres_infrared_list = [(str(year), layer_id, layer_name) for layer_id, layer_name, ortho_type, color, year in historic_ortho_list if ortho_type == "ortoxpres" and color == "irc"]
-        ortoxpres_infrared_year, ortoxpres_infrared_layer_id, ortoxpres_infrared_layer_name = ortoxpres_infrared_list[-1] if ortoxpres_infrared_list else (None, None, None)        
-        
+        ortoxpres_infrared_year, ortoxpres_infrared_layer_id, ortoxpres_infrared_layer_name = ortoxpres_infrared_list[-1] if ortoxpres_infrared_list else (None, None, None)
+
         # Gets anaglyph fotograms. Last year can not have full photograms coverage, we select previous year as default
         photolib_wms_url = PHOTOLIB_WMS
         photolib_time_series_list, photolib_current_time = self.layers.get_wms_t_time_series(photolib_wms_url, "anaglif_central")
@@ -804,15 +805,15 @@ class OpenICGC(PluginBase):
                 "---",
                 (self.tr("Centered anaglyph photogram"), None, QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png"), [
                     (self.tr("Centered anaglyph photogram %s (annual serie)") % anaglyph_year,
-                    lambda _checked,anaglyph_year=anaglyph_year,anaglyph_layer=anaglyph_layer:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"), photolib_wms_url, anaglyph_layer, str(anaglyph_year), "central,100,false", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    lambda _checked,anaglyph_year=anaglyph_year,anaglyph_layer=anaglyph_layer:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"), photolib_wms_url, anaglyph_layer, str(anaglyph_year), "central,100,false", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
                     QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png")
                     ) for anaglyph_year, anaglyph_layer in reversed(photolib_time_series_list)])
                 ] + ([
                 (self.tr("Centered rectified photogram (annual serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"), photolib_wms_url, "ortoxpres_central", photolib_current_time, "central", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"), photolib_wms_url, "ortoxpres_central", photolib_current_time, "central", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
                     QIcon(":/lib/qlib3/photosearchselectiondialog/images/rectified_preview.png")),
                 (self.tr("Centered photogram (annual serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"), photolib_wms_url, "foto_central", photolib_current_time, "central", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False), 
+                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"), photolib_wms_url, "foto_central", photolib_current_time, "central", "image/png", None, None, 25831, "referer=ICGC", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
                     QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png")),
                 ] if self.debug_mode else []) + [
                 "---"
@@ -1012,7 +1013,7 @@ class OpenICGC(PluginBase):
                 prefix_id = id[:2] if id else None
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
                 previous_prefix_id = previous_id[:2]
-                
+
                 # If break group prefix, create a grouped menu entry
                 if previous_prefix_id != prefix_id:
                     # Find group product common prefix
@@ -1037,7 +1038,7 @@ class OpenICGC(PluginBase):
                             QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
                             True, True, previous_prefix_id,
                             self.manage_metadata_button(self.FME_METADATA_DICT.get(previous_id, None) \
-                                or self.FME_METADATA_DICT.get(previous_prefix_id, None)), 
+                                or self.FME_METADATA_DICT.get(previous_prefix_id, None)),
                             True
                             ))
                         gsd_info_dict = {}
@@ -1083,7 +1084,7 @@ class OpenICGC(PluginBase):
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
                 previous_prefix_id = previous_id[:2] if previous_id else None
                 # If change 2 first characters the inject a separator
-                if prefix_id != previous_prefix_id: 
+                if prefix_id != previous_prefix_id:
                     fme_extra_services_list.append((None, None, None, None, None, None, None, None, None, None,  None)) # 10 + 1 (vectorial_not_raster)
                 vectorial_not_raster = not self.is_raster_file(filename)
                 fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple)) # 8 params
@@ -1095,7 +1096,7 @@ class OpenICGC(PluginBase):
                     QIcon(self.FME_ICON_DICT.get(id[:2], None)),
                     True, True, id,  # Indiquem: actiu, checkable i un id d'acció
                     self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None) \
-                        or self.FME_METADATA_DICT.get(prefix_id, None)), 
+                        or self.FME_METADATA_DICT.get(prefix_id, None)),
                     True
                 ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple in fme_extra_services_list
                 ]
@@ -1124,7 +1125,7 @@ class OpenICGC(PluginBase):
         if self.photo_search_dialog and self.photo_search_dialog.isVisible():
             photo_id, flight_year, _flight_code, _filename, _photo_name, gsd, _epsg = self.get_selected_photo_info(show_errors=False)
             if self.photo_search_dialog:
-                self.photo_search_dialog.select_photo(photo_id, flight_year)
+                self.photo_search_dialog.select_photo(photo_id, flight_year, update_map=False)
             if self.tool_subscene:
                 self.tool_subscene.set_gsd(gsd)
 
@@ -1177,12 +1178,12 @@ class OpenICGC(PluginBase):
                     self.time_series_action.setChecked(self.tools.time_series_dialog is not None and self.tools.time_series_dialog.isVisible())
             # Show stereo anaglyph options
             if layer_id and layer_id.lower().startswith("anaglif"):
-                self.tools.show_anaglyph_dialog(layer, self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo"))        
+                self.tools.show_anaglyph_dialog(layer, self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo"))
             # Show "on the fly" central photogram rendering layers warning
             if layer_id and layer_id.lower().endswith("_central"):
                 message = self.tr("This layer renders only the most centered photogram in the map view, you can zoom in for continuous navigation. Please note that current year may not have full photogram coverage")
                 self.iface.messageBar().pushMessage(layer_name, message, level=Qgis.Info, duration=10)
-        
+
         return layer
 
     def find(self, user_text):
@@ -1222,7 +1223,7 @@ class OpenICGC(PluginBase):
             scale = self.geofinder_dialog.get_scale()
             # We resituate the map (implemented in parent PluginBase)
             self.set_map_point(x, y, epsg, scale)
-        
+
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg"])
     def is_unsupported_extension(self, ext):
@@ -1267,7 +1268,7 @@ class OpenICGC(PluginBase):
         if is_photo:
             # If we want download a photogram, we need have select it one
             photo_id, _flight_year, _flight_code, _filename, _photo_name, gsd, _epsg = self.get_selected_photo_info()
-            if not photo_id:
+            if photo_id is None:
                 action.setChecked(False)
                 self.gui.enable_tool(None)
                 return
@@ -1310,7 +1311,7 @@ class OpenICGC(PluginBase):
         download_description, download_operation_code = fme_download_type_dict[self.download_type]
         time_code = self.download_dialog.get_year()
         gsd = self.download_dialog.get_gsd()
-        if gsd_dict and gsd: 
+        if gsd_dict and gsd:
             data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple = gsd_dict[gsd]
 
         # Changes icon and tooltip of download button
@@ -1327,7 +1328,7 @@ class OpenICGC(PluginBase):
                 color_not_irc = data_type.startswith("hc")
                 ref_file = get_historic_ortho_ref(color_not_irc, gsd, time_code)
                 url_ref_or_wms_tuple = (ref_file, symbol_file) if ref_file else None
-                name += " %d" % time_code            
+                name += " %d" % time_code
             self.load_last_ref_layer = lambda:self.load_ref_layer(url_ref_or_wms_tuple, name)
             self.load_last_ref_layer()
 
@@ -1373,7 +1374,7 @@ class OpenICGC(PluginBase):
             self.tool_subscene.subscene()
 
     def download_map_area(self, geo, data_type, min_side, max_download_area, min_px_side, max_px_area, gsd, time_code, download_operation_code, local_filename, limits="cat_simple"):
-        """ Download a FME server data area (limited to max_download_area) """        
+        """ Download a FME server data area (limited to max_download_area) """
 
         # Check download file type
         filename, ext = os.path.splitext(local_filename)
@@ -1395,7 +1396,7 @@ class OpenICGC(PluginBase):
             ortho_code = get_historic_ortho_code(rgb_not_irc, gsd, time_code)
             extra_params = [ortho_code]
             filename = "%s_%s" % (os.path.splitext(filename)[0], time_code)
-        
+
         # Get download geometry
         geo = self.download_get_geometry(geo, download_epsg, min_side, max_download_area, min_px_side, max_px_area, gsd, limits)
         if not geo:
@@ -1508,7 +1509,7 @@ class OpenICGC(PluginBase):
 
     def download_get_geometry(self, geo, download_epsg, min_side, max_download_area, min_px_side, max_px_area, gsd, limits, default_point_buffer=50):
         """ Gets geometry to download """
-        title = self.tr("Download tool")   
+        title = self.tr("Download tool")
         epsg = None
 
         if self.download_type == 'dt_coord':
@@ -1554,18 +1555,17 @@ class OpenICGC(PluginBase):
                 return None
             if self.download_type == 'dt_layer_polygon':
                 # Check geometry max number of points
-                max_polygons_points = 100
                 polygons_points_count = sum(1 for _v in multipolygon.vertices())
-                if polygons_points_count > max_polygons_points:
-                    self.log.warning("Download type polygon with too many points %d / %d", polygons_points_count, max_polygons_points)
+                if polygons_points_count > FME_MAX_POLYGON_POINTS:
+                    self.log.warning("Download type polygon with too many points %d / %d", polygons_points_count, FME_MAX_POLYGON_POINTS)
                     QMessageBox.warning(self.iface.mainWindow(), title,
-                        self.tr("Your polygons have too many points: %d maximum %d" % (polygons_points_count, max_polygons_points)))
+                        self.tr("Your polygons have too many points: %d maximum %d" % (polygons_points_count, FME_MAX_POLYGON_POINTS)))
                     return None
                 # Force download by polygon
                 geo = multipolygon
             else: # if self.download_type == 'dt_layer_polygon_bb':
                 geo = QgsGeometry.fromRect(multipolygon.boundingBox())
-        
+
         else:
             self.log.debug("Download tool user selection (%s)", self.download_type)
 
@@ -1585,7 +1585,7 @@ class OpenICGC(PluginBase):
             self.log.debug("User geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), epsg)
             geo = self.crs.transform(geo, epsg, download_epsg)
             self.log.debug("Download (transformed) geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), download_epsg)
-            
+
         title = self.tr("Download map area") if is_area or is_polygon else self.tr("Download point")
 
         # Check area limit
@@ -1646,8 +1646,8 @@ class OpenICGC(PluginBase):
             self.log.warning("The selected area is outside Catalonia %s", limits)
             self.log.debug("Limits geometry: %s (EPSG: %s)", geo_limits, geo_limits_epsg)
             QMessageBox.warning(self.iface.mainWindow(), title, self.tr("The selected area is outside Catalonia"))
-            return None            
-                        
+            return None
+
         return geo
 
     def get_selected_photo_info(self, show_errors=True):
@@ -1659,7 +1659,7 @@ class OpenICGC(PluginBase):
             photo_info_list = self.layers.get_attributes_selection_by_id(self.photo_search_layer_id, ['flight_year', 'flight_code', 'image_filename', 'name', 'gsd', 'epsg'], lambda p: len(p) != 1, self.tr("You must select one photogram"))
         else:
             photo_info_list = self.layers.get_attributes_selection_by_id(self.photo_search_layer_id, ['flight_year', 'flight_code', 'image_filename', 'name', 'gsd', 'epsg'], lambda p: len(p) != 1)
-        photo_id, flight_year, flight_code, filename, name, gsd, epsg = (([photo_id] + list(photo_info_list[0])) if photo_info_list else (None, None, None, None, None, None, None))       
+        photo_id, flight_year, flight_code, filename, name, gsd, epsg = (([photo_id] + list(photo_info_list[0])) if photo_info_list else (None, None, None, None, None, None, None))
         return photo_id, flight_year, flight_code, filename, name, gsd, epsg
 
     def disable_ref_layers(self, hide_not_remove=False):
@@ -1997,17 +1997,17 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 # Walkthrough to show photo search dialog with current search
                 if self.photo_search_dialog:
                     self.photo_search_dialog.show()
-                return False            
+                return False
             # Remove previous photo search, before disables reset dialog when delete layer event
             photo_search_layer = self.layers.get_by_id(self.photo_search_layer_id)
             if photo_search_layer and self.photo_search_dialog:
                 photo_search_layer.willBeDeleted.disconnect(self.photo_search_dialog.reset)
             self.legend.empty_group(group)
-        # If photo search group not exist, we ensure that it is created before download group        
+        # If photo search group not exist, we ensure that it is created before download group
         if not group:
             # If not exists download group return -1
-            group_pos = self.legend.get_group_position_by_name(self.download_group_name) + 1 
-       
+            group_pos = self.legend.get_group_position_by_name(self.download_group_name) + 1
+
         # Fix event problems betwen photo layer and photo dialog for QGIS versions < 3.10
         # Needs create photo dialog previous to photo layer...
         if not self.photo_search_dialog and not self.check_qgis_version(310000):
@@ -2020,7 +2020,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         layer_filter = None
         with WaitCursor():
             # Search by coordinates
-            if x and y:    
+            if x and y:
                 # Get municipality information of coordinate
                 if not epsg:
                     epsg = int(self.project.get_epsg())
@@ -2048,7 +2048,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             # Search by name
             if name and len(name) > 7: # at least flight code and wildcard ...
                 layer_name = self.photo_search_label % name
-                #layer_filter = "SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name)                
+                #layer_filter = "SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name)
                 layer_filter = '<Filter><Or>' \
                     '<PropertyIsEqualTo matchCase=false>' \
                         '<ValueReference>name</ValueReference>' \
@@ -2068,9 +2068,12 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 #    collapsed=False, visible=True, transparency=None, set_current=True)
                 fake_file = '%s/?SERVICE=WFS&VERSION=%s&REQUEST=GetFeature&TYPENAMES=%s&FILTER=%s&outputformat=geojson&referer=ICGC' % (
                     photolib_wfs, "2.0.0", "icgc:fotogrames", quote(layer_filter))
+                begin_time = datetime.datetime.now()
                 photo_search_layer = self.layers.add_vector_layer(layer_name, fake_file,
                     group_name=self.photos_group_name, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
                     expanded=True, visible=True, transparency=None, set_current=True)
+                end_time = datetime.datetime.now()
+                self.log.debug("Photo search time: %s" % (end_time - begin_time))
 
             if not photo_search_layer or type(photo_search_layer) is not QgsVectorLayer:
                 return
@@ -2167,16 +2170,22 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         photo_label = self.photo_label % photo_name
         if photo_layer:
             # Update current photo_layer
+            begin_time = datetime.datetime.now()
             self.layers.update_wms_layer(photo_layer, wms_layer=layer_name, wms_style=photo_style)
+            end_time = datetime.datetime.now()
+            self.log.debug("Update photo raster time: %s" % (end_time - begin_time))
             photo_layer.setName(photo_label)
             self.layers.set_visible(photo_layer)
             self.legend.set_group_visible_by_name(self.photos_group_name)
         else:
             # Load new preview layer at top (using WMS or UNC path to file)
+            begin_time = datetime.datetime.now()
             photo_layer = self.layers.add_wms_layer(photo_label, photolib_wms,
                 [layer_name], [photo_style], "image/png", self.project.get_epsg(), extra_tags="referer=ICGC&bgcolor=0x000000",
                 group_name=self.photos_group_name, group_pos=0, only_one_map_on_group=False, only_one_visible_map_on_group=False,
                 collapsed=False, visible=True, transparency=None, set_current=False)
+            end_time = datetime.datetime.now()
+            self.log.debug("Load photo raster time: %s" % (end_time - begin_time))
             self.photo_layer_id = photo_layer.id() if photo_layer else ""
         # Restore previous selected layer
         if current_layer:
@@ -2193,7 +2202,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
             # If not exist dialog we create it else we configure and show it
             update_photo_time_callback = lambda current_year, range_year: self.update_photo_search_layer_year(layer, current_year, range_year)
-            update_photo_selection_callback = lambda photo_id: self.layers.set_selection(layer, [photo_id] if photo_id else [])
+            update_photo_selection_callback = lambda photo_id: self.layers.set_selection(layer, [photo_id] if photo_id is not None else [])
             show_info_callback = lambda photo_id: self.iface.openFeatureForm(layer, layer.getFeature(photo_id))
             preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'])
             rectified_preview_callback = lambda photo_id: self.photo_preview(layer.getFeature(photo_id)['name'], rectified=True)
@@ -2212,7 +2221,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             if not self.photo_search_dialog:
                 self.photo_search_dialog = PhotoSearchSelectionDialog(layer,
                     years_list, current_year,
-                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, 
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback,
                     preview_callback, rectified_preview_callback, stereo_preview_callback,
                     None, download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback,
                     autoshow=True, parent=self.iface.mainWindow())
@@ -2226,7 +2235,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 # Configure search result information
                 self.photo_search_dialog.set_info(layer,
                     years_list, current_year,
-                    update_photo_time_callback, update_photo_selection_callback, show_info_callback, 
+                    update_photo_time_callback, update_photo_selection_callback, show_info_callback,
                     preview_callback, rectified_preview_callback, stereo_preview_callback, None,
                     download_callback, request_certificate_callback, request_scan_callback, report_photo_bug_callback)
                 # Mostrem el diàleg
@@ -2242,7 +2251,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         if photo_layer:
             self.layers.set_categories_visible(photo_layer, set(self.search_photos_year_list) - set(year_range), False)
             self.layers.set_categories_visible(photo_layer, year_range, True)
-            self.layers.set_current_layer(photo_layer) # click in categories of layer can unselect layer... we fix it
+            #self.layers.set_current_layer(photo_layer) # click in categories of layer can unselect layer... we fix it
             self.layers.set_visible(photo_layer) # force visibility of photo layer
             self.legend.set_group_visible_by_name(self.photos_group_name) # force visibility of photo group
 
@@ -2263,7 +2272,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
     def save_map(self, report_template, title="Map"):
         """ Save current map as PDF applying a template <report_template> """
-        # Prepare a default filename        
+        # Prepare a default filename
         municipality = self.get_current_municipality()
         default_filename = ("%s.pdf" % municipality) if municipality else ""
         default_pathname = os.path.join(self.layers.get_download_path(), default_filename)
@@ -2271,7 +2280,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         pathname, _filter = QFileDialog.getSaveFileName(
             self.iface.mainWindow(), title, default_pathname, self.tr("PDF file (*.pdf)"))
         if not pathname:
-            return False        
+            return False
 
         with WaitCursor():
             # Load report template
@@ -2305,16 +2314,16 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 note_item.setText(self.tr("This PDF shows all the data visible in the QGIS project at the time of its generation"))
             location_label_item = self.composer.get_composer_item_by_id(composition, "location_label")
             if location_label_item:
-                location_label_item.setText(self.tr("Location map:"))                
+                location_label_item.setText(self.tr("Location map:"))
             topographic_label_item = self.composer.get_composer_item_by_id(composition, "topographic_label")
             if topographic_label_item:
                 topographic_label_item.setText(self.tr("Topographic map:"))
             map_label_item = self.composer.get_composer_item_by_id(composition, "map_label")
             if map_label_item:
-                map_label_item.setText(self.tr("Map:"))            
+                map_label_item.setText(self.tr("Map:"))
             # Save PDF
             status_ok = self.composer.export_composition(composition, pathname)
-        
+
         # Open PDF if Ok
         if status_ok and os.path.exists(pathname):
             self.gui.open_file_folder(pathname)

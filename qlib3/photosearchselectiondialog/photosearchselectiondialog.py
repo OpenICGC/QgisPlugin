@@ -353,7 +353,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.checkBox_inverted_stereo.setEnabled(enable)
 
         # Simulate update selection signal (and enable/disable selection dependent buttons)
-        self.on_photo_changed()
+        self.update_buttons()
 
     def set_time_series(self, time_series_list, current_time):
         """ Update year sliders information """
@@ -520,8 +520,10 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         photo_name = item.text()
         return photo_name
 
-    def select_photo(self, photo_id, year):
+    def select_photo(self, photo_id, year, update_map=False):
         """ Select specified photo in tableWidget """
+        if self.get_selected_photo_id() == photo_id:
+            return
         # Search photo id in table
         row = None
         if photo_id is not None:
@@ -531,22 +533,34 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
                 if  photo_id2 == photo_id:
                     row = i
                     break
+            
+        # If no row and we have year, try change year and search again
+        if row is None and year:
+            self.set_current_time(year)
+            return self.select_photo(photo_id, year=None, update_map=update_map)
+                
         # Select found row (or not)
+        # Blocks events 
+        self.tableWidget_photos.blockSignals(not update_map)
         if row is not None:
             self.tableWidget_photos.selectRow(row)
-        elif year:
-            # If we have year, try change year and search again
-            self.set_current_time(year)
-            self.select_photo(photo_id, year=None)
         else:
             self.tableWidget_photos.clearSelection()
+        self.tableWidget_photos.blockSignals(False)
+        self.update_buttons()
 
     def on_photo_changed(self):
         """ Mapped event to update photo layer selection when change selected photogram """
-        # Select phootogram
-        photo_id, image_available, publishable, available, analog = self.get_selected_photo_info()
+        # Update dialog buttons
+        photo_id = self.update_buttons()
+        # Select phootogram on map
         if self.photo_selection_callback:
             self.photo_selection_callback(photo_id)
+
+    def update_buttons(self):
+        """ Update dialog button state """
+        photo_id, image_available, publishable, available, analog = self.get_selected_photo_info()
+
         # Select year
         current_time, current_range = self.get_current_time_range()
         if self.update_callback and current_time:
@@ -574,64 +588,66 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_download_hd.setEnabled(enable and image_available and publishable and nominal_preview)
         self.pushButton_request_certificate.setEnabled(enable and image_available and publishable)
         self.pushButton_request_scan.setEnabled(enable and not image_available and available)
+
+        return photo_id
         
     def show_info(self):
         """ Mapped event to show photo information when push button """
         photo_id = self.get_selected_photo_id()
-        if self.show_info_callback and photo_id:
+        if self.show_info_callback and photo_id is not None:
             self.show_info_callback(photo_id)
     
     def preview(self):
         """ Mapped event to load photo raster when push button """
         photo_id = self.get_selected_photo_id()
-        if self.preview_callback and photo_id:
+        if self.preview_callback and photo_id is not None:
             self.preview_callback(photo_id)
         self.preview_type = PreviewType.NOMINAL
-        self.on_photo_changed()
+        self.update_buttons()
 
     def rectified_preview(self):
         """ Mapped event to load rectified photo raster when push button """
         photo_id = self.get_selected_photo_id()
-        if self.rectified_preview_callback and photo_id:
+        if self.rectified_preview_callback and photo_id is not None:
             self.rectified_preview_callback(photo_id)
         self.preview_type = PreviewType.RECTIFIED
-        self.on_photo_changed()
+        self.update_buttons()
 
     def stereo_preview(self):
         """ Mapped event to load stereo photo raster when push button """
         photo_id = self.get_selected_photo_id()
-        if self.stereo_preview_callback and photo_id:
+        if self.stereo_preview_callback and photo_id is not None:
             self.stereo_preview_callback(photo_id)
         self.preview_type = PreviewType.STEREO
-        self.on_photo_changed()
+        self.update_buttons()
 
     def adjust(self):
         photo_id = self.get_selected_photo_id()
-        if self.adjust_callback and photo_id:
+        if self.adjust_callback and photo_id is not None:
             self.adjust_callback(photo_id)
 
     def download_hd(self):
         """ Mapped event to enable download tool when push button """
         photo_id = self.get_selected_photo_id()
-        if self.download_callback and photo_id:
+        if self.download_callback and photo_id is not None:
             self.download_callback(photo_id)
 
     def request_certificate(self):
         """ Mapped event to request certificate when push button """
         photo_id = self.get_selected_photo_id()
-        if self.request_certificate_callback and photo_id:
+        if self.request_certificate_callback and photo_id is not None:
             self.request_certificate_callback(photo_id)
 
     def request_scan(self):
         """ Mapped event to request certificate when push button """
         photo_id = self.get_selected_photo_id()
-        if self.request_scan_callback and photo_id:
+        if self.request_scan_callback and photo_id is not None:
             self.request_scan_callback(photo_id)
 
     def report_bug(self):
         """ Mapped event to report bug when push button """
         photo_id = self.get_selected_photo_id()
-        if self.report_bug_callback and photo_id:
+        if self.report_bug_callback and photo_id is not None:
             self.report_bug_callback(photo_id)
 
     def on_table_key_press(self, event):

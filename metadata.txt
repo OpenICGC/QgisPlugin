@@ -28,8 +28,15 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.12
-changelog=v1.1.12 (2023-03-22)
+version=1.1.13
+changelog=v1.1.13 (2023-04-18)
+	- Added FiraSans font to symbolization
+	- Fixed problems with selection in photograms dialog based on geojson query with regional settings not in english
+	- Fixed problems loading Catalonia limit geojsons with regional settings not in english
+	- Fixed problems downloading photograms with polygons layer
+	- Fixed problems operating with result of photo name search
+
+	v1.1.12 (2023-03-22)
 	- Added product information links on map layers and download tool
 	- Added sort columns option to geofinder dialog
 	- Fixed compatibility problems with QGIS v3.30
@@ -95,7 +102,7 @@ changelog=v1.1.12 (2023-03-22)
 	- Added access to ICGC historical photo library (visualization and downloads)
 	- Added download geological map GT I and GT VI product
 	- Fixed timeline bars to skip one year when click on it
-	
+
 	v1.0.7 (2022-01-18)
 	- Fixed problems with buttons activation events
 	- Fixed problem accessing to annual orthophoto layers

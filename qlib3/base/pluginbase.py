@@ -2253,7 +2253,7 @@ class LayersBase(object):
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, size, opacity, use_current_symbol, base_symbol, label_function, alpha, sort, ininterpolate_colors)
+        self.classify(layer, class_attribute, values_list, color_list, border_color_list, expand, width, size, opacity, use_current_symbol, base_symbol, label_function, alpha, sort, interpolate_colors)
         return True
 
     def classify(self, layer, class_attribute=None, values_list=None, color_list=None, border_color_list=None, expand=None, width=None, size=None, opacity=None, use_current_symbol=True, base_symbol=None, label_function=None, alpha=None, sort=False, interpolate_colors=False):
@@ -4534,8 +4534,7 @@ class LegendBase(object):
                 group = self.move_group_to_group(group, group_parent, group_pos)
         if layer_list:
             self.move_layers_to_group(group, layer_list, visible_layer=visible_group)
-        if not expanded:
-            group.setExpanded(False)
+        group.setExpanded(expanded)
         return group
 
     def remove_group_by_name(self, group_name):
@@ -4781,7 +4780,7 @@ class LegendBase(object):
             """
         group.setExpanded(expand)
 
-    def is_group_expanded_by_name(self, group):
+    def is_group_expanded_by_name(self, group_name):
         """ Informa de si està expandit un grup per nom
             ---
             Informs if a group is expanded by name
@@ -5088,7 +5087,7 @@ class CrsToolsBase(object):
         ps.exec_()
         crs = ps.crs()
         if crs:
-            return format_epsg(crs.authid(), asPrefixedText)
+            return self.format_epsg(crs.authid(), asPrefixedText)
         else:
             return None
 
@@ -5895,7 +5894,7 @@ class ToolsBase(object):
             subject or " ",
             ("&body=%s" % urllib.parse.quote(body, safe="")) if body else "",
             ("&cc=%s" % copy_to) if copy_to else "",
-            ("&bcc=%s" % hidden_copy) if hidden_copy_to else "")
+            ("&bcc=%s" % hidden_copy_to) if hidden_copy_to else "")
         return self.parent.show_url(mail_url)
 
 
