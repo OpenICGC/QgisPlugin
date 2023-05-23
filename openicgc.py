@@ -1159,7 +1159,14 @@ class OpenICGC(PluginBase):
 
     def run(self, _checked=False): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Basic plugin call, which reads the text of the combobox and the search for the different web services available """
-        self.find(self.combobox.currentText())
+        search_text = self.combobox.currentText()
+        self.find(search_text)
+        # Set search text on top of combobox
+        pos = self.combobox.findText(search_text)
+        if pos != 0:
+            self.combobox.removeItem(pos)
+            self.combobox.insertItem(0, search_text)
+            self.combobox.setCurrentIndex(0)
         # Save last searches in persistent app settings
         searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
@@ -1398,9 +1405,10 @@ class OpenICGC(PluginBase):
             filename = "%s_%s" % (os.path.splitext(filename)[0], time_code)
 
         # Get download geometry
-        geo = self.download_get_geometry(geo, download_epsg, min_side, max_download_area, min_px_side, max_px_area, gsd, limits)
-        if not geo:
-            return
+        if self.download_type not in ["dt_cat", "dt_all"]:
+            geo = self.download_get_geometry(geo, download_epsg, min_side, max_download_area, min_px_side, max_px_area, gsd, limits)
+            if not geo:
+                return
         is_polygon = (type(geo) == QgsGeometry)
         is_area = (type(geo) == QgsRectangle and not geo.isEmpty())
         title = self.tr("Download map area") if is_area or is_polygon else self.tr("Download point")
@@ -1440,7 +1448,7 @@ class OpenICGC(PluginBase):
         self.log.debug("Download filename: %s", local_filename)
 
         # Get URL with FME action
-        west, south, east, north = (geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum()) if not is_polygon else (None, None, None, None)
+        west, south, east, north = (geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum()) if geo and not is_polygon else (None, None, None, None)
         points_list = [(vertex.x(), vertex.y()) for vertex in geo.vertices()] if is_polygon else []
         referrer = "%s_v%s" % (self.metadata.get_name().replace(" ", ""), self.metadata.get_version())
         url = get_clip_data_url(data_type, download_operation_code, west, south, east, north, points_list, extra_params, referrer=referrer)
@@ -1579,12 +1587,13 @@ class OpenICGC(PluginBase):
             epsg = int(self.project.get_epsg())
             self.log.debug("Use project EPSG for geometry: %s", epsg)
         # Check CS and transform
-        if epsg == download_epsg:
-            self.log.debug("Download geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), download_epsg)
-        else:
-            self.log.debug("User geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), epsg)
-            geo = self.crs.transform(geo, epsg, download_epsg)
-            self.log.debug("Download (transformed) geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), download_epsg)
+        if geo:
+            if epsg == download_epsg:
+                self.log.debug("Download geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), download_epsg)
+            else:
+                self.log.debug("User geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), epsg)
+                geo = self.crs.transform(geo, epsg, download_epsg)
+                self.log.debug("Download (transformed) geometry %s (EPSG:%s)", geo.asWkt() if is_polygon else geo.asWktCoordinates(), download_epsg)
 
         title = self.tr("Download map area") if is_area or is_polygon else self.tr("Download point")
 

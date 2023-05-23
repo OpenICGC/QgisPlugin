@@ -28,8 +28,11 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.13
-changelog=v1.1.13 (2023-04-18)
+version=1.1.14
+changelog=v1.1.14 (2023-05-23)
+	- Fixed problems with download types "all available" and "catalonia"
+
+	v1.1.13 (2023-04-18)
 	- Added FiraSans font to symbolization
 	- Fixed problems with selection in photograms dialog based on geojson query with regional settings not in english
 	- Fixed problems loading Catalonia limit geojsons with regional settings not in english

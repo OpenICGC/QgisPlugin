@@ -249,8 +249,8 @@ def get_services():
 def get_clip_data_url(data_type, mode, xmin, ymin, xmax, ymax, points_list=[], extra_params=[], referrer=None, url_base=FME_URL):
     """ Retorna la petició URL FME per descarregar un producte """
     _name, _min_side, _max_query_area, _min_px_side, _max_px_area, _gsd, _time_list, download_list, _filename, _limits, url_pattern, _url_ref_or_wms_tuple = services_dict.get(data_type, (None, None, None, None, None, None, None, None, None, None, None, None))
-    rect_list = [("%.2f" % v if v is not None else "") for v in [xmin, ymin, xmax, ymax]]
-    points_list = [",".join(["%.2f %.2f" % (x, y) for x, y in points_list])] if "pol" in download_list else [None]
+    rect_list = [("%.2f" % v if v is not None else "0") for v in [xmin, ymin, xmax, ymax]]
+    points_list = [",".join(["%.2f %.2f" % (x, y) for x, y in points_list])] if "pol" in download_list else [""]
     values_list = [url_base] + rect_list + points_list + [mode] + extra_params
     url = (url_pattern % tuple(values_list)) if url_pattern else None
     if url and referrer:
