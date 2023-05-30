@@ -33,6 +33,8 @@ import subprocess
 import base64
 import zipfile
 import io
+import tempfile
+import shutil
 from xml.etree import ElementTree
 from importlib import reload
 try:
@@ -6436,25 +6438,56 @@ class PluginBase(QObject):
     #        self.settings.endArray()
     #    self.settings.endGroup();
 
-    def load_fonts(self, fonts_path=None, file_filter_list=["*.ttf", "*.otf"]):
+    def get_fonts_temporal_folder(self):
+        """ Retorna la carpeta temporal on copiar les fonts
+            ---
+            Returns temporal fonts folder where we copy fonts
+            """
+        tmp_path = os.path.join(tempfile.gettempdir(), "%sFonts" % self.plugin_id)
+        return tmp_path
+
+    def load_fonts(self, fonts_path=None, file_filter_list=["*.ttf", "*.otf"], copy_to_temporal_folder=True):
         """ Carrega totes les fonts trobades en una carpeta. Per defecte en <plugin_path>\fonts
+            Retorna: (bool, [<font_id>,...]) True si ha anat tot bé i la llista d'ids de font
             ---
             Load all found fonts in a folder. Default <plugin_path>\fonts
+            Returns: (bool, [<font_id>,...]) True if ok and a font id's list
             """
-        if not fonts_path:
+        # Si no ens passen un path, utilitzem el path per defecte: <plugin_path>\fonts
+        if not fonts_path:            
             fonts_path = os.path.join(self.plugin_path, "fonts")
         if not os.path.exists(fonts_path):
-            return False
+            return False, []
+
+        # Creem una carpeta carpeta temporal si cal:
+        if copy_to_temporal_folder:
+            tmp_path = self.get_fonts_temporal_folder()
+            if not os.path.exists(tmp_path):
+                os.mkdir(tmp_path)
+
+        # Cerquem fonts dins la carpeta indicada
         status = True
+        font_id_list = []
         for file_filter in file_filter_list:
             for font_pathname in glob.glob(os.path.join(fonts_path, file_filter)):
-                status &= self.load_font(font_pathname)
-        return status
+                # Copiem la font a una carpeta temporal si cal
+                if copy_to_temporal_folder:
+                    temporal_font_pathname = os.path.join(tmp_path, os.path.basename(font_pathname))
+                    if not os.path.exists(temporal_font_pathname):
+                        shutil.copyfile(font_pathname, temporal_font_pathname)
+                    font_pathname = temporal_font_pathname
+                # Carreguem la font
+                font_id = self.load_font(font_pathname)
+                font_id_list.append(font_id)
+                status &= (font_id >=0)
+        return status, font_id_list
 
     def load_font(self, font_pathname_or_filename, file_types_list=["ttf", "otf"]):
         """ Carrega un fitxer de font (si no és un path absolut utlitza <plugin_path>/fonts com a path base)
+            Retorna l'identificador de font o -1 si error
             ---
             Loads a font file (if not it is a absolute path use <plugin_path>/fonts as source path)
+            Returns font id or -1 if error
             """
         # Afegim el path si cal
         font_pathname = font_pathname_or_filename if os.path.isabs(font_pathname_or_filename) \
@@ -6464,6 +6497,38 @@ class PluginBase(QObject):
             for file_type in file_types_list:
                 if os.path.exists(font_pathname + "." + file_type):
                     font_pathname += ("." + file_type)
-                    break
+                    break                        
         # Carreguem la font
-        return QFontDatabase.addApplicationFont(font_pathname) == 0
+        return QFontDatabase.addApplicationFont(font_pathname)
+
+    def unload_fonts(self, font_id_list, remove_temporal_fonts_folder=False):
+        """ Descarrega una llista de fonts d'aplicació
+            Retona: booleà, Cert si ok si no fals
+            ---
+            Unload a list of application fonts
+            Returns: bool, True if ok else False
+            """
+        # Descarrega totes les fonts
+        global_status = True
+        for font_id in font_id_list:
+            if font_id >= 0:
+                status = self.unload_font(font_id)
+                global_status &= status
+
+        # ATENCIÓ!!! ELS ARXIUS DE FONTS ES QUEDEN BLOQUEJATS I DÓNA ERROR A L'ESBORRAR-LOS
+        # DE MOMENT DEIXO LA OPCIÓ DESACTIVADA PER DEFECTE
+        # Esborrar la carpeta de fonts temporal si cal
+        if remove_temporal_fonts_folder:
+            tmp_path = self.get_fonts_temporal_folder()
+            if os.path.exists(tmp_path):
+                shutil.rmtree(tmp_path)
+        return global_status
+
+    def unload_font(self, font_id):
+        """ Descarrega una font d'aplicació
+            Retona: booleà, Cert si ok si no fals
+            ---
+            Unload a application font
+            Returns: bool, True if ok else False
+            """
+        return QFontDatabase.removeApplicationFont(font_id)

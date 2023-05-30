@@ -80,7 +80,6 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.tableWidget.setSortingEnabled(True)
 
         # Setup column names
         if columns_list:
@@ -96,6 +95,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.comboBox_scale.setCurrentIndex(pos)
 
     def set_data(self, topodata_list):
+        self.tableWidget.setSortingEnabled(False)
         self.tableWidget.setRowCount(len(topodata_list))
 
         # topodata_list example:
@@ -105,9 +105,12 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.tableWidget.setItem(i, 1, QTableWidgetItem(topodata['nomTipus'])) ## + " (" + topodata['idTipus'] + ")"))
             self.tableWidget.setItem(i, 2, QTableWidgetItem(topodata['nomMunicipi']))
             self.tableWidget.setItem(i, 3, QTableWidgetItem(topodata['nomComarca']))
+            # Ens guardem la posició original de l'item per si després s'ordena la llista i canvia l'index
+            self.tableWidget.item(i, 0).setData(Qt.UserRole, i); 
 
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
+        self.tableWidget.setSortingEnabled(True)
 
         if len(topodata_list) > 0:
             self.tableWidget.selectRow(0)
@@ -120,7 +123,9 @@ class GeoFinderDialog(QDialog, ui_geofinder):
 
     def get_selection_index(self):
         """ Return number of selected dialog row """
-        return self.tableWidget.currentRow() if self.status else -1
+        if not self.status or self.tableWidget.currentRow() < 0:
+            return -1
+        return self.tableWidget.item(self.tableWidget.currentRow(), 0).data(Qt.UserRole)
 
     def find(self, text, default_epsg):
         # Find text

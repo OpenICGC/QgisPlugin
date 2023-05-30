@@ -61,9 +61,10 @@ if is_import_relative:
     from .qlib3.downloaddialog.downloaddialog import DownloadDialog
     # Import wms resources access functions
     from .resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
+    #from .resources3.wfs import get_delimitations as get_wfs_delimitations
     from .resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref
     from .resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
-    from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
+    from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k
     from .resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 else:
     # Import basic plugin functionalities
@@ -92,13 +93,16 @@ else:
     import resources3.wms
     reload(resources3.wms)
     from resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
+    #import resources3.wfs
+    #reload(resources3.wfs)
+    #from resources3.wfs import get_delimitations as get_wfs_delimitations
     import resources3.fme
     reload(resources3.fme)
     from resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref
     from resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     import resources3.http
     reload(resources3.http)
-    from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k, get_regex_styles as get_http_regex_styles
+    from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k
     from resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 
 # Global function to set HTML tags to apply fontsize to QInputDialog text
@@ -348,7 +352,10 @@ class OpenICGC(PluginBase):
         fme_resources.log = self.log
 
         # Load extra fonts (Fira Sans)
-        self.load_fonts()
+        fonts_status, self.font_id_list = self.load_fonts(copy_to_temporal_folder=True)
+        self.log.info("Load fonts folder %s: %s" % (self.get_fonts_temporal_folder(), fonts_status))
+        if not fonts_status:
+            self.log.warning("Error loading extra fonts")
 
         # Translated long tooltip text
         self.TOOLTIP_HELP = self.tr("""Find:
@@ -391,15 +398,15 @@ class OpenICGC(PluginBase):
 
         # Initialize references names (with translation)
         self.HTTP_NAMES_DICT = {
-            "caps-municipi": self.tr("Municipal capitals"),
+            "caps-municipi": self.tr("Municipal capitals"), # Available HTTP
+            "capmunicipi": self.tr("Municipal capitals"), # Available WFS
+            "capcomarca": self.tr("County capitals"), #  # Available WFS
             "municipis": self.tr("Municipalities"),
             "comarques": self.tr("Counties"),
-            "vegueries": self.tr("Vegueries"),
+            "vegueries": self.tr("Vegueries"), # Available HTTP
             "provincies": self.tr("Provinces"),
-            "catalunya": self.tr("Catalonia"),
+            "catalunya": self.tr("Catalonia"), #Available HTTP
             }
-        # Get download services regex styles
-        self.http_regex_styles_list = get_http_regex_styles()
 
         # Initialize download names (with translation)
         self.FME_NAMES_DICT = {
@@ -522,6 +529,7 @@ class OpenICGC(PluginBase):
             photo_search_layer.selectionChanged.disconnect(self.on_change_photo_selection)
             if self.photo_search_dialog:
                 photo_search_layer.willBeDeleted.disconnect(self.photo_search_dialog.reset)
+        self.log.debug("Disconnected signals")
         # Remove photo dialog
         if self.photo_search_dialog:
             self.photo_search_dialog.visibilityChanged.disconnect()
@@ -531,10 +539,14 @@ class OpenICGC(PluginBase):
         # Remove photo search groups
         self.legend.remove_group_by_name(self.photos_group_name)
         self.legend.remove_group_by_name(self.download_group_name)
+        self.log.debug("Removed groups")
         # Remove GeoFinder dialog
         self.geofinder_dialog = None
         # Remove Download dialog
         self.download_dialog = None
+        self.log.debug("Removed dialogs")
+        # Unload fonts
+        self.log.debug("Removed fonts: %s" % self.unload_fonts(self.font_id_list))
         # Log plugin unloaded
         self.log.info("Unload %s%s", self.metadata.get_name(), " Lite" if self.lite else "")
         # Parent PluginBase class release all GUI resources created with their functions
@@ -591,6 +603,7 @@ class OpenICGC(PluginBase):
 
         # Get Available delimitations
         delimitations_list = get_delimitations()
+        #wfs_delimitations_url, wfs_delimitations_list = get_wfs_delimitations()
 
         # Gets available Sheets
         sheets_list = get_sheets()
@@ -698,17 +711,28 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Administrative divisions"), True),
                     "---",
                     ] + [
-                    (self.HTTP_NAMES_DICT.get(name, name),
-                        (lambda _checked, name=name, scale_list=scale_list:self.layers.add_vector_layer(self.HTTP_NAMES_DICT.get(name, name), scale_list[0][1], group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, regex_styles_list=self.http_regex_styles_list) if len(scale_list) == 1 else None),
+                        (self.HTTP_NAMES_DICT.get(name, name),
+                        (lambda _checked, name=name, scale_list=scale_list, style_file=style_file:self.layers.add_vector_layer(self.HTTP_NAMES_DICT.get(name, name), scale_list[0][1], group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file) if len(scale_list) == 1 else None),
                         QIcon(":/lib/qlib3/base/images/cat_vector.png"), ([
                             ("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)),
-                                lambda _checked, name=name, scale=scale, url=url:self.layers.add_vector_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), url, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, regex_styles_list=self.http_regex_styles_list),
+                                lambda _checked, name=name, scale=scale, url=url, style_file=style_file:self.layers.add_vector_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), url, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file),
                                 QIcon(":/lib/qlib3/base/images/cat_vector.png"),
                                 self.manage_metadata_button("Administrative divisions"), True)
                             for scale, url in scale_list] if len(scale_list) > 1 \
                             else self.manage_metadata_button("Administrative divisions")),
                             len(scale_list) == 1)
-                        for name, scale_list in delimitations_list
+                        for name, scale_list, style_file in delimitations_list
+                        #(self.HTTP_NAMES_DICT.get(name, name),
+                        #(lambda _checked, name=name, scale_list=scale_list, style_file=style_file:self.layers.add_wfs_layer(self.HTTP_NAMES_DICT.get(name, name), wfs_delimitations_url, [scale_list[0][1]], epsg=25831, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file) if len(scale_list) == 1 else None),
+                        #QIcon(":/lib/qlib3/base/images/cat_vector.png"), ([
+                        #    ("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)),
+                        #        lambda _checked, name=name, scale=scale, style_file=style_file, layer_id=layer_id:self.layers.add_wfs_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), wfs_delimitations_url, [layer_id], epsg=25831, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file),
+                        #        QIcon(":/lib/qlib3/base/images/cat_vector.png"),
+                        #        self.manage_metadata_button("Administrative divisions"), True)
+                        #    for scale, layer_id in scale_list] if len(scale_list) > 1 \
+                        #    else self.manage_metadata_button("Administrative divisions")),
+                        #    len(scale_list) == 1)
+                        #for name, scale_list, style_file in wfs_delimitations_list
                         ]),
                 (self.tr("Cartographic series"), None, QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files, [
                     (self.tr("%s serie") % sheet_name,

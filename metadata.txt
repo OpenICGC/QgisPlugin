@@ -28,8 +28,13 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.14
-changelog=v1.1.14 (2023-05-23)
+version=1.1.15
+changelog=v1.1.15 (2023-05-30)
+	- Fixed problem unloading / uninstalling plugin due to loading extra fonts
+	- Fixed problem sorting and accessing search results
+	- Updated delimitation files http address
+
+	v1.1.14 (2023-05-23)
 	- Fixed problems with download types "all available" and "catalonia"
 
 	v1.1.13 (2023-04-18)

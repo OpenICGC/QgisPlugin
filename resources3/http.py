@@ -24,14 +24,24 @@ log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
 
-styles_list = [ # (regex_file_pattern, qml_style)
-    (r".+-caps-municipi-.+", "divisions-administratives-caps-municipi-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    (r".+-municipis-.+", "divisions-administratives-municipis-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    (r".+-comarques-.+", "divisions-administratives-comarques-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    (r".+-vegueries-.+", "divisions-administratives-vegueries-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    (r".+-provincies-.+", "divisions-administratives-provincies-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    (r".+-catalunya-.+", "divisions-administratives-catalunya-ref.qml"), # ct1mv22sh0f4483707eaxt1 (Textos)
-    ]
+styles_path = os.path.join(os.path.dirname(__file__), "symbols")
+style_dict = {
+    "caps-municipi": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"), 
+    "municipis": os.path.join(styles_path, "divisions-administratives-municipis-ref.qml"), 
+    "comarques": os.path.join(styles_path, "divisions-administratives-comarques-ref.qml"), 
+    "vegueries": os.path.join(styles_path, "divisions-administratives-vegueries-ref.qml"), 
+    "provincies": os.path.join(styles_path, "divisions-administratives-provincies-ref.qml"), 
+    "catalunya": os.path.join(styles_path, "divisions-administratives-catalunya-ref.qml"), 
+    }
+styles_order_dict = {
+    "caps-municipi": 1,
+    "municipis": 2,
+    "comarques": 3,
+    "vegueries": 4,
+    "provincies": 5,
+    "catalunya": 6
+    }
+
 
 def get_http_dir(url, timeout_seconds=0.5, retries=3):
     """ Obté el codi HTML d'una pàgina web amb fitxers
@@ -181,20 +191,12 @@ def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/dataclou
         if last_name != name or last_scale != scale:
             delimitations_dict[name] = delimitations_dict.get(name, []) + [(int(scale) if scale else None, "%s/%s" % (delimitations_urlbase, filename))]
         last_name = name
-        last_scale = scale
-    
-    # Ordenem els arxius...
-    order_dict = {
-        "caps-municipi": 1,
-        "municipis": 2,
-        "comarques": 3,
-        "vegueries": 4,
-        "provincies": 5,
-        "catalunya": 6
-        }
-    #delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d: order_dict.get(d[0], 0) * 1000000 + d[1][0]) # index(name) * 1000000 + scale
-    delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d: order_dict[d[0]])
-    delimitations_list = [(name, sorted(scale_list, key=lambda s: s[0])) for name, scale_list in delimitations_list]
+        last_scale = scale    
+    # Ordenem les delimitacions
+    delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d: styles_order_dict[d[0]])
+    # Ordenem les escales i afegim arxiu d'estil
+    delimitations_list = [(name, sorted(scale_list, key=lambda s: s[0]), style_dict.get(name, None)) \
+        for name, scale_list in delimitations_list]
     return delimitations_list
 
 def get_ndvis(urlbase="https://datacloud.icgc.cat/datacloud/ndvi/tif",
@@ -224,12 +226,3 @@ def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
     file_tuple_list.sort(key=lambda f : f[0], reverse=True) # Ordenem per any
     return file_tuple_list
-
-def get_regex_styles():
-    """ Retorna la llista d'estils disponibles amb el path al seu QML """
-    final_styles_list = [
-        (style_regex,
-        # Injectem el path dels arxiu .qml
-        os.path.join(os.path.dirname(__file__), "symbols", style_qml) if style_qml else None
-        ) for style_regex, style_qml in styles_list]
-    return final_styles_list
