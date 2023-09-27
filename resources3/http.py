@@ -146,6 +146,20 @@ def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89
 
     return sheets_list
 
+def get_grids(grid_urlbase="https://datacloud.icgc.cat/datacloud/quadricules-utm/shp/", 
+    grid_http_file_pattern=r'quadricules-utm-v1r0-2021.zip'):
+    """ Obté les URLs dels arxius de quadricules disponibles de l'ICGC.
+        Retorna: [(sheet_name, sheet_url)]
+        ---
+        Gets ICGC's available grid urls
+        Returns: [(grid_name, grid_url)]
+        """
+    # De moment les 2 quadrícules estan en el mateix zip... així que fixo el nom de les 2...
+    return [
+        ("UTM (MGRS) 1x1 km", "/vsicurl/%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-1km-v1r0-2021.shp')),
+        ("UTM (MGRS) 10x10 km", "/vsicurl/%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-10km-v1r0-2021.shp')),
+        ]
+
 def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/bm5m_ETRS89/json_unzip",
     delimitation_http_file_pattern=r'(bm5mv\d+js\dt[cp][cmp][\d_]+\.json)',
     delimitation_type_patterns_list=[("Caps de Municipi", r"bm5mv\d+js\dtcm[\d_]+\.json"), ("Municipis", r"bm5mv\d+js\dtpm[\d_]+\.json"),

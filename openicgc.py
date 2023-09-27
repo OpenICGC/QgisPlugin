@@ -64,7 +64,7 @@ if is_import_relative:
     #from .resources3.wfs import get_delimitations as get_wfs_delimitations
     from .resources3.fme import get_clip_data_url, get_services, get_historic_ortho_code, get_historic_ortho_ref
     from .resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
-    from .resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k
+    from .resources3.http import get_dtms, get_sheets, get_grids, get_delimitations, get_ndvis, get_topographic_5k
     from .resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 else:
     # Import basic plugin functionalities
@@ -102,7 +102,7 @@ else:
     from resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     import resources3.http
     reload(resources3.http)
-    from resources3.http import get_dtms, get_sheets, get_delimitations, get_ndvis, get_topographic_5k
+    from resources3.http import get_dtms, get_sheets, get_grids, get_delimitations, get_ndvis, get_topographic_5k
     from resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 
 # Global function to set HTML tags to apply fontsize to QInputDialog text
@@ -605,8 +605,9 @@ class OpenICGC(PluginBase):
         delimitations_list = get_delimitations()
         #wfs_delimitations_url, wfs_delimitations_list = get_wfs_delimitations()
 
-        # Gets available Sheets
+        # Gets available Sheets and Grids
         sheets_list = get_sheets()
+        grids_list = get_grids()
 
         # Gets available DTMs
         dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms()]
@@ -740,6 +741,14 @@ class OpenICGC(PluginBase):
                         QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files,
                         self.manage_metadata_button("Cartographic series"), True
                         ) for sheet_name, sheet_url in sheets_list
+                    ] + [
+                    "---"
+                    ] + [
+                    (self.tr("%s grid") % grid_name,
+                        lambda _checked, grid_name=grid_name, grid_url=grid_url:self.layers.add_vector_layer(self.tr("%s grid") % grid_name, grid_url, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file="talls.qml"),
+                        QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files,
+                        self.manage_metadata_button("UTM (MGRS) grids"), True
+                        ) for grid_name, grid_url in grids_list
                     ]),
                 "---",
                 (self.tr("Geological map 1:250,000"),

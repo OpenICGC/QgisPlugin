@@ -579,7 +579,9 @@ class GuiBase(object):
                                                     if type(entry[7]) == list:
                                                         subentries_list = entry[7]
                                                         subentries_as_buttons = entry[8] if len(entry) > 8 else False
-
+        # Si la icona no és de tipus QIcon, suposem que és un identificador d'icona i intentem carregar-la
+        if icon and type(icon) is not QIcon:
+            icon = self.get_icon(icon)
         # Si la entrada no té callback (i no és un control) la desactivem
         if self.disable_unmapped_gui and not separator and not label and not action and not control and not callback \
             and not toggle_callback and not subentries_list:
@@ -1640,9 +1642,11 @@ class LayersBase(object):
 
         # Recuperem els camps demanats
         if len(fields_name_list) == 1:
-            layer_selection = [self.get_feature_attribute(layer, feature, fields_name_list[0]) for feature in features_list]
+            layer_selection = [self.get_feature_attribute(layer, feature, fields_name_list[0]) \
+                for feature in features_list if feature.geometry().intersects(area)]
         else:
-            layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in fields_name_list]) for feature in features_list]
+            layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in fields_name_list]) \
+                for feature in features_list if feature.geometry().intersects(area)]
         return layer_selection
 
     def refresh_by_id(self, layer_idprefix, unselect=False, pos=0):
@@ -1775,7 +1779,7 @@ class LayersBase(object):
         text = layer.crs().authid()
         return self.parent.crs.format_epsg(text, asPrefixedText)
 
-    def load_style_by_id(self, layer_baseid, style_file, replace_dict=None, exclude_rules_labels_list=None, exclude_rules_filter_list=None, pos=0, refresh=True):
+    def load_style_by_id(self, layer_baseid, style_file, replace_dict=None, exclude_rules_labels_list=None, exclude_rules_filter_list=None, pos=0, refresh=True, visible=True, expanded=True):
         """ Carrega un fitxer d'estil a una capa per id
             ---
             Load a style file to a layer by id
@@ -1783,9 +1787,9 @@ class LayersBase(object):
         layer = self.get_by_id(layer_baseid, pos)
         if not layer:
             return None
-        return self.load_style(layer, style_file, replace_dict, exclude_rules_labels_list, exclude_rules_filter_list, refresh)
+        return self.load_style(layer, style_file, replace_dict, exclude_rules_labels_list, exclude_rules_filter_list, refresh, visible, expanded)
 
-    def load_style(self, layer, style_file, replace_dict=None, exclude_rules_labels_list=None, exclude_rules_filter_list=None, refresh=True):
+    def load_style(self, layer, style_file, replace_dict=None, exclude_rules_labels_list=None, exclude_rules_filter_list=None, refresh=True, visible=True, expanded=True):
         """ Carrega un fitxer d'estil a una capa
             ---
             Load a style file to a layer
@@ -1849,7 +1853,7 @@ class LayersBase(object):
                     root_rule.removeChildAt(i)
         # Refresquem la llegenda
         if refresh:
-            self.refresh_legend(layer, True, True)
+            self.refresh_legend(layer, visible, expanded)
 
         return text
 
@@ -4100,7 +4104,8 @@ class LayersBase(object):
 
     def add_vector_db_layer(self, host, port, dbname, schema, table, user, password, geometry_column=None, filter=None, key_column=None, provider='postgres',
                             epsg=25831, wkbtype=QgsWkbTypes.Polygon, layer_name=None, group_name="", group_pos=None, only_one_map_on_group=False,
-                            only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None):
+                            only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None, 
+                            if_empty_retry_without_geo=False):
         """ Afegeix una capa tipus BBDD. Retorna la capa
             Paràmetres de la connexió: host, port, dbname, schema, table, user, password, geometry_column, filter, key_column
             Veure add_wms_layer per opcions de capa
@@ -4118,6 +4123,14 @@ class LayersBase(object):
         uri.setDataSource(schema, table, geometry_column, filter, key_column)
         # afegim la capa
         layer = self.add_vector_uri_layer(layer_name, uri.uri(), provider, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file)
+        # CAS ESPECIAL! A VEGADES NO CARREGA BÉ VISTES POSTGRES SI CAP ELEMENT TÉ GEOMETRIA... 
+        # EN AQUEST CAS PODEM FORÇAR CARREGAR LA CAPA SENSE GEOMETRIA
+        if if_empty_retry_without_geo and layer and layer.featureCount() < 1:
+            self.remove_layer(layer)
+            uri = QgsDataSourceUri()
+            uri.setConnection(host, str(port), dbname, user, password)
+            uri.setDataSource(schema, table, None, filter, key_column)
+            layer = self.add_vector_uri_layer(layer_name, uri.uri(), provider, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file)
         return layer
 
     def add_wfs_layer(self, layer_name, url, layers_list, epsg=None, filter=None, extra_tags="", version="2.0.0", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None):

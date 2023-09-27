@@ -28,8 +28,11 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.15
-changelog=v1.1.15 (2023-05-30)
+version=1.1.16
+changelog=v1.1.16 (2023-09-27)
+	- Added UTM (MGRS) grids 1x1 km and 10x10 km
+
+	v1.1.15 (2023-05-30)
 	- Fixed problem unloading / uninstalling plugin due to loading extra fonts
 	- Fixed problem sorting and accessing search results
 	- Updated delimitation files http address
