@@ -243,7 +243,9 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_request_scan.setVisible(self.request_scan_callback is not None)
 
     def get_photo_info(self, feature):
-        """ Returns tuplue with photo info from layer feature """
+        """ Returns tuplue with photo info from layer feature :
+            id, name, year, flight_datetime_text, gsd, image_available, publishable, available, analog 
+        """
         datetime = feature[self.date_field_name]
         if datetime:
             if type(datetime) is QDateTime:
@@ -255,8 +257,8 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         return feature.id(), feature[self.name_field_name], year, datetime_text, feature[self.gsd_field_name], \
             True if feature[self.image_field_name] else False, \
             feature[self.publishable_field_name] if self.publishable_field_name else True, \
-            feature[self.available_field_name] if self.available_field_name else True, \
-            feature[self.analog_field_name]
+            (feature[self.available_field_name] is not False) if self.available_field_name else True, \
+            feature[self.analog_field_name] if self.analog_field_name else True
 
     def reset(self, hide=True):
         """ Reset all information, disable controls and hide dialog"""
