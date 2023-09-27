@@ -217,6 +217,13 @@
       "Metadades": ""
    },
    {
+      "Producte": "Quadrícules UTM",
+      "Cobertura": "Vigent",
+      "Carpeta": "UTM (MGRS) grids",
+      "Formats de fitxer": "shz/zip",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=quadricules%20utm&sortBy=title"
+   },
+   {
       "Producte": "Referencial topogràfic territorial",
       "Cobertura": "2018",
       "Carpeta": "Territorial topographic referential 2018 (temporal serie)",
