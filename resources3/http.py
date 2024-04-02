@@ -56,24 +56,25 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
     context.verify_mode = ssl.CERT_NONE
     
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
+    response_data = ""
     remaining_retries = retries
     while remaining_retries:
         try:
-            response = None
             response = urllib.request.urlopen(url, timeout=timeout_seconds, context=context)
-            remaining_retries = 0
+            if response:
+                response_data = response.read()
+                if response_data:
+                    remaining_retries = 0
         except socket.timeout:
             remaining_retries -= 1
             log.warning("HTTP resources timeout, retries: %s, URL: %s", retries, url)
         except Exception as e:
             remaining_retries -= 1
             log.exception("HTTP resources error (%s), retries: %s, URL: %s", e, retries, url)
-    if not response:
-        response_data = ""
-        log.error("HTTP resources error, exhausted retries")
-    else:
-        response_data = response.read()
+    if response_data:
         response_data = response_data.decode('utf-8')
+    else:
+        log.error("HTTP resources error, exhausted retries")
     return response_data
 
 def get_http_files(url, file_regex_pattern, replace_list=[]):

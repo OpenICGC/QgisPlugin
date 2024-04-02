@@ -48,7 +48,7 @@ from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, Q
 from PyQt5.QtCore import QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog
 from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
 from PyQt5.QtXml import QDomDocument
 
@@ -59,7 +59,7 @@ from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
 from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler, QgsSimpleLineSymbolLayer
 from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
-from qgis.core import QgsLayoutExporter, QgsFields, Qgis
+from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -596,12 +596,13 @@ class GuiBase(object):
         if actions_list == None:
             actions_list = [action for menu_or_toolbar, action in self.actions]
         for action in actions_list:
-            if action and action.objectName() == id:
-                return action
-            if action.menu():
-               subaction = self.find_action(id, action.menu().actions())
-               if subaction:
-                   return subaction
+            if action:
+                if action.objectName() == id:
+                    return action
+                if action.menu():
+                   subaction = self.find_action(id, action.menu().actions())
+                   if subaction:
+                       return subaction
         return None
 
     def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True, recursive=True):
@@ -1079,6 +1080,10 @@ class GuiBase(object):
             Loads icon by pathname (relative or absolut) or by name
             (from resource file)
             """
+        # Verifiquem tenir extensió
+        if not os.path.splitext(icon_name)[1]:
+            icon_name += ".png"
+        # Mirem si ens han passat un path complet de la icona
         if os.path.isabs(icon_name):
             return QIcon(icon_name)
         # Cerquem a la carpeta del plugin
@@ -1328,16 +1333,58 @@ class LayersBase(object):
             ---
             Returns visible layer's features (from a list)
             """
-        visible_features = []
-        renderer = layer.renderer().clone()
-        ctx = QgsRenderContext()
-        renderer.startRender(ctx, QgsFields())
-        for feature in features_list:
-            ctx.expressionContext().setFeature(feature)
-            if renderer.willRenderFeature(feature, ctx):
-                visible_features.append(feature)
-        renderer.stopRender(ctx)
+        visible_features = []        
+        if layer and layer.renderer():
+            renderer = layer.renderer().clone()
+            ctx = QgsRenderContext()
+            renderer.startRender(ctx, QgsFields())
+            for feature in features_list:
+                ctx.expressionContext().setFeature(feature)
+                if renderer.willRenderFeature(feature, ctx):
+                    visible_features.append(feature)
+            renderer.stopRender(ctx)
         return visible_features
+
+    def get_feature_by_id(self, idprefix, feature_id, pos=0):
+        """ Retorna l'element de l'id especificat
+            ---
+            Returns feature from specified id
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return None
+        return self.get_feature(layer, feature_id)
+
+    def get_feature(self, layer, feature_id):
+        """ Retorna l'element de l'id especificat
+            ---
+            Returns feature from specified id
+            """
+        feature_request = QgsFeatureRequest()
+        feature_request.setFilterFid(feature_id)
+        feature_list = list(layer.getFeatures(feature_request))
+        return feature_list[0] if feature_list else None
+
+    def get_feature_by_attribute_by_id(self, idprefix, field_name, field_value, pos=0):
+        """ Retorna l'element especificat pel valor d'attribut
+            ---
+            Returns feature from specified attribute value
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return None
+        return self.get_feature_by_attribute(layer, field_name, field_value)
+
+    def get_feature_by_attribute(self, layer, field_name, field_value):
+        """ Retorna l'element de l'id especificat
+            ---
+            Returns feature from specified id
+            """
+        expression = QgsExpression("%s = %s" % ( \
+            field_name, "'%s'" % field_value if type(field_value)==str else field_value))
+        feature_request = QgsFeatureRequest(expression)
+        feature_list = list(layer.getFeatures(feature_request))
+        return feature_list[0] if feature_list else None
 
     def get_feature_attribute_by_id(self, idprefix, entity, field_name, pos=0):
         """ Retorna el valor d'un camp (columna) d'una entitat d'una capa (fila)
@@ -1636,17 +1683,17 @@ class LayersBase(object):
             area = self.parent.crs.transform_bounding_box(area, area_epsg, self.parent.layers.get_epsg(layer))
 
         # Cerquem elements que intersequin amb l'àrea
-        request = QgsFeatureRequest()
-        request.setFilterRect(area) 
-        features_list = layer.getFeatures(request)
+        feature_request = QgsFeatureRequest()
+        feature_request.setFilterRect(area) 
+        feature_list = layer.getFeatures(feature_request)
 
         # Recuperem els camps demanats
         if len(fields_name_list) == 1:
             layer_selection = [self.get_feature_attribute(layer, feature, fields_name_list[0]) \
-                for feature in features_list if feature.geometry().intersects(area)]
+                for feature in feature_list if feature.geometry().intersects(area)]
         else:
             layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in fields_name_list]) \
-                for feature in features_list if feature.geometry().intersects(area)]
+                for feature in feature_list if feature.geometry().intersects(area)]
         return layer_selection
 
     def refresh_by_id(self, layer_idprefix, unselect=False, pos=0):
@@ -3768,7 +3815,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -3814,13 +3861,13 @@ class LayersBase(object):
         time_layer_name = "%s [%s]" % (layer_name, default_time)
         if url:
             layer = self.add_wms_layer(time_layer_name, url_time, [default_layer], [style],
-                image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group,
+                image_format, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group,
                 collapsed, visible, transparency, saturation, set_current)
         else:
             layer = self.add_raster_layer(time_layer_name, url_time, group_name, group_pos, epsg,
                 color_default_expansion=True, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation,
                 resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic,
-                set_current=set_current, only_one_map_on_group=only_one_map_on_group)
+                set_current=set_current, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
 
         # Registrem les capes temporals de la url i refresquem la capa activa
         self.time_series_dict[layer] = time_series_list
@@ -4282,6 +4329,42 @@ class LayersBase(object):
         dialogs_list = [d for d in QApplication.instance().allWidgets() if d.objectName() == 'QgsAttributeTableDialog' and d.windowTitle().split(' - ')[1].split(' :: ')[0] == layer.name()]
         return dialogs_list[0] if len(dialogs_list) > 0 else None
 
+    def show_attributes_dialog_by_id(self, layer_idprefix, feature, edit_mode=False, modal_mode=False, width=100, height=100, pos=0):
+        """ Mostra el formulari d'edició de camps de l'element amb id especificat o seleccionat
+            ---
+            Shows edition feature form of specificated feature id or current selected id
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return None
+        return self.show_attributes_dialog(layer, feature, edit_mode, modal_mode, width, height)
+    
+    def show_attributes_dialog(self, layer, feature, edit_mode=False, modal_mode=False, width=400, height=200):
+        """ Mostra el formulari d'edició de camps de l'element amb el valor especificat o seleccionat
+            ---
+            Shows edition feature form of specificated feature value or current selected id
+            """
+        # Activem el mode edició si cal
+        if edit_mode:
+            layer.startEditing()
+        # Mostrem el diàleg
+        dlg = self.iface.getFeatureForm(layer, feature)
+        dlg.resize(width, height)
+        if modal_mode or edit_mode:
+            status_ok = (dlg.exec() == QDialog.Accepted)
+        else:
+            dlg.show()
+            status_ok = dlg.isVisible()
+        # Guardem o cancel·lem canvis si cal
+        if edit_mode:
+            if status_ok:
+                feature.setAttributes(dlg.feature().attributes())
+                layer.commitChanges()
+            else:
+                layer.rollBack()
+            layer.endEditCommand()
+        return status_ok
+
     def refresh_legend_by_id(self, idprefix, visible=None, expanded=None, pos=0):
         """ Refresca la llegenda d'una capa a partir del seu id.
             Pot actualitzar la visibilitat i expansió de la llegenda de la capa
@@ -4570,7 +4653,7 @@ class LegendBase(object):
         # Esborrem el contingut del grup
         self.empty_group(group)
         # Esborrem el grup
-        self.root.removeChildNode(group)
+        group.parent().removeChildNode(group)
         return True
 
     def empty_group_by_name(self, group_name, exclude_list=[]):
@@ -5953,7 +6036,12 @@ class MetadataBase(object):
             """
         #icon_ref = ":/plugins/%s/%s" % (self.parent.plugin_id.lower(), icon_name)
         #icon = QIcon(icon_ref)
-        icon_pathname = os.path.join(self.parent.plugin_path, icon_name)
+        if not os.path.splitext(icon_name)[1]:
+            icon_name += ".png"
+        if not os.path.isabs(icon_name):
+            icon_pathname = os.path.join(self.parent.plugin_path, icon_name)
+        else:
+            icon_pathname = icon_name
         icon = QIcon(icon_pathname)
         return icon
 
@@ -6283,7 +6371,7 @@ class PluginBase(QObject):
         # Show about
         self.about_dlg.do_modal()
 
-    def show_changelog(self, checked=None, title=None): # I add checked param, because the mapping of the signal triggered passes a parameter
+    def show_changelog(self, checked=None, title=None, width=800): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Mostra el diàleg de canvis del plugin
             ---
             Show plugin changelog dialog
@@ -6296,7 +6384,7 @@ class PluginBase(QObject):
                 title = "Novedades"
             else:
                 title = "What's new"
-        LogInfoDialog(self.metadata.get_changelog(), title, LogInfoDialog.mode_info)
+        LogInfoDialog(self.metadata.get_changelog(), title, LogInfoDialog.mode_info, width=width)
 
     def show_help(self, checked=None, path="help", basename="index"): # I add checked param, because the mapping of the signal triggered passes a parameter
         """ Mostra l'ajuda del plugin

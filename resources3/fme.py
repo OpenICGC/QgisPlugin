@@ -144,7 +144,6 @@ styles_list = [ # (regex_file_pattern, qml_style)
     (r"ct1m.+c\d_full", "ct1mv22_c.qml"), # ct1mv22sh0f4483707c1_full (Full 1000)
     ]
 
-
 def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-territorial/gpkg_unzip", \
         file_pattern=r"(ortofoto-(\w+)-(\d+)(c*m)-(\w+)-(\d{4})\.gpkg)"):
     """ Obté les ortofotos històriques disponibles per descàrrega """
@@ -227,21 +226,28 @@ def get_historic_ortho_ref(rgb_not_irc, gsd, year):
     return get_historic_ortho_file(rgb_not_irc, gsd, year)
 
 def get_services():
-    """ Retorna la llista de productes descarregables """
+    """ Retorna una llista de tuples de productes descarregables amb els valors:
+            (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, 
+            download_list, default_filename, limits, url_pattern, ref_tuple, enabled)
+        """
     final_services_list = []
 
-    for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple in services_list:
+    for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple in services_list:        
         # Injectem anys d'ortofoto si cal
         if time_list == FME_AUTO_SEARCH:
             color_not_irc = name.lower().find("infraroja") < 0
             time_list = get_historic_ortho_years(color_not_irc, gsd)
+            enabled = len(time_list) > 0
+        else:
+            enabled = True
         # Injectem el path dels arxiu .qml
         if ref_tuple and len(ref_tuple) == 2:
             ref_file, style_file = ref_tuple
             style_file = os.path.join(os.path.dirname(__file__), "symbols", style_file)
             ref_tuple = (ref_file, style_file)
         # Afegim els valors modificats a la llista
-        final_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple))
+        final_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, \
+            gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple, enabled))
 
     log.debug("FME resources URL: %s found: %s", FME_URL.split("/")[0] + "//" +  FME_URL.split("@")[1], len(final_services_list))
     return final_services_list

@@ -669,7 +669,8 @@ class OpenICGC(PluginBase):
                     self.default_map_callback,
                     QIcon(":/lib/qlib3/base/images/cat_topo250k.png"),
                     self.manage_metadata_button("Topographic map (topographical pyramid)"), True),
-                (self.tr("Territorial topographic referential"), None, QIcon(":/lib/qlib3/base/images/cat_topo5k.png"), enable_http_files, [
+                (self.tr("Territorial topographic referential"), None, QIcon(":/lib/qlib3/base/images/cat_topo5k.png"), \
+                    enable_http_files and len(topo5k_time_series_list) > 0, [
                     (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
                         lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png", topo5k_time_series_list[::-1], None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_topo5k.png"),
@@ -773,7 +774,7 @@ class OpenICGC(PluginBase):
                     self.manage_metadata_button("NDVI (temporal serie)"), True),
                 (self.tr("NDVI (temporal serie)"),
                     lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"), None, ndvi_current_time, None, "default", "image/png", ndvi_time_series_list, None, 25831, "referer=ICGC&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), enable_http_files,
+                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), enable_http_files and len(ndvi_time_series_list) > 0,
                     self.manage_metadata_button("NDVI (temporal serie)"), True),
                 "---",
                 (self.tr("Color orthophoto"), None, QIcon(":/lib/qlib3/base/images/cat_ortho5k.png"), [
@@ -1025,7 +1026,11 @@ class OpenICGC(PluginBase):
         """ Create download submenu structure list """
         # Filter data type if required
         if raster_not_vector is not None:
-            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple) for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
+            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) \
+                for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled \
+                in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
 
         # Define text labels
         common_label = "%s"
@@ -1037,12 +1042,14 @@ class OpenICGC(PluginBase):
         # Prepare nested download submenu
         if nested_download_submenu:
             # Add a end null entry
-            fme_extra_services_list = fme_services_list + [(None, None, None, None, None, None, None, None, None, None, None, None, None)]
+            fme_extra_services_list = fme_services_list + [ \
+                (None, None, None, None, None, None, None, None, None, None, None, None, None, None)]
             download_submenu = []
             product_submenu = []
             gsd_info_dict = {}
             # Create menu with a submenu for every product prefix
-            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_extra_services_list):
+            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_extra_services_list):
                 prefix_id = id[:2] if id else None
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
                 previous_prefix_id = previous_id[:2]
@@ -1057,19 +1064,21 @@ class OpenICGC(PluginBase):
                     else:
                         previous_name1 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-1][0], fme_extra_services_list[i-1][1])
                         previous_name2 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-2][0], fme_extra_services_list[i-2][1])
-                        diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2))) if previous_name1[pos] != previous_name2[pos]]
+                        diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2))) \
+                            if previous_name1[pos] != previous_name2[pos]]
                         pos = diff_list[0] if diff_list else min(len(previous_name1), len(previous_name2))
                         common_name = previous_name1[:pos].replace("1:", "").strip()
                     # Create submenu
                     if gsd_info_dict:
                         # Add single ménu entry with GDS info dict
                         previous_time_list = list(gsd_info_dict.values())[0][6]
+                        previous_enabled = any([info[-1] for info in gsd_info_dict.values()])
                         download_submenu.append((
                             product_file_label_pattern % (common_name, os.path.splitext(filename)[1][1:]),
                             (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
                                 self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, None, gsd_info_dict), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
-                            True, True, previous_prefix_id,
+                            previous_enabled, True, previous_prefix_id,
                             self.manage_metadata_button(self.FME_METADATA_DICT.get(previous_id, None) \
                                 or self.FME_METADATA_DICT.get(previous_prefix_id, None)),
                             True
@@ -1094,7 +1103,8 @@ class OpenICGC(PluginBase):
                     file_label = product_file_label_pattern % (self.FME_NAMES_DICT.get(id, id), os.path.splitext(filename)[1][1:])
                     if gsd:
                         # Store product info in GSD dict
-                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple)
+                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, \
+                            time_list, download_list, filename, limits, url_ref_or_wms_tuple, enabled)
                     else:
                         # Add entry to temporal product submenu
                         product_submenu.append((
@@ -1102,7 +1112,7 @@ class OpenICGC(PluginBase):
                             (lambda _dummy, id=id, name=self.FME_NAMES_DICT.get(id, id), min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
                                 self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(prefix_id, None)),
-                            True, True, id, # Indiquem: actiu, checkable i un id d'acció
+                            enabled, True, id, # Indiquem: actiu, checkable i un id d'acció
                             self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None) \
                                 or self.FME_METADATA_DICT.get(prefix_id, None)),
                             True
@@ -1112,26 +1122,30 @@ class OpenICGC(PluginBase):
         else:
             fme_extra_services_list = []
             # Add separators on change product prefix
-            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, filename, limits, url_pattern, url_ref_or_wms_tuple) in enumerate(fme_services_list): # 7 params
+            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_services_list):
                 prefix_id = id[:2] if id else None
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
                 previous_prefix_id = previous_id[:2] if previous_id else None
                 # If change 2 first characters the inject a separator
                 if prefix_id != previous_prefix_id:
-                    fme_extra_services_list.append((None, None, None, None, None, None, None, None, None, None,  None)) # 10 + 1 (vectorial_not_raster)
+                    fme_extra_services_list.append((None, None, None, None, None, None, None, None, \
+                        None, None, None, None)) # 11 + 1 (vectorial_not_raster)
                 vectorial_not_raster = not self.is_raster_file(filename)
-                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple)) # 8 params
+                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, filename, \
+                    limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled)) # 12 params
             # Create download menu
             download_submenu = [
                 (product_file_label_pattern % (name, os.path.splitext(filename)[1][1:]),
                     (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
                         self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                     QIcon(self.FME_ICON_DICT.get(id[:2], None)),
-                    True, True, id,  # Indiquem: actiu, checkable i un id d'acció
+                    enabled, True, id,  # Indiquem: actiu, checkable i un id d'acció
                     self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None) \
                         or self.FME_METADATA_DICT.get(prefix_id, None)),
                     True
-                ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple in fme_extra_services_list
+                ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, \
+                    limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled in fme_extra_services_list
                 ]
 
         return download_submenu
@@ -1204,10 +1218,10 @@ class OpenICGC(PluginBase):
         searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
         """ Add WMS-T layer and enable timeseries dialog """
         # Add WMS-T
-        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current)
+        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current)
         if layer:
             if type(layer) in [QgsRasterLayer, QgsVectorLayer]:
                 # Show timeseries dialog
@@ -1326,11 +1340,11 @@ class OpenICGC(PluginBase):
 
         if gsd_dict:
             # With GSD dictionari, integrates all GSD years
-            time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _limits, _url_ref_or_wms_tuple in gsd_dict.values()]
+            time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled in gsd_dict.values()]
             time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])))
             if not time_list:
                 time_list = [None]
-            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
+            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
         else:
             # Without GSD dictionari
             download_type_dict = {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list}
@@ -1352,7 +1366,7 @@ class OpenICGC(PluginBase):
         time_code = self.download_dialog.get_year()
         gsd = self.download_dialog.get_gsd()
         if gsd_dict and gsd:
-            data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple = gsd_dict[gsd]
+            data_type, name, min_side, max_download_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple, enabled = gsd_dict[gsd]
 
         # Changes icon and tooltip of download button
         self.gui.set_item_icon("download",

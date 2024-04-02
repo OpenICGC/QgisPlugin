@@ -28,8 +28,11 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.16
-changelog=v1.1.16 (2023-09-27)
+version=1.1.17
+changelog=v1.1.17 (2024-04-02)
+	- Fixed timeout issue scanning resources on plugin initialization (non-accessible resources will not be shown)
+
+	v1.1.16 (2023-09-26)
 	- Added UTM (MGRS) grids 1x1 km and 10x10 km
 
 	v1.1.15 (2023-05-30)

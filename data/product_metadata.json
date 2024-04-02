@@ -200,14 +200,14 @@
       "Cobertura": "Sèrie mensual IRC",
       "Carpeta": "Satellite infrared orthophoto (monthly serie)",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=sentinel-2-mensual&sortBy=changeDate"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortoimatge-sentinel2-mensual-v1r0"
    },
    {
       "Producte": "Ortoimatge de satèl·lit Sentinel-2 mensual 10 m",
       "Cobertura": "Sèrie mensual RGB",
       "Carpeta": "Satellite color orthophoto (monthly serie)",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=sentinel-2-mensual&sortBy=changeDate"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortoimatge-sentinel2-mensual-v1r0"
    },
    {
       "Producte": "Piràmide del mapa topogràfic",

@@ -33,7 +33,7 @@ class DateDialog(QDialog):
 
     # get current date and time from the dialog
     def dateTime(self):
-        return self.datetime.dateTime()
+        return self.datetime.dateTime().toPyDateTime()
 
     def date(self):
         return self.datetime.dateTime().date().toPyDate()
@@ -47,6 +47,12 @@ class DateDialog(QDialog):
         dialog = DateDialog(description, title, parent)
         status_ok = (dialog.exec_() == QDialog.Accepted)
         return (dialog.date() if status_ok else None, dialog.time() if status_ok else None, status_ok)
+
+    @staticmethod
+    def getDateTimeInOne(description=None, title=None, parent=None):
+        dialog = DateDialog(description, title, parent)
+        status_ok = (dialog.exec_() == QDialog.Accepted)
+        return (dialog.dateTime() if status_ok else None, status_ok)
 
     @staticmethod
     def getDate(description=None, title=None, parent=None):
