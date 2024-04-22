@@ -294,6 +294,7 @@ class OpenICGC(PluginBase):
         "divisions-administratives": "Administrative divisions",
         "topografia-territorial-gpkg": "Territorial topographic referential",
         "topografia-territorial-dgn": "Territorial topographic referential",
+        "topografia-territorial-bim-ifc": "Territorial topographic referential",
         "topografia-territorial-3d-dgn": "Territorial topographic referential",
         "topografia-territorial-dwg": "Territorial topographic referential",
         "topografia-territorial-3d-dwg": "Territorial topographic referential",
@@ -441,6 +442,7 @@ class OpenICGC(PluginBase):
             "divisions-administratives": self.tr("Administrative divisions"),
             "topografia-territorial-gpkg": self.tr("Territorial topographic referential"),
             "topografia-territorial-dgn": self.tr("Territorial topographic referential"),
+            "topografia-territorial-bim-ifc": self.tr("Territorial topographic referential BIM"),
             "topografia-territorial-3d-dgn": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-dwg": self.tr("Territorial topographic referential"),
             "topografia-territorial-3d-dwg": self.tr("Territorial topographic referential 3D"),
@@ -467,6 +469,7 @@ class OpenICGC(PluginBase):
             ("dt_coord", self.tr("Area coordinates"), ""),
             ("dt_layer_polygon", self.tr("Selected layer polygons"), "pol"),
             ("dt_layer_polygon_bb", self.tr("Selected layer polygons bounding box"), "pol"),
+            ("dt_sheet", self.tr("Sheet"), "full"),
             ("dt_municipalities", self.tr("Municipality"), "mu"),
             ("dt_counties", self.tr("County"), "co"),
             ("dt_cat", self.tr("Catalonia"), "cat"),
@@ -1033,11 +1036,10 @@ class OpenICGC(PluginBase):
                 in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
 
         # Define text labels
-        common_label = "%s"
-        vector_label = self.tr("%s vectorial data")
-        raster_label = self.tr("%s raster data")
-        product_label_pattern = common_label if raster_not_vector is None else raster_label if raster_not_vector else vector_label
-        product_file_label_pattern = product_label_pattern + " (%s)"
+        vector_label = self.tr(" vectorial data")
+        raster_label = self.tr(" raster data")
+        product_label_pattern = "%s" + ("" if raster_not_vector is None else raster_label if raster_not_vector else vector_label)
+        product_file_label_pattern = "%s%s (%s)"
 
         # Prepare nested download submenu
         if nested_download_submenu:
@@ -1074,7 +1076,9 @@ class OpenICGC(PluginBase):
                         previous_time_list = list(gsd_info_dict.values())[0][6]
                         previous_enabled = any([info[-1] for info in gsd_info_dict.values()])
                         download_submenu.append((
-                            product_file_label_pattern % (common_name, os.path.splitext(filename)[1][1:]),
+                            product_file_label_pattern % (common_name, 
+                                raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "",
+                                os.path.splitext(filename)[1][1:]),
                             (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
                                 self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, None, gsd_info_dict), self.pair_download_checks),
                             QIcon(self.FME_ICON_DICT.get(previous_prefix_id, None)),
@@ -1099,8 +1103,9 @@ class OpenICGC(PluginBase):
 
                 # Store info in group (submenu or gsd group)
                 if id:
-                    vectorial_not_raster = not self.is_raster_file(filename)
-                    file_label = product_file_label_pattern % (self.FME_NAMES_DICT.get(id, id), os.path.splitext(filename)[1][1:])
+                    file_label = product_file_label_pattern % (self.FME_NAMES_DICT.get(id, id), \
+                        raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "", \
+                        os.path.splitext(filename)[1][1:])
                     if gsd:
                         # Store product info in GSD dict
                         gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, \
@@ -1136,7 +1141,9 @@ class OpenICGC(PluginBase):
                     limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled)) # 12 params
             # Create download menu
             download_submenu = [
-                (product_file_label_pattern % (name, os.path.splitext(filename)[1][1:]),
+                (product_file_label_pattern % (name, 
+                    raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "",
+                    os.path.splitext(filename)[1][1:]),
                     (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
                         self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                     QIcon(self.FME_ICON_DICT.get(id[:2], None)),
@@ -1279,9 +1286,9 @@ class OpenICGC(PluginBase):
             self.set_map_point(x, y, epsg, scale)
 
     def is_unsupported_file(self, pathname):
-        return self.is_file_type(pathname, ["dgn", "dwg"])
+        return self.is_file_type(pathname, ["dgn", "dwg", "ifc"])
     def is_unsupported_extension(self, ext):
-        return self.is_extension(ext, ["dgn", "dwg"])
+        return self.is_extension(ext, ["dgn", "dwg", "ifc"])
 
     def is_compressed_file(self, pathname):
         return self.is_file_type(pathname, ["zip"])
@@ -1292,6 +1299,11 @@ class OpenICGC(PluginBase):
         return self.is_file_type(pathname, ["tif", "jpeg", "jpg", "png"])
     def is_raster_extension(self, ext):
         return self.is_extension(ext, ["tif", "jpeg", "jpg", "png"])
+
+    def is_vector_file(self, pathname):
+        return self.is_file_type(pathname, ["shp", "dgn", "dwg", "gpkg", "shp-zip"])
+    def is_vector_extension(self, ext):
+        return self.is_extension(ext, ["shp", "dgn", "dwg", "gpkg", "shp-zip"])
 
     def is_file_type(self, pathname, ext_list):
         _filename, ext = os.path.splitext(pathname)
@@ -1403,7 +1415,7 @@ class OpenICGC(PluginBase):
         """ Enable or execute current download tool """
         if not self.tool_subscene.callback:
             return
-        if self.download_type in ["dt_area", "dt_counties", "dt_municipalities"]:
+        if self.download_type in ["dt_area", "dt_counties", "dt_municipalities", "dt_sheet"]:
             # Show download type info
             title = self.tr("Download tool")
             message = None
@@ -1413,6 +1425,8 @@ class OpenICGC(PluginBase):
                 message = self.tr("Select municipality")
             elif self.download_type == 'dt_counties':
                 message = self.tr("Select county")
+            elif self.download_type == 'dt_sheet':
+                message = self.tr("Select sheet")
             # Show reference layer info
             if with_ref_layer:
                 if not message:
@@ -1432,8 +1446,10 @@ class OpenICGC(PluginBase):
 
         # Check download file type
         filename, ext = os.path.splitext(local_filename)
+        download_ext = ("" if len(ext.split("-")) <= 1 else ".") + ext.split("-")[-1]
+        ext = ext.split("-")[0]
         is_unsupported_format = self.is_unsupported_extension(ext)
-        is_compressed = self.is_compressed_extension(ext)
+        is_compressed = self.is_compressed_extension(download_ext)
         is_raster = self.is_raster_extension(ext)
         is_photo = (data_type == "photo")
         is_historic_ortho = (data_type.startswith("hc") or data_type.startswith("hi"))
@@ -1468,30 +1484,30 @@ class OpenICGC(PluginBase):
         # Show information about download
         type_info = (self.tr("raster") if is_raster else self.tr("vector"))
         if self.download_type in ["dt_area", "dt_coord"]:
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nRectangle:\n   %.2f, %.2f %.2f, %.2f (EPSG:%s)\nArea:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum(), download_epsg, geo.area(), self.SQUARE_CHAR, download_folder, ext[1:])
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nRectangle:\n   %.2f, %.2f %.2f, %.2f (EPSG:%s)\nArea:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum(), download_epsg, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
         elif self.download_type in ["dt_layer_polygon", "dt_layer_polygon_bb"]:
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nPolygon area:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.area(), self.SQUARE_CHAR, download_folder, ext[1:])
-        elif self.download_type in ["dt_municipalities", "dt_counties"]:
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nPolygon area:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
+        elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
             # Find point on GeoFinder
             center = geo.center()
             found_dict_list = self.find_point_secure(center.x(), center.y(), download_epsg)
             # Set download information
-            if self.download_type == "dt_municipalities":
+            if self.download_type in ["dt_municipalities", "dt_sheet"]:
                 municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
-                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, municipality, download_folder, ext[1:])
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, municipality, download_folder, download_ext[1:])
             elif self.download_type == "dt_counties":
                 county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
-                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, county, download_folder, ext[1:])
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, county, download_folder, download_ext[1:])
         else:
             zone = self.tr("Catalonia") if self.download_type == "dt_cat" else self.tr("Available data")
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, zone, download_folder, ext[1:])
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, zone, download_folder, download_ext[1:])
         # User confirmation
         filename, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
             set_html_font_size(confirmation_text), QLineEdit.Normal, filename)
         if not ok_pressed or not local_filename:
             self.log.debug("User filename input cancelled")
             return
-        local_filename = "%s_%s%s" % (filename, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), ext)
+        local_filename = "%s_%s%s" % (filename, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), download_ext)
         self.log.debug("Download filename: %s", local_filename)
 
         # Get URL with FME action
@@ -1508,15 +1524,24 @@ class OpenICGC(PluginBase):
         current_layer = self.layers.get_current_layer()
         download_layer = None
         try:
-            if is_unsupported_format:
+            if is_compressed:
+                if is_unsupported_format:
+                    # Download and uncopmress file
+                    uncompressed_folder = self.layers.download_remote_file(url, local_filename, download_folder, unzip=True)
+                    # If compressed file contains unsupported format, search first file
+                    local_filename_list = [os.path.join(uncompressed_folder, f) for f in \
+                        os.listdir(uncompressed_folder) \
+                        if os.path.splitext(f)[1] == ext]
+                    local_filename = local_filename_list[0] if local_filename_list else None
+                else:
+                    # We suppose that compressed file contains a QLR file, this process uncompress downloaded file
+                    download_layer = self.layers.add_remote_layer_definition_file(url, local_filename, group_name=self.download_group_name, group_pos=0)
+                    if not download_layer:
+                        # If can't load QLR, we suppose that compressed file contains Shapefiles
+                        download_layer = self.layers.add_vector_files([os.path.join(download_folder, local_filename)], group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
+            elif is_unsupported_format:
                 # With an unsupported format we only download file
                 self.layers.download_remote_file(url, local_filename, download_folder=None)
-            elif is_compressed:
-                # We suppose that compressed file contains a QLR file
-                download_layer = self.layers.add_remote_layer_definition_file(url, local_filename, group_name=self.download_group_name, group_pos=0)
-                if not download_layer:
-                    # If can't load QLR, we suppose that compressed file contains Shapefiles
-                    download_layer = self.layers.add_vector_files([os.path.join(download_folder, local_filename)], group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
             elif is_raster:
                 # Force EPSG:25831 or photo EPSG by problems with QGIS 3.10 version in auto detection EPSG
                 download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=download_epsg, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True)
@@ -1674,7 +1699,7 @@ class OpenICGC(PluginBase):
                 # If download type is area ensure that selection is area
                 geo = geo.buffered(min_side if min_side else default_point_buffer)
                 self.log.debug("Geometry (point) buffered %s", min_side if min_side else default_point_buffer)
-            elif self.download_type in ["dt_municipalities", "dt_counties"]:
+            elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
                 # If download type is point, make a rectangle to can intersect with Catalonia edge
                 geo = geo.buffered(1)
                 self.log.debug("Geometry (point) buffered %s", 1)
@@ -1689,7 +1714,7 @@ class OpenICGC(PluginBase):
             # With selfintersection multipolygon intersects fails, we can fix it using boundingbox
             if not geo.isGeosValid():
                 geo = geo.boundingBox()
-        elif self.download_type in ["dt_municipalities", "dt_counties"]:
+        elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
             limits = "cat_limits"
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
         if not geo_limits or geo_limits.isEmpty():
@@ -1785,13 +1810,13 @@ class OpenICGC(PluginBase):
 
     def find_point_secure(self, x, y, epsg, timeout=5):
         """ Protected find_point function """
-        self.geofinder.get_icgc_geoencoder_client().set_options(timeout=timeout)
         try:
+            self.geofinder.get_icgc_geoencoder_client().set_options(timeout=timeout)
             found_dict_list = self.geofinder.find_point_coordinate(x, y, epsg)
+            self.geofinder.get_icgc_geoencoder_client().set_options(timeout=None)
         except:
             error = self.tr("Unknow, service unavailable")
             found_dict_list = [{'nomMunicipi': error, 'nomComarca': error}]
-        self.geofinder.get_icgc_geoencoder_client().set_options(timeout=None)
         return found_dict_list
 
     def add_height_highlighting_layer(self, layer_name, dtm_url, style_file, group_name):

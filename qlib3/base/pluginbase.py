@@ -48,7 +48,7 @@ from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, Q
 from PyQt5.QtCore import QVariant, QDateTime, QDate, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog
+from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
 from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
 from PyQt5.QtXml import QDomDocument
 
@@ -3492,7 +3492,7 @@ class LayersBase(object):
         if download_folder and os.path.exists(download_folder):
             self.parent.gui.open_file_folder(download_folder)
 
-    def download_remote_file(self, remote_file, local_filename=None, download_folder=None, select_folder_text=None):
+    def download_remote_file(self, remote_file, local_filename=None, download_folder=None, select_folder_text=None, unzip=False):
         """ Descarrega un fitxer via http en la carpeta especificada
             ---
             Download a http file in the specified folder
@@ -3511,6 +3511,18 @@ class LayersBase(object):
 
         # Descarreguem el fitxer
         self.download_manager.download(remote_file, local_pathname)
+        
+        # Descomprimim el fitxer si cal
+        unzip_folder, ext = os.path.splitext(local_pathname)
+        is_zipped_file = (ext == ".zip")
+        if is_zipped_file and unzip:
+            # Descomprimim
+            with zipfile.ZipFile(local_pathname) as zip_file:
+                zip_file.extractall(unzip_folder)
+            # Esborrem el zip
+            os.remove(local_pathname)
+            local_pathname = unzip_folder
+
         return local_pathname
 
     def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
@@ -4339,7 +4351,7 @@ class LayersBase(object):
             return None
         return self.show_attributes_dialog(layer, feature, edit_mode, modal_mode, width, height)
     
-    def show_attributes_dialog(self, layer, feature, edit_mode=False, modal_mode=False, width=400, height=200):
+    def show_attributes_dialog(self, layer, feature, edit_mode=False, modal_mode=False, width=None, height=None):
         """ Mostra el formulari d'edició de camps de l'element amb el valor especificat o seleccionat
             ---
             Shows edition feature form of specificated feature value or current selected id
@@ -4349,7 +4361,12 @@ class LayersBase(object):
             layer.startEditing()
         # Mostrem el diàleg
         dlg = self.iface.getFeatureForm(layer, feature)
-        dlg.resize(width, height)
+        dlg.setSizeGripEnabled(True)
+        dlg.setMinimumSize(300, 200)
+        if width and height:
+            dlg.resize(width, height)
+        else:
+            dlg.adjustSize()
         if modal_mode or edit_mode:
             status_ok = (dlg.exec() == QDialog.Accepted)
         else:

@@ -23,7 +23,7 @@ log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
 
-#FME_URL = "http://qgis:qgis@sefme2020dev" # A linux no va bé el DNS, ca posar la IP (desenvolupament)
+#FME_URL = "https://qgis:qgis@sefme2022dev" # A linux no va bé el DNS, ca posar la IP (desenvolupament)
 #FME_URL = "https://qgis:qgis@sefme2020prod.icgc.local" # Test
 FME_URL = "https://qgis:qgis@descarregues.icgc.cat" # Servidor extern / adreça externa (producció)
 
@@ -89,11 +89,11 @@ services_list = [
     ("mtc1000m", "Mapa topogràfic 1:1.000.000", 10000, None, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "mtc1000m.tif", "cat_rect", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mtc1000m&Format=GEOTIFF&Projecte=mtc1000m&Codi=%s&piramide=True", None),
     ("mtc2000m", "Mapa topogràfic 1:2.000.000", 20000, None, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "mtc2000m.tif", "cat_rect", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mtc2000m&Format=GEOTIFF&Projecte=mtc2000m&Codi=%s&piramide=True", None),
 
-    ("ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
+    ("ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
         ("http://www.icc.cat/appdownloads/lib/json/ct1m_id.json", "ct1m_disponible.qml")),
 
-    #("bm5m", "Base municipal 1:5.000", None, None, ["cat", "tot"], "bm5m.zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=bm5m&Codi=%s", None),
-    ("divisions-administratives", "Divisions administratives", None, None, None, None, None, None, ["cat"], "divisions-administratives.zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s", None),
+    #("bm5m", "Base municipal 1:5.000", None, None, ["cat", "tot"], "bm5m.shp-zip", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=bm5m&Codi=%s", None),
+    ("divisions-administratives", "Divisions administratives", None, None, None, None, None, None, ["cat"], "divisions-administratives.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s", None),
 
     ("topografia-territorial-gpkg", "Referencial topogràfic territorial GeoPackage", 50, 100000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.gpkg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
     ("topografia-territorial-dgn", "Referencial topogràfic territorial DGN", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.dgn", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt&Codi=%s", None),
@@ -101,6 +101,8 @@ services_list = [
     ("topografia-territorial-3d-dgn", "Referencial topogràfic territorial 3D DGN", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-3d.dgn", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt3&Codi=%s", None),
     ("topografia-territorial-3d-dwg", "Referencial topogràfic territorial 3D DWG", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-3d.dwg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DWG&file_name=tt3d&Codi=%s", None),
     ("topografia-territorial-volum-dwg", "Referencial topogràfic territorial Volum DWG", 50, 12500000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-volum.dwg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DWG&gen_volum=si&file_name=ttvolum&Codi=%s", None),
+    ("topografia-territorial-bim-ifc", "Referencial topogràfic territorial BIM", None, None, None, None, None, None, ["full"], "topografia-territorial-bim.ifc-zip", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_download_IFC.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&file_name=tt&Codi=%s", 
+        ("http://www.icc.cat/appdownloads/lib/json/tall5m.json", "tall-5k.qml")),
 
     ("cobertes-sol-raster", "Mapa de cobertes del sòl", 100, 200000000, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "cobertes-sol.tif", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mcsc&Format=GEOTIFF&Projecte=cobertes-sol&Codi=%s&piramide=True", None),
     ("cobertes-sol-vector", "Mapa de cobertes del sòl", None, 400000000, None, None, None, None, ["", "pol", "mu", "co"], "cobertes-sol.gpkg", "cat_limits", "%s/fmedatastreaming/cobertes-sol/ICGC_cobertes-sol_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
@@ -108,21 +110,21 @@ services_list = [
     ("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
     ("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
 
-    ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, None, None, ["tot"], "gt1.zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
-    ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, None, None, ["tot"], "mg50m.zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
-    ("mg250m", "Mapa geològic 1:250.000", None, None, None, None, None, None, ["tot"], "mg250m.zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg250m&Codi=%s", None),
-    ("mggt6", "GT VI. Mapa per a la prevenció dels riscos geològics 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt6.zip", "25k_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt6&Codi=%s",
+    ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, None, None, ["tot"], "gt1.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
+    ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, None, None, ["tot"], "mg50m.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
+    ("mg250m", "Mapa geològic 1:250.000", None, None, None, None, None, None, ["tot"], "mg250m.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg250m&Codi=%s", None),
+    ("mggt6", "GT VI. Mapa per a la prevenció dels riscos geològics 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt6.shp-zip", "25k_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt6&Codi=%s",
         ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_VI", "", "image/png")),
     # Pending revision of symbology
-    #("gt2", "GT II. ...  1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt2.zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt2&Codi=%s",
+    #("gt2", "GT II. ...  1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt2.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt2&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_II", "", "image/png")),
-    #("gt3", "GT III. ... 1:5.000", None, 50000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt3.zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt3&Codi=%s",
+    #("gt3", "GT III. ... 1:5.000", None, 50000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt3.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt3&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_III", "", "image/png")),
-    #("gt4", "GT IV. ... 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt4.zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt4&Codi=%s",
+    #("gt4", "GT IV. ... 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt4.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt4&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_IV", "", "image/png")),
-    #("gt5", "GT V. ... 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt5.zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt5&Codi=%s",
+    #("gt5", "GT V. ... 1:25.000", None, 1250000000, None, None, None, None, ["", "mu", "co", "cat", "tot"], "gt5.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt5&Codi=%s",
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_V", "", "image/png")),
-    #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, None, None, None, ["cat", "tot"], "mah250m.zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mah250m&Codi=%s", None),
+    #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, None, None, None, ["cat", "tot"], "mah250m.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mah250m&Codi=%s", None),
 
     ("photo", "Fototeca digital", None, None, 100, 100000000, None, None, ["", "pol"], "photo.tif", "cat_rect", "%s/fmedatastreaming/Fototeca/ICGC_fototeca_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Codi=%s&Any=%s&CodiVol=%s&NomFoto=%s&Nom=%s", None),
     ]
