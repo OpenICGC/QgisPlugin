@@ -30,8 +30,8 @@ qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 version=1.1.19
 changelog=v1.1.19 (2024-05-06)
-	- Added gkg3d download format for product Territorial topographic referential
-	- Fixed problem downloading product from overlaped polygons
+	- Added gpkg 3d download format for product Territorial topographic referential
+	- Fixed problem downloading product from overlapped polygons
 
 	v1.1.18 (2024-04-19)
 	- Added BIM/IFC download format for product Territorial topographic referential
