@@ -294,9 +294,10 @@ class OpenICGC(PluginBase):
         "divisions-administratives": "Administrative divisions",
         "topografia-territorial-gpkg": "Territorial topographic referential",
         "topografia-territorial-dgn": "Territorial topographic referential",
-        "topografia-territorial-bim-ifc": "Territorial topographic referential",
-        "topografia-territorial-3d-dgn": "Territorial topographic referential",
         "topografia-territorial-dwg": "Territorial topographic referential",
+        "topografia-territorial-bim-ifc": "Territorial topographic referential",
+        "topografia-territorial-3d-gpkg": "Territorial topographic referential",
+        "topografia-territorial-3d-dgn": "Territorial topographic referential",
         "topografia-territorial-3d-dwg": "Territorial topographic referential",
         "topografia-territorial-volum-dwg": "Territorial topographic referential",
         "cobertes-sol-raster": "Land cover map",
@@ -442,9 +443,10 @@ class OpenICGC(PluginBase):
             "divisions-administratives": self.tr("Administrative divisions"),
             "topografia-territorial-gpkg": self.tr("Territorial topographic referential"),
             "topografia-territorial-dgn": self.tr("Territorial topographic referential"),
-            "topografia-territorial-bim-ifc": self.tr("Territorial topographic referential BIM"),
-            "topografia-territorial-3d-dgn": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-dwg": self.tr("Territorial topographic referential"),
+            "topografia-territorial-bim-ifc": self.tr("Territorial topographic referential BIM"),
+            "topografia-territorial-3d-gpkg": self.tr("Territorial topographic referential 3D"),
+            "topografia-territorial-3d-dgn": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-3d-dwg": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-volum-dwg": self.tr("Territorial topographic referential volume"),
             "cobertes-sol-raster": self.tr("Land cover map"),
@@ -1619,6 +1621,7 @@ class OpenICGC(PluginBase):
             if layer and type(layer) == QgsVectorLayer:
                 # Prepare transformation polygon coordinates to project EPSG
                 epsg = self.layers.get_epsg(layer)
+                epsg = int(epsg) if epsg else None
                 self.log.debug("Selected polygons layer %s (EPSG %s)", layer.name(), epsg)
                 # Add only selected polygons
                 polygons_list = []
@@ -1713,7 +1716,9 @@ class OpenICGC(PluginBase):
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
             # With selfintersection multipolygon intersects fails, we can fix it using boundingbox
             if not geo.isGeosValid():
-                geo = geo.boundingBox()
+                geo = geo.makeValid()
+                if not geo.isGeosValid():
+                    geo = geo.boundingBox()
         elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
             limits = "cat_limits"
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
