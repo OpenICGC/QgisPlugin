@@ -1,5 +1,12 @@
 [
    {
+      "Producte": "Batimetria",
+      "Cobertura": "2021-2024",
+      "Carpeta": "Bathymetric chart (-50m) 2022-2024",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/batimetria-v1r0-2021-2024"
+   },
+   {
       "Producte": "Cartografia topogràfica 1:1.000",
       "Cobertura": "Vigent",
       "Carpeta": "Topographic cartography 1:1,000",
@@ -12,6 +19,48 @@
       "Carpeta": "Administrative divisions",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=divisions%20administratives&sortBy=title"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "1956",
+      "Carpeta": "Coastline 1956",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-1956"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2015",
+      "Carpeta": "Coastline 2015",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2015"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2016",
+      "Carpeta": "Coastline 2016",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2016"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2017",
+      "Carpeta": "Coastline 2017",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2017"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2019",
+      "Carpeta": "Coastline 2019",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2019"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2022-2023",
+      "Carpeta": "Coastline 2022-2023",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2022-2023"
    },
    {
       "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
@@ -36,10 +85,17 @@
    },
    {
       "Producte": "Mapa geològic 1:250.000",
-      "Cobertura": "Vigent",
+      "Cobertura": "v2.0",
       "Carpeta": "Geological map 1:250,000",
       "Formats de fitxer": "shz/zip",
       "Metadades": ""
+   },
+   {
+      "Producte": "Mapa geològic 1:250.000",
+      "Cobertura": "v3.0",
+      "Carpeta": "Geological map 1:250,000",
+      "Formats de fitxer": "gpkg,tiff",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/geologia-territorial-250000-geologic-v3r0-202312"
    },
    {
       "Producte": "Mapa geològic 1:50.000",
@@ -117,6 +173,13 @@
       "Carpeta": "Digital Terrain Model 5m 2020",
       "Formats de fitxer": "gtiff",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/model-digital-terreny-5x5-v1r0"
+   },
+   {
+      "Producte": "Model d’elevacions de la franja litoral",
+      "Cobertura": "2021-2024",
+      "Carpeta": "Topobathymetric elevation model (-50m) 1m 2022-2024",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/elevacions-franja-litoral-v1r0-2021-2024"
    },
    {
       "Producte": "NDVI",
@@ -256,7 +319,7 @@
       "Cobertura": "2022",
       "Carpeta": "Territorial topographic referential 2022 (temporal serie)",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-territorial-v1r0-2022"
    },
    {
       "Producte": "Referencial topogràfic territorial",

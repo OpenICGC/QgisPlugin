@@ -72,13 +72,16 @@ class DownloadDialog(QDialog, ui_download):
         self.current_download_type = None
         
         # Get initial value lists
-        self.year_list = [] if None in self.data_dict.keys() else list(self.data_dict.keys()) 
+        self.year_list = [] if None in self.data_dict.keys() \
+            and len(self.data_dict.keys()) == 1 else list(self.data_dict.keys()) 
         self.current_year = self.year_list[-1] if self.year_list else None
         gsd_dict = self.data_dict[self.current_year]
-        self.gsd_list = [] if None in gsd_dict.keys() else list(gsd_dict.keys())
+        self.gsd_list = [] if None in gsd_dict.keys() \
+            and len(gsd_dict.keys()) == 1 else list(gsd_dict.keys())
         self.current_gsd = self.gsd_list[0] if self.gsd_list else None
         download_type_dict = gsd_dict[self.current_gsd]
-        self.download_type_list = [] if None in download_type_dict.keys() else list(download_type_dict.keys())
+        self.download_type_list = [] if None in download_type_dict.keys() \
+            and len(download_type_dict.keys()) == 1 else list(download_type_dict.keys())
         self.current_download_type = self.download_type_list[0] if self.download_type_list else None
 
         # Update dialog controls
@@ -107,7 +110,7 @@ class DownloadDialog(QDialog, ui_download):
             if self.current_year:
                 self.label_year.setText("%s: %s" % (self.label_year.text().split(":")[0], str(self.current_year)))
 
-            show_gsd = True if self.year_list or self.gsd_list else False
+            show_gsd = True if self.gsd_list else False #or self.year_list  else False
             enable_gsd = True if self.gsd_list else False
             self.label_gsd.setVisible(show_gsd)
             self.comboBox_gsd.setVisible(show_gsd)
@@ -137,7 +140,8 @@ class DownloadDialog(QDialog, ui_download):
             return
         # Get current year value
         self.current_year = self.year_list[current_year_index]
-        self.gsd_list = list(self.data_dict[self.current_year].keys())
+        self.gsd_list = [] if None in self.data_dict[self.current_year].keys() \
+            and len(self.data_dict[self.current_year].keys()) == 1 else list(self.data_dict[self.current_year].keys())
         # Update dialog controls
         self.update_controls(update_year=False)
 

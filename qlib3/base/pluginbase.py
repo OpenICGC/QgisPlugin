@@ -2601,6 +2601,29 @@ class LayersBase(object):
         renderer = layer.renderer()
         return [symbol.color() for symbol in renderer.symbols(QgsRenderContext())]
 
+    def get_categories_by_id(self, layer_idprefix, pos=0):
+        """ Obté la llista categories a partir d'un id de capa
+            ---
+            Gets layer categories from a layer id
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return None
+        return self.get_categories(layer)
+
+    def get_categories(self, layer):
+        """ Obté la llista categories d'una capa
+            ---
+            Gets layer categories
+            """
+        renderer = layer.renderer()
+        if type(renderer) is not QgsCategorizedSymbolRenderer:
+            return None
+
+        # Si no ens passen cap llista de categories la generem
+        categories_list = [c.value() for c in renderer.categories()]
+        return categories_list
+
     def set_categories_visible_by_id(self, layer_idprefix, categories_list=None, enable=True, pos=0):
         """ Fa visibles o invisibles les categories de la llista a partir d'un id de capa
             Si no es passa cap llista, s'actualitzaran totes les categories
@@ -4016,7 +4039,7 @@ class LayersBase(object):
 
         return time_series_list, default_time
 
-    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
+    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False):
         """ Afegeix una capa a partir de la URL base, una llista de capes WMS, una llista d'estils i un format d'imatge.
             Retorna la capa.
             Opcionalment es pot especificar:
@@ -4042,7 +4065,7 @@ class LayersBase(object):
             - visible: Indicates whether we want to load the layer by leaving it visible or not
             """
         uri = self.generate_wms_layer_uri(url, layers_list, styles_list, image_format, epsg, extra_tags)
-        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
+        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current, resampling_bilinear, resampling_cubic)
 
     def generate_wms_layer_uri(self, url, layers_list, styles_list, image_format, epsg=None, extra_tags=""):
         """ Retorna el string uri a partir dels paràmetres WMS
@@ -4130,7 +4153,7 @@ class LayersBase(object):
         anaglyph_params = found.groups()[0].split(",")
         return len(anaglyph_params) == 3
 
-    def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
+    def add_raster_uri_layer(self, layer_name, uri, provider, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False):
         """ Afegeix una capa raster a partir d'un URI i proveidor de dades (wms, oracle ...). Retorna la capa.
             Veure add_wms_layer per opcions
             ---
@@ -4142,6 +4165,15 @@ class LayersBase(object):
         layer = self.iface.addRasterLayer(uri, layer_name, provider)
         if not layer:
             return layer
+        # Ajustem el mostreig si cal
+        if resampling_bilinear:
+            resample_filter = layer.resampleFilter()
+            resample_filter.setZoomedInResampler(QgsBilinearRasterResampler())
+            resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())
+        if resampling_cubic:
+            resample_filter = layer.resampleFilter()
+            resample_filter.setZoomedInResampler(QgsCubicRasterResampler())
+            resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())
         # Canviem les propiedats de la capa
         self.set_properties(layer, visible, collapsed, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, transparency=transparency, saturation=saturation, set_current=set_current)
         return layer
@@ -5862,7 +5894,7 @@ class ToolsBase(object):
             photo_id = "dummy"
             parallax = 100
             inverted_stereo = False
-            found = re.search(r"styles=([^&]+)", layer.dataProvider().uri().uri().lower())
+            found = re.search(r"styles=([^&]+)", layer.dataProvider().uri().uri().lower() if layer else "")
             if found:
                 anaglyph_params_list = found.groups()[0].split(",")
                 if len(anaglyph_params_list) == 3:
@@ -5872,7 +5904,7 @@ class ToolsBase(object):
             # Si no tenim el diàleg el creem i el mostrem
             update_callback = lambda parallax, inverted_stereo: self.parent.layers.update_wms_layer(layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
             if not self.anaglyph_dialog:
-                self.anaglyph_dialog = AnaglyphDialog(layer.name(), update_callback, parallax, inverted_stereo,
+                self.anaglyph_dialog = AnaglyphDialog(layer.name() if layer else "", update_callback, parallax, inverted_stereo,
                     title, parallax_label, inverted_stereo_label, True, self.iface.mainWindow())
                 self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.anaglyph_dialog)
                 # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
@@ -5891,7 +5923,7 @@ class ToolsBase(object):
                 # Mostrem el diàleg
                 self.anaglyph_dialog.show()
             # Activem els controls
-            self.anaglyph_dialog.set_enabled(self.parent.layers.is_anaglyph_layer(layer))
+            self.anaglyph_dialog.set_enabled(self.parent.layers.is_anaglyph_layer(layer) if layer else False)
         else:
             if self.anaglyph_dialog:
                 self.anaglyph_dialog.hide()

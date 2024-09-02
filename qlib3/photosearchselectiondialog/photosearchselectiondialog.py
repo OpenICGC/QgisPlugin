@@ -222,13 +222,12 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
         # Update windows title with photo_layer
         self.setWindowTitle(self.photo_layer.name() if self.photo_layer else self.windowTitle().split(":")[0])
+        
         # Update year sliders
         self.set_time_series(time_series_list, current_time)
 
         # Update photograms list
-        features_list = self.photo_layer.getFeatures() if self.photo_layer else []
-        self.photo_list = [self.get_photo_info(f) for f in features_list]
-        self.photo_list.sort(key=lambda p:p[1])
+        self.photo_list = [self.get_photo_info(f) for f in self.photo_layer.getFeatures()] if self.photo_layer else []
         self.update_photos()
 
         # Update buttons
@@ -246,7 +245,11 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Returns tuplue with photo info from layer feature :
             id, name, year, flight_datetime_text, gsd, image_available, publishable, available, analog 
         """
-        datetime = feature[self.date_field_name]
+        def get_field(feature, field_name, default_value=None):
+            """ Funció auxiliar per protegir la consulta camps que poden no existir o ser nulls """
+            return feature[field_name] if feature.fieldNameIndex(field_name) >= 0 else default_value
+        # Gets photo information
+        datetime = get_field(feature, self.date_field_name, None)
         if datetime:
             if type(datetime) is QDateTime:
                 year, datetime_text = datetime.date().year(), datetime.toString(Qt.SystemLocaleShortDate)
@@ -254,11 +257,11 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
                 year, datetime_text = int(datetime.split("-")[0]), datetime
         else:
             year, datetime_text = None, None
-        return feature.id(), feature[self.name_field_name], year, datetime_text, feature[self.gsd_field_name], \
-            True if feature[self.image_field_name] else False, \
-            feature[self.publishable_field_name] if self.publishable_field_name else True, \
-            (feature[self.available_field_name] is not False) if self.available_field_name else True, \
-            feature[self.analog_field_name] if self.analog_field_name else True
+        return feature.id(), get_field(feature, self.name_field_name, None), year, datetime_text, get_field(feature, self.gsd_field_name, None), \
+            True if get_field(feature, self.image_field_name, None) else False, \
+            get_field(feature, self.publishable_field_name, True), \
+            get_field(feature, self.available_field_name, True) is not False, \
+            get_field(feature, self.analog_field_name, True)
 
     def reset(self, hide=True):
         """ Reset all information, disable controls and hide dialog"""
@@ -294,7 +297,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.tableWidget_photos.blockSignals(True)
         self.tableWidget_photos.setRowCount(0)
         for id, name, year, flight_datetime_text, gsd, image_available, publishable, available, analog in self.photo_list:
-            if year is not None and year in time_range_list and gsd is not None and gsd >= min_res and gsd < max_res:
+            if year is not None and year in time_range_list and (gsd is None or (gsd >= min_res and gsd < max_res)):
                 if not available:
                     color = self.UNAVAILABLE_PHOTO_COLOR
                     icon = self.UNAVAILABLE_PHOTO_ICON
@@ -500,7 +503,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         return photo_id
 
     def get_selected_photo_info(self):
-        """ Return current selected photogram id """
+        """ Return current selected photogram info """
         items_list = self.tableWidget_photos.selectedItems()
         if not items_list:
             return None, None, None, None, None
@@ -562,14 +565,15 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
     def update_buttons(self):
         """ Update dialog button state """
         photo_id, image_available, publishable, available, analog = self.get_selected_photo_info()
+        rectifiable = (not analog)
 
         # Select year
         current_time, current_range = self.get_current_time_range()
         if self.update_callback and current_time:
             new_layer_name = self.update_callback(current_time, current_range)
         
-        # Select "photo view" type for analog photograms (disable rectified modes)
-        if analog:
+        # Select "photo view" type for non rectifiable photograms (disable rectified modes)
+        if not rectifiable:
             if len(self.pushButton_link_preview_type.menu().actions()) > 0:
                 self.update_preview_button(self.preview,
                     self.pushButton_link_preview_type.menu().actions()[0].text(), 
@@ -583,9 +587,9 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_link_preview.setEnabled(enable and image_available)
         self.pushButton_link_preview_type.setEnabled(enable and image_available)
         if len(self.pushButton_link_preview_type.menu().actions()) > 1:
-            self.pushButton_link_preview_type.menu().actions()[1].setEnabled(not analog)
+            self.pushButton_link_preview_type.menu().actions()[1].setEnabled(rectifiable)
         if len(self.pushButton_link_preview_type.menu().actions()) > 2:
-            self.pushButton_link_preview_type.menu().actions()[2].setEnabled(not analog)
+            self.pushButton_link_preview_type.menu().actions()[2].setEnabled(rectifiable)
         self.pushButton_adjust_brightness.setEnabled(enable and image_available)
         self.pushButton_download_hd.setEnabled(enable and image_available and publishable and nominal_preview)
         self.pushButton_request_certificate.setEnabled(enable and image_available and publishable)

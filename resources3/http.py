@@ -98,10 +98,10 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
     log.debug("HTTP resources files find URL: %s pattern: %s found: %s", url, file_regex_pattern, len(files_list))
     return files_list
 
-def get_dtms(dtm_urlbase_list=[
-    ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic"),
-    ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic")],
-    dtm_http_file_pattern=r'(met\w+\.\w+)'):
+def get_dtms(urlbase_list=[
+    ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic", r'(met\w+\.\w+)'),
+    ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic", r'(met\w+\.\w+)'),
+    ]):
     """ Obté les URLs dels arxius de MET disponibles de l'ICGC
         Retorna: [(dtm_name, dtm_url)]
         ---
@@ -109,18 +109,54 @@ def get_dtms(dtm_urlbase_list=[
         Returns: [(dtm_name, dtm_url)]
         """
     dtm_list = []
-    for dtm_name, dtm_urlbase in dtm_urlbase_list:
+    for dtm_name, dtm_urlbase, dtm_http_file_pattern in urlbase_list:
         # Llegeixo la pàgina HTTP que informa dels arxius disponibles
         # Cerquem links a arxius MET i ens quedem el més recent
         files_list = get_http_files(dtm_urlbase, dtm_http_file_pattern)
         if not files_list:
             continue
 
-        dtm_file = sorted(files_list, reverse=True)[0]
-        dtm_url = "%s/%s" % (dtm_urlbase, dtm_file)
-        dtm_list.append((dtm_name, dtm_url))
+        for dtm_info in sorted(files_list, reverse=True):
+            if type(dtm_info) is str:
+                dtm_file = dtm_info
+                dtm_subname = ""
+            elif len(dtm_info) == 2:
+                dtm_file, dtm_subname = dtm_info
+            else:
+                continue
+            #dtm_file = sorted(files_list, reverse=True)[0]
+            dtm_url = "%s/%s" % (dtm_urlbase, dtm_file)
+            dtm_list.append((dtm_name + dtm_subname, dtm_url))
 
     return dtm_list
+
+def get_coast_dtms(urlbase_list=[
+    ]):
+    """ Obté les URLs dels arxius de MET de costa disponibles de l'ICGC
+        Retorna: [(dtm_name, dtm_url)]
+        ---
+        Gets ICGC's available Coast DTM urls
+        Returns: [(dtm_name, dtm_url)]
+        """
+    return get_dtms(urlbase_list)
+
+def get_bathimetrics(urlbase_list = [
+    ]):
+    return get_dtms(urlbase_list)
+
+coastline_list = None # Cached data
+def get_coastlines(urlbase_list = [
+    ]):
+    global coastline_list
+    if coastline_list:
+        return coastline_list
+    return get_dtms(urlbase_list)
+
+def get_coastline_filenames():
+    return sorted([(os.path.splitext(url.split("/")[-1])[0]) for year, url in get_coastlines()])
+
+def get_coastline_years():
+    return sorted([year for year, url in get_coastlines()])
 
 def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89/json_unzip", 
     sheet_http_file_pattern=r'(tall(\w+)etrs\w+\.json)'):
@@ -157,8 +193,8 @@ def get_grids(grid_urlbase="https://datacloud.icgc.cat/datacloud/quadricules-utm
         """
     # De moment les 2 quadrícules estan en el mateix zip... així que fixo el nom de les 2...
     return [
-        ("UTM (MGRS) 1x1 km", "/vsicurl/%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-1km-v1r0-2021.shp')),
-        ("UTM (MGRS) 10x10 km", "/vsicurl/%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-10km-v1r0-2021.shp')),
+        ("UTM (MGRS) 1x1 km", "%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-1km-v1r0-2021.shp')),
+        ("UTM (MGRS) 10x10 km", "%s%s|layername=%s" % (grid_urlbase, grid_http_file_pattern, 'quadricules-utm-10km-v1r0-2021.shp')),
         ]
 
 def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/bm5m_ETRS89/json_unzip",
@@ -241,3 +277,81 @@ def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
     file_tuple_list.sort(key=lambda f : f[0], reverse=True) # Ordenem per any
     return file_tuple_list
+
+historic_ortho_dict = None # Result cache
+def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-territorial/gpkg_unzip", \
+        file_pattern=r"(ortofoto-(\w+)-(\d+)(c*m)-(\w+)-(\d{4})\.gpkg)"):
+    """ Gets historic orthophotos available to download """
+
+    # If we have a cached result, we return it
+    global historic_ortho_dict
+    if historic_ortho_dict:
+        return historic_ortho_dict
+
+    def add_data(data_dict, color_not_irc, gsd, year, filename, source_gsd):
+        if color_not_irc not in data_dict:
+            data_dict[color_not_irc] = {}
+        gsd_dict = data_dict[color_not_irc]
+        if gsd not in gsd_dict:
+            gsd_dict[gsd] = {}
+        year_dict = gsd_dict[gsd]
+        year_dict[year] = (filename, source_gsd) # Tuple (filename, source_gsd)
+    def get_source_gsd(data_dict, color_not_irc, gsd, year):
+        if not color_not_irc in data_dict or not gsd in data_dict[color_not_irc] or not year in data_dict[color_not_irc][gsd]:
+            return None
+        source_gsd = data_dict[color_not_irc][gsd][year][1] # Tuple (filename, source_gsd)
+        return source_gsd
+
+    data_dict = {}
+    default_gsd_list = [0.25, 0.5, 2.5]
+    files_list = get_http_files(urlbase, file_pattern)
+    for filename, color_type, gsd_text, gsd_units, name, year_text in files_list:
+        color_not_irc = color_type.lower() != "irc"
+        gsd = float(gsd_text) if gsd_text.isdigit() else None
+        if gsd_units.lower() == "cm":
+            gsd /= 100
+        year = int(year_text) if year_text.isdigit else None
+        url_filename = "/vsicurl/" + urlbase + "/" + filename
+
+        # Adds current resolution
+        add_data(data_dict, color_not_irc, gsd, year, url_filename, gsd)
+        # Adds default resolutions if not exist default resolution or previous source gsd is worse
+        for default_gsd in default_gsd_list:
+            if gsd < default_gsd:
+                source_gsd = get_source_gsd(data_dict, color_not_irc, default_gsd, year)
+                if not source_gsd or abs(gsd - default_gsd) < abs(source_gsd - default_gsd):
+                    add_data(data_dict, color_not_irc, default_gsd, year, url_filename, gsd)
+   
+    return data_dict
+
+def get_historic_ortho_years(rgb_not_irc, gsd):
+    """ Obté els anys disponibles per un tipus d'orto (RGB/IRC) i GSD """    
+    gsd_dict = get_historic_ortho_dict().get(rgb_not_irc, None)
+    if not gsd_dict:
+        return []
+    years_dict = gsd_dict.get(gsd, None)
+    if not years_dict:
+        return []
+    return list(years_dict.keys())
+
+def get_historic_ortho_file(rgb_not_irc, gsd, year):
+    """ Obté el fitxer assicat a una ortofoto color/resolució/any """    
+    gsd_dict = get_historic_ortho_dict().get(rgb_not_irc, None)
+    if not gsd_dict:
+        return None
+    years_dict = gsd_dict.get(gsd, None)
+    if not years_dict:
+        return None
+    filename_and_source_gsd = years_dict.get(year, None) # Tuple (filename, source_gsd)
+    return filename_and_source_gsd[0] if filename_and_source_gsd else None 
+
+def get_historic_ortho_code(rgb_not_irc, gsd, year):
+    """ Obté el codi de descàrrega FME associat a una ortofoto color/resolució/any """
+    filename = get_historic_ortho_file(rgb_not_irc, gsd, year)
+    if filename:
+        filename = os.path.splitext(os.path.basename(filename))[0]
+    return filename
+
+def get_historic_ortho_ref(rgb_not_irc, gsd, year):
+    """ Obté l'arxiu de referència associat a una ortofoto color/resolució/any """
+    return get_historic_ortho_file(rgb_not_irc, gsd, year)
