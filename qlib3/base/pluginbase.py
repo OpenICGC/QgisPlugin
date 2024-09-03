@@ -3912,16 +3912,13 @@ class LayersBase(object):
 
     def parse_wms_t_layer(self, layer):
         # Obté la URL base i la capa / temps de la URL d'una capa
-        if layer.dataProvider().dataSourceUri().find("%26") >= 0:
-            # Cas especial on la url ja té un ? i s'ha afegit el paràmetre time amb "%26"
-            reg_ex = r"url=([\w\d\-\?_:./=]+)(?:\%26time=([\d\-/:]+))*.+layers=([\w\d\-_]+)"
-        else:
-            reg_ex = r"url=([\w\d\-_:./=]+)(?:\?time=([\d\-/:]+))*.+layers=([\w\d\-_]+)"
-        found = re.search(reg_ex, layer.dataProvider().dataSourceUri(), flags=re.IGNORECASE)
+        layer_uri = urllib.parse.unquote(layer.dataProvider().dataSourceUri())
+        reg_ex = r"(?:.*layers=([\w\d\-_]+))*.*url=([\w\d\-_:./=]+)(?:[\&\?]time=([\d\-/:]+))*(?:.*layers=([\w\d\-_]+))*"
+        found = re.search(reg_ex, layer_uri)
         if not found:
             return None, None, None
-        url, current_time, current_layer = found.groups()
-        return url, current_layer, current_time
+        current_layer1, url, current_time, current_layer2 = found.groups()
+        return url, current_layer1 or current_layer2, current_time
 
     def is_wms_t_layer(self, layer):
         # Obtenim el nom de la capa associada al temps escollit
@@ -4117,6 +4114,7 @@ class LayersBase(object):
                 new_uri = layer.source()
             else:
                 new_uri = layer.dataProvider().dataSourceUri()
+            new_uri = urllib.parse.unquote(new_uri)
             if wms_layer:
                 new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
             if wms_time:

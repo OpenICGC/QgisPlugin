@@ -116,7 +116,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
 
     def set_anaglyph(self, parallax, inverted_stereo):
         """ Assigna valors a les opcions del diàleg """
-        self.horizontalSlider_parallax.setValue((parallax - 80) / 4)
+        self.horizontalSlider_parallax.setValue(int((parallax - 80) / 4))
         self.checkBox_inverted_stereo.setChecked(Qt.Checked if inverted_stereo else Qt.Unchecked)
 
     def get_parallax(self):
