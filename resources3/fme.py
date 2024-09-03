@@ -41,9 +41,15 @@ FME_MAX_POLYGON_POINTS = 100
 services_list = [
     # (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_type_list, default_filename, 
     #    download_limits_id, url_pattern, <(url_ref, qml_style) | (wms_url, wms_layer, wms_style, wms_format)>),
-    ("of25c", "Ortofoto color vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "of25cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=of25c&Format=GEOTIFF&Projecte=of25c&Codi=%s&piramide=True", None),
-    ("of5m", "Ortofoto color vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "of50cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=of5m&Format=GEOTIFF&Projecte=of5m&Codi=%s&piramide=True", None),
-    ("of25m", "Ortofoto color vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "of250cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=of25m&Format=GEOTIFF&Projecte=of25m&Codi=%s&piramide=True", None),
+    ("of25c", "Ortofoto color vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "of25cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent &gsd=0.25", \
+        None),
+    ("of5m", "Ortofoto color vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "of50cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent &gsd=0.50", \
+        None),
+    ("of25m", "Ortofoto color vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "of250cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent &gsd=2.50", \
+        None),
 
     ("hc10cm", "Ortofoto color històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_ortho_years(True, 0.1), ["", "pol"], "of10cm.tif", "5k_limits", \
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=0.1", \
@@ -64,9 +70,15 @@ services_list = [
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=2.5", \
         (None, "orto-historica.qml")),
 
-    ("oi25c", "Ortofoto infraroja vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "oi25cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=oi25c&Format=GEOTIFF&Projecte=oi25c&Codi=%s&piramide=True", None),
-    ("oi5m", "Ortofoto infraroja vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "oi50cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=oi5m&Format=GEOTIFF&Projecte=oi5m&Codi=%s&piramide=True", None),
-    ("oi25m", "Ortofoto infraroja vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "oi250cm.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=oi25m&Format=GEOTIFF&Projecte=oi25m&Codi=%s&piramide=True", None),
+    ("oi25c", "Ortofoto infraroja vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "oi25cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent &gsd=0.25", \
+        None),
+    ("oi5m", "Ortofoto infraroja vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "oi50cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent &gsd=0.50", \
+        None),
+    ("oi25m", "Ortofoto infraroja vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "oi250cm.tif", "5k_limits", \
+        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent &gsd=2.50", \
+        None),
 
     ("hi10cm", "Ortofoto infraroja històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_ortho_years(False, 0.1), ["", "pol"], "oi10cm.tif", "5k_limits", \
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=0.1", \
