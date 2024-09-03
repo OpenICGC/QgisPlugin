@@ -30,7 +30,7 @@ qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 version=1.1.20
 changelog=v1.1.20 (2024-09-02)
-	- Add current orthos (color, irc and gray) layers
+	- Added current orthophoto (color, irc and gray) layers
 	- Updated geological map 250.000 and added new download formats
 	- Fixed problem showing photograms with undefined GSD value
 	- Fixed problem showing photogram's metadatas and raster
