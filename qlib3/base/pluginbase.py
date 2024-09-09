@@ -4036,7 +4036,7 @@ class LayersBase(object):
 
         return time_series_list, default_time
 
-    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False):
+    def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
         """ Afegeix una capa a partir de la URL base, una llista de capes WMS, una llista d'estils i un format d'imatge.
             Retorna la capa.
             Opcionalment es pot especificar:
@@ -4061,10 +4061,10 @@ class LayersBase(object):
             - collapsed: Indicates whether we want to load the layer with collapsed legend
             - visible: Indicates whether we want to load the layer by leaving it visible or not
             """
-        uri = self.generate_wms_layer_uri(url, layers_list, styles_list, image_format, epsg, extra_tags)
+        uri = self.generate_wms_layer_uri(url, layers_list, styles_list, image_format, epsg, extra_tags, ignore_get_map_url)
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current, resampling_bilinear, resampling_cubic)
 
-    def generate_wms_layer_uri(self, url, layers_list, styles_list, image_format, epsg=None, extra_tags=""):
+    def generate_wms_layer_uri(self, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", ignore_get_map_url=True):
         """ Retorna el string uri a partir dels paràmetres WMS
             ---
             Return WMS uri string from WMS paràmeters
@@ -4084,10 +4084,11 @@ class LayersBase(object):
         uri = "url=%s&crs=EPSG:%s&format=%s&styles=%s&layers=%s" % (url, epsg, image_format, "&styles=".join(styles_list), "&layers=".join(layers_list))
         if extra_tags:
             uri += "&%s" % extra_tags
-        uri += "&IgnoreGetMapUrl=1"
+        if ignore_get_map_url:
+            uri += "&IgnoreGetMapUrl=1"
         return uri
         
-    def add_wms_url_query_layer(self, layer_name, url_query, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False):
+    def add_wms_url_query_layer(self, layer_name, url_query, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, ignore_get_map_url=True):
         """ Afegeix una capa WMS a partir d'una petició WMS (URL). Retorna la capa.
             Veure add_wms_layer per opcions
             ---
@@ -4095,7 +4096,8 @@ class LayersBase(object):
             See add_wms_layer for options
             """
         uri = "url=%s" % url_query.lower().replace("epsg:", "epsg:").replace("srs=", "crs=").replace("?", "&")
-        uri += "&IgnoreGetMapUrl=1"
+        if ignore_get_map_url:
+            uri += "&IgnoreGetMapUrl=1"
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
     def update_wms_layer(self, layer, wms_layer=None, wms_time=None, wms_style=None):

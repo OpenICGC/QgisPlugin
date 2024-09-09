@@ -129,13 +129,6 @@ services_list = [
     ("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
     ("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
 
-    ("elevacions-franja-litoral", "Model d’elevacions topobatimètric de la franja litoral", 200, 200000000, None, None, None, None, ["", "pol"], "elevacions-franja-litoral.tif", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=elevacions-franja-litoral&Codi=%s&piramide=True", None),
-    ("batimetria", "Mapa d’isòbates", None, 200000000 , None, None, None, None, ["", "pol", "tot"], "batimetria.gpkg", "cat_limits", "%s/fmedatastreaming/batimetries/ICGC_batimetria_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
-    #("linia-costa", "Línia de costa", None, 200000000 , None, None, None, get_coastline_years(), ["", "pol", "tot"], "linia-costa.gpkg", "cat_limits", "%s/fmedatastreaming/batimetries/ICGC_linia-costa_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
-    ] + [
-    ("linia-costa %s" % "-".join(coastline_filename.split('-')[3:]), "Línia de costa",
-        None, 200000000 , None, None, None, None, ["", "pol", "tot"], coastline_filename + ".gpkg", "cat_limits", "%s/fmedatastreaming/batimetries/ICGC_linia-costa_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s&geopackage_out=linia_costa&geopackage_in=" + coastline_filename, None) \
-        for coastline_filename in get_coastline_filenames()
     ] + [                          
     ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, None, None, ["tot"], "gt1.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
     ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, None, None, ["tot"], "mg50m.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
