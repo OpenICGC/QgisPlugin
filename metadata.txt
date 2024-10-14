@@ -29,7 +29,7 @@ email=qgis.openicgc@icgc.cat
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
 version=1.1.22
-changelog=v1.1.22
+changelog=v1.1.22 (2024-10-14)
 	- Added new lidar products (points cloud and orthophotos) to download
 	- Added download full photograms option
 	- Added reminder to update plugin before reporting a problem
