@@ -277,7 +277,7 @@ class ProgressDialog(object):
             ---
             Returns information about the time elapsed and the remaining time
             """
-        if self.dlg.maximum():
+        if self.dlg.maximum() and self.time_info.find("%s") == 2:
             return self.time_info % (self.get_delta_info(self.get_elapsed_time()), self.get_delta_info(self.get_remaining_time()))
         else:
             # Ens assegurem de que només tenim un %s

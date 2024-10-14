@@ -39,7 +39,7 @@ from qgis.gui import QgsMapTool, QgsRubberBand
 # Import the PyQt and QGIS libraries
 from PyQt5.QtCore import QSize, Qt, QPoint, QDateTime
 from PyQt5.QtGui import QIcon, QCursor, QColor, QPolygon
-from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInputDialog, QLineEdit, QFileDialog
+from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInputDialog, QLineEdit, QFileDialog, QWidgetAction
 
 # Initialize Qt resources from file resources_rc.py
 from . import resources_rc
@@ -52,6 +52,7 @@ if is_import_relative:
     # Import basic plugin functionalities
     from .qlib3.base.loginfodialog import LogInfoDialog
     from .qlib3.base.pluginbase import PluginBase, WaitCursor
+    from .qlib3.base.progressdialog import WorkingDialog
     # Import geofinder dialog and class
     from .geofinder3.geofinder import GeoFinder
     from .qlib3.geofinderdialog.geofinderdialog import GeoFinderDialog
@@ -62,7 +63,7 @@ if is_import_relative:
     # Import wms resources access functions
     from .resources3.wms import get_historic_ortho, get_lastest_ortoxpres, get_superexpedita_ortho, get_full_ortho
     #from .resources3.wfs import get_delimitations as get_wfs_delimitations
-    from .resources3.fme import get_clip_data_url, get_services
+    from .resources3.fme import get_clip_data_url, get_services, get_data_filters
     from .resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     from .resources3.http import get_historic_ortho_code, get_historic_ortho_ref
     from .resources3.http import get_dtms, get_coast_dtms,  get_bathimetrics, get_coastlines, get_sheets, get_grids
@@ -76,6 +77,9 @@ else:
     import qlib3.base.loginfodialog
     reload(qlib3.base.loginfodialog)
     from qlib3.base.loginfodialog import LogInfoDialog
+    import qlib3.base.progressdialog
+    reload(qlib3.base.progressdialog)
+    from qlib3.base.progressdialog import WorkingDialog
     # Import geofinder dialog and class
     import qlib3.geofinderdialog.geofinderdialog
     reload(qlib3.geofinderdialog.geofinderdialog)
@@ -100,7 +104,7 @@ else:
     #from resources3.wfs import get_delimitations as get_wfs_delimitations
     import resources3.fme
     reload(resources3.fme)
-    from resources3.fme import get_clip_data_url, get_services
+    from resources3.fme import get_clip_data_url, get_services, get_data_filters
     from resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     import resources3.http
     reload(resources3.http)
@@ -280,6 +284,7 @@ class OpenICGC(PluginBase):
         "li":":/lib/qlib3/base/images/cat_coast.png",
         "ba":":/lib/qlib3/base/images/cat_coast.png",
         "el":":/lib/qlib3/base/images/cat_coast.png",
+        "li":":/lib/qlib3/base/images/cat_lidar.png",
         "ph":":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png", # fototeca
         }
     FME_METADATA_DICT = {
@@ -289,13 +294,9 @@ class OpenICGC(PluginBase):
         "hi": "Infrared orthophoto (temporal serie)",
         #"bt5m": "Topographic base 1:5,000",
         "topografia-territorial": "Territorial topographic referential",
-        "mtc25m": "Topographic map 1:25,000",
-        "mtc50m": "Topographic map 1:50,000",
-        "mtc100m": "Topographic map 1:100,000",
         "mtc250m": "Topographic map 1:250,000",
         "mtc500m": "Topographic map 1:500,000",
         "mtc1000m": "Topographic map 1:1,000,000",
-        "mtc2000m": "Topographic map 1:2,000,000",
         "ct1m": "Topographic cartography 1:1,000",
         #"bm5m": "Municipal base 1:5,000",
         "divisions-administratives": "Administrative divisions",
@@ -325,11 +326,16 @@ class OpenICGC(PluginBase):
         #"gt4": "GT IV. Soil map 1:25,000",
         #"gt5": "GT V. Hydrogeological map 1:25,000",
         #"mah250m": "Map of hydrogeological Areas 1:250,000",
+        "lidar-territorial": "Territorial Lidar",
+        "of-lidar-territorial": "Territorial Lidar Color Orthophoto",
+        "oi-lidar-territorial": "Territorial Lidar Infrared Orthophoto",
         # No metadata
         #"photo": "Photo library",
         }
 
     PRODUCT_METADATA_FILE = os.path.join(os.path.dirname(__file__), "data", "product_metadata.json")
+
+    CAT_EXTENSION = QgsRectangle(215300, 4478100, 577600, 4758400)
 
     download_action = None
     time_series_action = None
@@ -365,8 +371,10 @@ class OpenICGC(PluginBase):
         fme_resources.log = self.log
 
         # Load extra fonts (Fira Sans)
+        t0 = datetime.datetime.now()
         fonts_status, self.font_id_list = self.load_fonts(copy_to_temporal_folder=True)
-        self.log.info("Load fonts folder %s: %s" % (self.get_fonts_temporal_folder(), fonts_status))
+        t1 = datetime.datetime.now()
+        self.log.info("Load fonts folder %s: %s (%s)" % (self.get_fonts_temporal_folder(), fonts_status, t1-t0))
         if not fonts_status:
             self.log.warning("Error loading extra fonts")
 
@@ -442,13 +450,9 @@ class OpenICGC(PluginBase):
             "hi250cm": self.tr("Historic infrared orthophoto 2.5m 1:25,000"),
             #"bt5m": self.tr("Topographic base 1:5,000"),
             "topografia-territorial": self.tr("Territorial topographic referential"),
-            "mtc25m": self.tr("Topographic map 1:25,000"),
-            "mtc50m": self.tr("Topographic map 1:50,000"),
-            "mtc100m": self.tr("Topographic map 1:100,000"),
             "mtc250m": self.tr("Topographic map 1:250,000"),
             "mtc500m": self.tr("Topographic map 1:500,000"),
             "mtc1000m": self.tr("Topographic map 1:1,000,000"),
-            "mtc2000m": self.tr("Topographic map 1:2,000,000"),
             "ct1m": self.tr("Topographic cartography 1:1,000"),
             #"bm5m": self.tr("Municipal base 1:5,000"),
             "divisions-administratives": self.tr("Administrative divisions"),
@@ -478,7 +482,10 @@ class OpenICGC(PluginBase):
             #"gt4": self.tr("GT IV. Soil map 1:25,000"),
             #"gt5": self.tr("GT V. Hydrogeological map 1:25,000"),
             #"mah250m": self.tr("Map of hydrogeological Areas 1:250,000"),
-            "photo": self.tr("Photo library"),
+            "lidar-territorial": self.tr("Territorial Lidar"),
+            "of-lidar-territorial": self.tr("Territorial Lidar Color Orthophoto"),
+            "oi-lidar-territorial": self.tr("Territorial Lidar Infrared Orthophoto"),
+            "photo": self.tr("Photograms"),
             }
         # Initialize download type descriptions (with translation)
         self.FME_DOWNLOADTYPE_LIST = [
@@ -499,13 +506,15 @@ class OpenICGC(PluginBase):
             "cat_rect": self.get_catalonia_limits("cat_rect_limits", buffer=0),
             "cat_simple": self.get_catalonia_limits("cat_simple_limits", buffer=0),
             "cat_limits": self.get_catalonia_limits("cat_limits", buffer=250),
+            "lidar1k_limits": self.get_catalonia_limits("cat_lidar1k_limits", buffer=0),
             "5k_limits": self.get_catalonia_limits("cat_tall5k_limits", buffer=0),
             "25k_limits": self.get_catalonia_limits("cat_tall25k_limits", buffer=0),
             }
         # Lambda function with last download reference layer used
         self.load_last_ref_layer = lambda: None
-        # Get download services regex styles
+        # Get download services regex styles and filters
         self.fme_regex_styles_list = get_fme_regex_styles()
+        self.fme_data_filters_dict = get_data_filters()
         # Initialize reference to DownloadDialog
         self.download_dialog = None
 
@@ -537,6 +546,12 @@ class OpenICGC(PluginBase):
         # Configure referrer string to use on url requests
         self.request_referrer = "%s_v%s" % (self.metadata.get_name().replace(" ", ""), self.metadata.get_version())
         self.request_referrer_param = "referrer=%s" % self.request_referrer
+
+        # Check QGIS version problems
+        self.enable_http_files = self.check_qgis_version(31004)
+        self.qgis_version_ok = self.check_qgis_version(31004)
+        self.can_show_point_cloud_files = self.check_qgis_version(31800)
+        self.can_filter_point_cloud = self.check_qgis_version(32600)
 
         # Map change current layer event
         self.iface.layerTreeView().currentLayerChanged.connect(self.on_change_current_layer)
@@ -579,6 +594,7 @@ class OpenICGC(PluginBase):
     def get_catalonia_limits(self, filename, buffer=0, segments=10):
         """ Gets Catalonia limits from geojson resource file
             Apply 250m of buffer to fix possible errors on CAT envolope scale 1:1,000,000 """
+        t0 = datetime.datetime.now()
         pathname = os.path.join(self.plugin_path, "data", "%s.geojson" % filename)
         if not os.path.exists(pathname):
             self.log.warning("Geometry limits %s file not found %s", filename, pathname)
@@ -592,8 +608,9 @@ class OpenICGC(PluginBase):
             self.log.warning("Load geometry limits %s empty: %s\nFeatures: %s",
                 filename, pathname, tmp_layer.featureCount())
         epsg = tmp_layer.crs().authid()
-        self.log.info("Load geometry limits: %s (features: %s, empty: %s, buffer: %s, segments: %s, EPSG:%s)",
-            pathname, tmp_layer.featureCount(), geom.isEmpty(), buffer, segments, epsg)
+        t1 = datetime.datetime.now()
+        self.log.info("Load geometry limits: %s (features: %s, empty: %s, buffer: %s, segments: %s, EPSG:%s) (%s)",
+            pathname, tmp_layer.featureCount(), geom.isEmpty(), buffer, segments, epsg, t1-t0)
         return geom, epsg
 
     def format_scale(self, scale):
@@ -606,6 +623,7 @@ class OpenICGC(PluginBase):
     def initGui(self, check_qgis_updates=True, check_icgc_updates=False):
         """ GUI initializacion """
         # Log plugin started
+        t0 = datetime.datetime.now()
         self.log.info("Initializing GUI")
 
         # Plugin registration in the plugin manager
@@ -627,7 +645,6 @@ class OpenICGC(PluginBase):
 
         # Get Available delimitations
         delimitations_list = get_delimitations()
-        #wfs_delimitations_url, wfs_delimitations_list = get_wfs_delimitations()
 
         # Gets available Sheets and Grids
         sheets_list = get_sheets()
@@ -672,10 +689,7 @@ class OpenICGC(PluginBase):
         # Check plugin update
         new_icgc_plugin_version = self.check_plugin_update() if check_icgc_updates else None
         new_qgis_plugin_version = self.metadata.get_qgis_new_version_available() if check_qgis_updates and not self.lite else None
-
-        # Check QGIS version problems
-        enable_http_files = self.check_qgis_version(31004)
-        qgis_version_ok = self.check_qgis_version(31004)
+        new_plugin_version = new_qgis_plugin_version or new_icgc_plugin_version
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
@@ -697,16 +711,12 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/cat_topo250k.png"),
                     self.manage_metadata_button("Topographic map (topographical pyramid)"), True),
                 (self.tr("Territorial topographic referential"), None, QIcon(":/lib/qlib3/base/images/cat_topo5k.png"), \
-                    enable_http_files and len(topo5k_time_series_list) > 0, [
+                    self.enable_http_files and len(topo5k_time_series_list) > 0, [
                     (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
                         lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png", topo5k_time_series_list[::-1], None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
                         QIcon(":/lib/qlib3/base/images/cat_topo5k.png"),
                         self.manage_metadata_button("Territorial topographic referential %s (temporal serie)" % topo5k_year), True)
                     for topo5k_year, _url in topo5k_time_series_list]),
-                (self.tr("Topographic map 1:50,000"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:50,000"), "https://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc50m"], ["default"], "image/png", 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                    QIcon(":/lib/qlib3/base/images/cat_topo50k.png"),
-                    self.manage_metadata_button("Topographic map 1:50,000"), True),
                 (self.tr("Topographic map 1:250,000"),
                     lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"), "https://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc250m"], ["default"], "image/png", 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                     QIcon(":/lib/qlib3/base/images/cat_topo250k.png"),
@@ -731,7 +741,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("ContextMaps hybrid orthophoto"), True),
                     ]),
                 "---",
-                (self.tr("Administrative divisions"), None, QIcon(":/lib/qlib3/base/images/cat_vector.png"), enable_http_files, [
+                (self.tr("Administrative divisions"), None, QIcon(":/lib/qlib3/base/images/cat_vector.png"), self.enable_http_files, [
                     (self.tr("Administrative divisions (raster pyramid)"),
                         lambda _checked:self.layers.add_wms_layer(self.tr("Administrative divisions (raster pyramid)"), "https://geoserveis.icgc.cat/servei/catalunya/divisions-administratives/wms",
                             ['divisions_administratives_comarques_1000000', 'divisions_administratives_comarques_500000', 'divisions_administratives_comarques_250000', 'divisions_administratives_comarques_100000', 'divisions_administratives_comarques_50000', 'divisions_administratives_comarques_5000', 'divisions_administratives_municipis_250000', 'divisions_administratives_municipis_100000', 'divisions_administratives_municipis_50000', 'divisions_administratives_municipis_5000', 'divisions_administratives_capsdemunicipi_capmunicipi', 'divisions_administratives_capsdemunicipi_capcomarca'],
@@ -750,23 +760,12 @@ class OpenICGC(PluginBase):
                             for scale, url in scale_list] if len(scale_list) > 1 \
                             else self.manage_metadata_button("Administrative divisions")),
                             len(scale_list) == 1)
-                        for name, scale_list, style_file in delimitations_list
-                        #(self.HTTP_NAMES_DICT.get(name, name),
-                        #(lambda _checked, name=name, scale_list=scale_list, style_file=style_file:self.layers.add_wfs_layer(self.HTTP_NAMES_DICT.get(name, name), wfs_delimitations_url, [scale_list[0][1]], epsg=25831, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file) if len(scale_list) == 1 else None),
-                        #QIcon(":/lib/qlib3/base/images/cat_vector.png"), ([
-                        #    ("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)),
-                        #        lambda _checked, name=name, scale=scale, style_file=style_file, layer_id=layer_id:self.layers.add_wfs_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), wfs_delimitations_url, [layer_id], epsg=25831, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file=style_file),
-                        #        QIcon(":/lib/qlib3/base/images/cat_vector.png"),
-                        #        self.manage_metadata_button("Administrative divisions"), True)
-                        #    for scale, layer_id in scale_list] if len(scale_list) > 1 \
-                        #    else self.manage_metadata_button("Administrative divisions")),
-                        #    len(scale_list) == 1)
-                        #for name, scale_list, style_file in wfs_delimitations_list
+                        for name, scale_list, style_file in delimitations_list                     
                         ]),
-                (self.tr("Cartographic series"), None, QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files, [
+                (self.tr("Cartographic series"), None, QIcon(":/lib/qlib3/base/images/sheets.png"), self.enable_http_files, [
                     (self.tr("%s serie") % sheet_name,
                         lambda _checked, sheet_name=sheet_name, sheet_url=sheet_url:self.layers.add_vector_layer(self.tr("%s serie") % sheet_name, sheet_url, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file="talls.qml"),
-                        QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files,
+                        QIcon(":/lib/qlib3/base/images/sheets.png"), self.enable_http_files,
                         self.manage_metadata_button("Cartographic series"), True
                         ) for sheet_name, sheet_url in sheets_list
                     ] + [
@@ -774,7 +773,7 @@ class OpenICGC(PluginBase):
                     ] + [
                     (self.tr("%s grid") % grid_name,
                         lambda _checked, grid_name=grid_name, grid_url=grid_url:self.layers.add_vector_layer(self.tr("%s grid") % grid_name, grid_url, group_name=self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, style_file="talls.qml"),
-                        QIcon(":/lib/qlib3/base/images/sheets.png"), enable_http_files,
+                        QIcon(":/lib/qlib3/base/images/sheets.png"), self.enable_http_files,
                         self.manage_metadata_button("UTM (MGRS) grids"), True
                         ) for grid_name, grid_url in grids_list
                     ]),
@@ -791,7 +790,7 @@ class OpenICGC(PluginBase):
                 ] + [(self.tr("Digital Terrain Model %s") % dtm_name,
                     # Force EPSG:25831 by problems with QGIS 3.10 version
                     lambda _checked, dtm_name=dtm_name, dtm_url=dtm_url:self.layers.add_raster_layer(self.tr("Digital Terrain Model %s") % dtm_name, dtm_url, group_name=self.backgroup_map_group_name, group_pos=0, epsg=25831, only_one_map_on_group=False, set_current=True, color_default_expansion=True, resampling_bilinear=True),
-                    QIcon(":/lib/qlib3/base/images/cat_dtm.png"), enable_http_files,
+                    QIcon(":/lib/qlib3/base/images/cat_dtm.png"), self.enable_http_files,
                     self.manage_metadata_button("Digital Terrain Model %s" % dtm_name), True
                     ) for dtm_name, dtm_url in dtm_list] + [
                 "---",
@@ -800,7 +799,7 @@ class OpenICGC(PluginBase):
                     ("%s %s" % (self.tr("Topobathymetric elevation model"), dtm_name),
                         # Force EPSG:25831 by problems with QGIS 3.10 version
                         lambda _checked, dtm_name=dtm_name, dtm_url=dtm_url:self.layers.add_raster_layer("%s %s" % (self.tr("Topobathymetric elevation model"), dtm_name), dtm_url, group_name=self.backgroup_map_group_name, group_pos=0, epsg=25831, only_one_map_on_group=False, set_current=True, color_default_expansion=True, resampling_bilinear=True),
-                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), enable_http_files,
+                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), self.enable_http_files,
                         self.manage_metadata_button("Topobathymetric elevation model %s" % dtm_name), True
                     ) for dtm_name, dtm_url in coast_dtm_list] + [
                     "---"
@@ -808,7 +807,7 @@ class OpenICGC(PluginBase):
                     ("%s %s" % (self.tr("Bathymetric chart"), bathymetric_name),
                         # Force EPSG:25831 by problems with QGIS 3.10 version
                         lambda _checked, bathymetric_name=bathymetric_name, bathymetri_url=bathymetri_url:self.layers.add_vector_layer("%s %s" % (self.tr("Bathymetric chart"), bathymetric_name), bathymetri_url, group_name=self.backgroup_map_group_name, group_pos=0, only_one_map_on_group=False, set_current=True),
-                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), enable_http_files,
+                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), self.enable_http_files,
                         self.manage_metadata_button("Bathymetric chart %s" % bathymetric_name), True
                     ) for bathymetric_name, bathymetri_url in bathimetric_list] + [
                     "---"
@@ -816,7 +815,7 @@ class OpenICGC(PluginBase):
                     ("%s %s" % (self.tr("Coastline"), coastline_name),
                         # Force EPSG:25831 by problems with QGIS 3.10 version
                         lambda _checked, coastline_name=coastline_name, coastline_url=coastline_url:self.layers.add_vector_layer("%s %s" % (self.tr("Coastline"), coastline_name), coastline_url, group_name=self.backgroup_map_group_name, group_pos=0, only_one_map_on_group=False, set_current=True),
-                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), enable_http_files,
+                        QIcon(":/lib/qlib3/base/images/cat_coast.png"), self.enable_http_files,
                         self.manage_metadata_button("Coastline %s" % coastline_name), True
                     ) for coastline_name, coastline_url in coastline_list] 
                 ), 
@@ -828,7 +827,7 @@ class OpenICGC(PluginBase):
                     self.manage_metadata_button("NDVI (temporal serie)"), True),
                 (self.tr("NDVI (temporal serie)"),
                     lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"), None, ndvi_current_time, None, "default", "image/png", ndvi_time_series_list, None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), enable_http_files and len(ndvi_time_series_list) > 0,
+                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), self.enable_http_files and len(ndvi_time_series_list) > 0,
                     self.manage_metadata_button("NDVI (temporal serie)"), True),
                 "---",
                 (self.tr("Current color orthophoto") + " (%s)" % ortho_color_year,
@@ -940,21 +939,9 @@ class OpenICGC(PluginBase):
                         (self.tr("Andorra topographic 1:50,000 2020"),
                             lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 2020"), "https://www.ideandorra.ad/Serveis/wmscarto50kraster_2020/wms", ["mta50m2020geotif"], [], "image/png",  27563, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_topo50k.png")),
-                        (self.tr("Andorra topographic 1:25,000 1989"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:25,000 1989"), "http://www.ideandorra.ad/Serveis/wmscarto25kraster_1989/wms", ["carto_25k_1989"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                            QIcon(":/lib/qlib3/base/images/andorra_topo25k.png")),
-                        (self.tr("Andorra topographic 1:50,000 1987"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 1987"), "http://www.ideandorra.ad/Serveis/wmscarto50kraster_1987/wms", ["carto_50k_1987"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                            QIcon(":/lib/qlib3/base/images/andorra_topo50k.png")),
                         "---",
                         (self.tr("Andorra orthophoto 1:5,000 2012"),
                             lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2012"), "https://www.ideandorra.ad/Serveis/wmsorto2012/wms", ["orto2012"], [], "image/png",  27563, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                            QIcon(":/lib/qlib3/base/images/andorra_orto2003.png")),
-                        (self.tr("Andorra orthophoto 1:500-1,000 20cm 2008"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:500-1,000 20cm 2008"), "http://www.ideandorra.ad/Serveis/wmsorto2008/wms", ["orto2008"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                            QIcon(":/lib/qlib3/base/images/andorra_orto2008.png")),
-                        (self.tr("Andorra orthophoto 1:5,000 2003"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2003"), "http://www.ideandorra.ad/Serveis/wmsorto2003/wms", ["Orto5000_2003"], [], "image/png",  27573, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             QIcon(":/lib/qlib3/base/images/andorra_orto2003.png")),
                         ]),
                     (self.tr("France"), None, QIcon(":/lib/qlib3/base/images/france_topo.png"), [
@@ -989,16 +976,16 @@ class OpenICGC(PluginBase):
                     (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos_by_point(), QIcon(":/plugins/openicgc/images/search_coord.png"), True, False),
                     (self.tr("Search photograms by name"), lambda _checked:self.search_photos_by_name(), QIcon(":/plugins/openicgc/images/search_name.png"), True, False),
                     ]),
-                (self.tr("Download tool"), self.enable_last_download, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download",
-                    download_vector_submenu + [
+                (self.tr("Download tool"), self.enable_last_download, QIcon(":/plugins/openicgc/images/download_area.png"), True, True, "download", [
+                    (self.tr("Select download folder"), self.set_download_folder, QIcon(":/lib/qlib3/base/images/download_folder.png"), True, False, "select_download_folder"),
+                    (self.tr("Open download folder"), self.open_download_folder, style.standardIcon(QStyle.SP_DirIcon), True, False, "open_download_folder"),
+                    "---",                    
+                    ] + download_vector_submenu + [
                     "---"
                     ] + download_raster_submenu + [
                     "---",
-                    (self.tr("Save map as PDF"), lambda:self.save_map("A4H", self.tr("Save map as PDF")), QIcon(":/plugins/openicgc/images/pdf.png"), True, False, "save_pdf"),
-                    (self.tr("Save location map as PDF"), lambda:self.save_map("A4V", self.tr("Save location map as PDF")), QIcon(":/plugins/openicgc/images/pdf.png"), True, False, "save_location_pdf"),
-                    "---",
-                    (self.tr("Select download folder"), self.set_download_folder, QIcon(":/lib/qlib3/base/images/download_folder.png"), True, False, "select_download_folder"),
-                    (self.tr("Open download folder"), self.open_download_folder, style.standardIcon(QStyle.SP_DirIcon), True, False, "open_download_folder"),
+                    (self.tr("Save map as PDF"), lambda:self.save_map("A4H", "", self.tr("Save map as PDF")), QIcon(":/plugins/openicgc/images/pdf.png"), True, False, "save_pdf"),
+                    (self.tr("Save location map as PDF"), lambda:self.save_map("A4V", self.tr(" (location)"), self.tr("Save location map as PDF")), QIcon(":/plugins/openicgc/images/pdf.png"), True, False, "save_location_pdf"),
                     ])
             ] if not self.lite else []) + [
             (self.tr("Paint styles for selected layers"), None, QIcon(":/lib/qlib3/base/images/style.png"), [
@@ -1010,7 +997,7 @@ class OpenICGC(PluginBase):
                     QIcon(":/lib/qlib3/base/images/desaturate.png")),
                 (self.tr("Height highlighting"),
                     lambda _checked, dtm_url=height_highlighting_url:self.add_height_highlighting_layer(self.tr("Height highlighting"), dtm_url, style_file="ressaltat_alçades.qml", group_name=self.backgroup_map_group_name),
-                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), enable_http_files and height_highlighting_url),
+                    QIcon(":/lib/qlib3/base/images/cat_shadows.png"), self.enable_http_files and height_highlighting_url),
                 (self.tr("Shading DTM layer"),
                     self.shading_dtm,
                     QIcon(":/lib/qlib3/base/images/cat_shadows.png")),
@@ -1031,18 +1018,19 @@ class OpenICGC(PluginBase):
                 (self.tr("Help"), self.show_help, QIcon(":/lib/qlib3/base/images/help.png")),
                 "---",
                 (self.tr("Available products list"), self.show_available_products, style.standardIcon(QStyle.SP_FileDialogDetailedView)),
+                (self.tr("Deprecated products list"), lambda _checked:self.show_url("https://www.icgc.cat/ca/Geoinformacio-i-mapes/Obsolescencia-daplicacions-productes-i-serveis"), style.standardIcon(QStyle.SP_FileDialogDetailedView)),
                 "---",
                 (self.tr("Cartographic and Geological Institute of Catalonia web"), lambda _checked:self.show_help_file("icgc"), QIcon(":/lib/qlib3/base/images/icgc.png")),
                 (self.tr("QGIS plugin repository"), lambda _checked:self.show_help_file("plugin_qgis"), QIcon(":/lib/qlib3/base/images/plugin.png")),
                 (self.tr("Software Repository"), lambda _checked:self.show_help_file("plugin_github"), QIcon(":/lib/qlib3/base/images/git.png")),
-                (self.tr("Send us an email"), lambda _checked:self.send_email(), QIcon(":/lib/qlib3/base/images/send_email.png")),
+                (self.tr("Send us an email"), lambda _checked, new_plugin_version=new_plugin_version:self.send_email(new_plugin_version=new_plugin_version), QIcon(":/lib/qlib3/base/images/send_email.png")),
                 "---",
-                (self.tr("Report an issue"), lambda _checked:self.show_help_file("plugin_issues"), QIcon(":/lib/qlib3/base/images/bug.png")),
+                (self.tr("Report an issue"), lambda _checked, new_plugin_version=new_plugin_version:self.report_issue(new_plugin_version=new_plugin_version), QIcon(":/lib/qlib3/base/images/bug.png")),
                 (self.tr("Debug"), None, QIcon(":/lib/qlib3/base/images/bug_target.png"), [
                     (self.tr("Enable debug log info"), self.enable_debug_log, QIcon(":/lib/qlib3/base/images/bug_target.png"), True, True, "enable_debug_log"),
                     (self.tr("Open debug log file"), lambda _checked:self.gui.open_file_folder(self.log.getLogFilename()), style.standardIcon(QStyle.SP_FileIcon), self.log.getLogFilename() is not None),
                     (self.tr("Open plugin installation folder"), lambda _checked:self.gui.open_file_folder(self.plugin_path), style.standardIcon(QStyle.SP_DirIcon)),
-                    (self.tr("Send us an email with debug information"), lambda _checked:self.send_email(debug=True), QIcon(":/lib/qlib3/base/images/send_email_red.png")),
+                    (self.tr("Send us an email with debug information"), lambda _checked, new_plugin_version=new_plugin_version:self.send_email(debug=True, new_plugin_version=new_plugin_version), QIcon(":/lib/qlib3/base/images/send_email_red.png")),
                     ]),
                 ]),
             ]) + ([] if not new_qgis_plugin_version or self.lite else [
@@ -1051,7 +1039,7 @@ class OpenICGC(PluginBase):
             ]) + ([] if not new_icgc_plugin_version or self.lite else [
                 self.tr("Update\n available: v%s") % new_icgc_plugin_version,
                 (self.tr("Download plugin"), lambda _checked,v=new_icgc_plugin_version:self.download_plugin_update(v, UpdateType.icgc_web), QIcon(":/lib/qlib3/base/images/new_icgc.png")), #style.standardIcon(QStyle.SP_BrowserReload)),
-            ]) + ([] if qgis_version_ok or self.lite else [
+            ]) + ([] if self.qgis_version_ok or self.lite else [
                 self.tr("Warning:"),
                 (self.tr("QGIS version warnings"), self.show_qgis_version_warnings, style.standardIcon(QStyle.SP_MessageBoxWarning)),
             ]))
@@ -1091,7 +1079,8 @@ class OpenICGC(PluginBase):
         self.tool_photo_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), self.search_photos, self.photo_search_action)
 
         # Log plugin started
-        self.log.info("Initialization complete")
+        t1 = datetime.datetime.now()
+        self.log.info("Initialization complete (%s)" % (t1-t0))
 
     def manage_metadata_button(self, product_access):
         """ Returns buttons list for product metadata """
@@ -1400,6 +1389,16 @@ class OpenICGC(PluginBase):
     def is_vector_extension(self, ext):
         return self.is_extension(ext, ["shp", "dgn", "dwg", "gpkg", "shp-zip"])
 
+    def is_points_file(self, pathname):
+        return self.is_file_type(pathname, ["laz", "las"])
+    def is_points_extension(self, ext):
+        return self.is_extension(ext, ["laz", "las"])
+
+    def is_slow_file(self, pathname):
+        return self.is_file_type(pathname, ["laz", "las"])
+    def is_slow_extension(self, ext):
+        return self.is_extension(ext, ["laz", "las"])
+
     def is_file_type(self, pathname, ext_list):
         _filename, ext = os.path.splitext(pathname)
         return self.is_extension(ext, ext_list)
@@ -1451,10 +1450,17 @@ class OpenICGC(PluginBase):
             time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])))
             if not time_list:
                 time_list = [None]
-            data_dict = {year: {gsd: {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list} for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled)) in gsd_dict.items() if not year or year in gsd_dict[gsd][6]} for year in time_list}
+            data_dict = {year: {gsd: {description: id \
+                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST \
+                if operation_code in download_list} \
+                for (gsd, (_data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled)) in gsd_dict.items() \
+                if not year or year in gsd_dict[gsd][6]} \
+                for year in time_list}
         else:
             # Without GSD dictionari
-            download_type_dict = {description: id for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST if operation_code in download_list}
+            download_type_dict = {description: id \
+                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST \
+                if operation_code in download_list}
             if not time_list:
                 time_list = [None]
             data_dict = {year: {None: download_type_dict} for year in time_list}
@@ -1544,10 +1550,13 @@ class OpenICGC(PluginBase):
         download_ext = ("" if len(ext.split("-")) <= 1 else ".") + ext.split("-")[-1]
         ext = ext.split("-")[0]
         is_unsupported_format = self.is_unsupported_extension(ext)
+        is_slow_format = self.is_slow_extension(ext)
         is_compressed = self.is_compressed_extension(download_ext)
         is_raster = self.is_raster_extension(ext)
+        is_points = self.is_points_extension(ext)
         is_photo = (data_type == "photo")
         is_historic_ortho = (data_type.startswith("hc") or data_type.startswith("hi"))
+        data_name = self.FME_NAMES_DICT.get(data_type, data_type)
         download_epsg = FME_DOWNLOAD_EPSG
         extra_params = []
         if is_photo:
@@ -1579,9 +1588,9 @@ class OpenICGC(PluginBase):
         # Show information about download
         type_info = (self.tr("raster") if is_raster else self.tr("vector"))
         if self.download_type in ["dt_area", "dt_coord"]:
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nRectangle:\n   %.2f, %.2f %.2f, %.2f (EPSG:%s)\nArea:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum(), download_epsg, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nRectangle:\n   %.2f, %.2f %.2f, %.2f (EPSG:%s)\nArea:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.xMinimum(), geo.yMinimum(), geo.xMaximum(), geo.yMaximum(), download_epsg, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
         elif self.download_type in ["dt_layer_polygon", "dt_layer_polygon_bb"]:
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nPolygon area:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nPolygon area:\n   %d m%s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.area(), self.SQUARE_CHAR, download_folder, download_ext[1:])
         elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
             # Find point on GeoFinder
             center = geo.center()
@@ -1589,13 +1598,15 @@ class OpenICGC(PluginBase):
             # Set download information
             if self.download_type in ["dt_municipalities", "dt_sheet"]:
                 municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
-                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, municipality, download_folder, download_ext[1:])
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.center().x(), geo.center().y(), download_epsg, municipality, download_folder, download_ext[1:])
             elif self.download_type == "dt_counties":
                 county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
-                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, geo.center().x(), geo.center().y(), download_epsg, county, download_folder, download_ext[1:])
+                confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.center().x(), geo.center().y(), download_epsg, county, download_folder, download_ext[1:])
         else:
-            zone = self.tr("Catalonia") if self.download_type == "dt_cat" else self.tr("Available data")
-            confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_type, type_info, zone, download_folder, download_ext[1:])
+            zone = self.tr("Catalonia") if self.download_type == "dt_cat" \
+                else (self.tr("Full photogram") + " " * 50) if is_photo \
+                else self.tr("Available data")
+            confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, zone, download_folder, download_ext[1:])
         # User confirmation
         filename, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
             set_html_font_size(confirmation_text), QLineEdit.Normal, filename)
@@ -1614,14 +1625,29 @@ class OpenICGC(PluginBase):
             return
         self.log.debug("Download URL: %s", url)
 
+        # Request user confirmation to load slow formats
+        if is_slow_format:
+            if is_points and not self.can_show_point_cloud_files:
+                if QMessageBox.warning(self.iface.mainWindow(), title,
+                    self.tr("File type %s is not supported by the current version of QGIS.\nIt will be downloaded but not displayed") % ext,
+                    QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok) != QMessageBox.Ok:
+                    return
+            else:
+                if QMessageBox.question(self.iface.mainWindow(), title,
+                    self.tr("File type %s can take quite a while to open in QGIS\nDo you want to open it after downloading?") % ext,                
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
+                    is_slow_format = False
+
         # Load layer
         current_layer = self.layers.get_current_layer()
         download_layer = None
+        geometry_ok = True
+        data_filter = self.fme_data_filters_dict.get(data_type, None)
         try:
             if is_compressed:
                 if is_unsupported_format:
                     # Download and uncopmress file
-                    uncompressed_folder = self.layers.download_remote_file(url, local_filename, download_folder, unzip=True)
+                    uncompressed_folder = self.layers.download_remote_file(url, local_filename, download_folder, unzip=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
                     # If compressed file contains unsupported format, search first file
                     local_filename_list = [os.path.join(uncompressed_folder, f) for f in \
                         os.listdir(uncompressed_folder) \
@@ -1629,18 +1655,42 @@ class OpenICGC(PluginBase):
                     local_filename = local_filename_list[0] if local_filename_list else None
                 else:
                     # We suppose that compressed file contains a QLR file, this process uncompress downloaded file
-                    download_layer = self.layers.add_remote_layer_definition_file(url, local_filename, group_name=self.download_group_name, group_pos=0)
+                    download_layer = self.layers.add_remote_layer_definition_file(url, local_filename, group_name=self.download_group_name, group_pos=0, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
                     if not download_layer:
                         # If can't load QLR, we suppose that compressed file contains Shapefiles
                         download_layer = self.layers.add_vector_files([os.path.join(download_folder, local_filename)], group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
-            elif is_unsupported_format:
+            elif is_unsupported_format or is_slow_format:
                 # With an unsupported format we only download file
-                self.layers.download_remote_file(url, local_filename, download_folder=None)
+                local_filename = self.layers.download_remote_file(url, local_filename, download_folder=None, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
             elif is_raster:
+                # With full photograms need download additional georeference file
+                if is_photo and download_operation_code == "tot":
+                    world_ext = ext[0:2] + ext[3] + "w"
+                    image_filename = extra_params[2]
+                    world_filename = os.path.splitext(image_filename)[0] + world_ext
+                    world_file_url = url.replace(image_filename, world_filename)
+                    world_pathname = os.path.splitext(local_filename)[0] + world_ext
+                    geometry_ok = self.layers.download_remote_file(world_file_url, world_pathname, download_folder, unzip=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")) is not None
                 # Force EPSG:25831 or photo EPSG by problems with QGIS 3.10 version in auto detection EPSG
-                download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=download_epsg, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True)
+                if geometry_ok:
+                    download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=download_epsg, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
+            elif is_points:
+                download_layer = self.layers.add_remote_point_cloud_file(url, local_filename, group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
+                # We cannot set a data filter until layer finish point indexing
+                if download_layer and data_filter:
+                    if self.can_filter_point_cloud: # Checks QGIS version
+                        # Signal statisticsCalculationState has a bug and cannot be used! https://github.com/qgis/QGIS/issues/58312
+                        # download_layer.statisticsCalculationStateChanged.connect(lambda state:self.layers.set_filter_by_id(download_layer.id(), data_filter))
+                        # We make an active wait (supported on QGIS > 3.26)
+                        if download_layer.statisticsCalculationState() != 2:
+                            with WorkingDialog(os.path.basename(local_filename), self.tr("Indexing points and applying data filters ..."), self.tr("Cancel")) as progress:
+                                while download_layer.statisticsCalculationState() != 2 and not progress.was_canceled():
+                                    progress.step_it()
+                # Force expanded group (group not responding??) 
+                self.legend.expand_group_by_name(self.download_group_name, False)
+                self.legend.expand_group_by_name(self.download_group_name, True)
             else:
-                download_layer = self.layers.add_remote_vector_file(url, local_filename, group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list)
+                download_layer = self.layers.add_remote_vector_file(url, local_filename, group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
         except Exception as e:
             error = str(e)
             # If server don't return error message (replied empty), we return a generic error
@@ -1649,6 +1699,11 @@ class OpenICGC(PluginBase):
             self.log.exception(error)
             QMessageBox.warning(self.iface.mainWindow(), title, error)
             return
+
+        # Apply data filter if required
+        if download_layer and data_filter and (not is_points or self.can_filter_point_cloud):
+            status_ok = self.layers.set_filter(download_layer, data_filter)
+
         # Restore previous current layer
         if current_layer:
             self.layers.set_current_layer(current_layer)
@@ -1657,6 +1712,27 @@ class OpenICGC(PluginBase):
         if is_photo and download_layer:
             self.layers.set_visible_by_id(self.photo_layer_id, False)
 
+        # Checks download is ok
+        if not local_filename:
+            self.log.error("Error downloading file: %s", local_filename)
+            QMessageBox.warning(self.iface.mainWindow(), title,
+                self.tr("Error downloading file\n%s") % local_filename)
+            return
+        if not geometry_ok:
+            self.log.error("Error downloading geometry file: %s", world_filename)
+            QMessageBox.warning(self.iface.mainWindow(), title,
+                self.tr("Error downloading geometry file\n%s") % world_file)
+            return
+        # With slow formats we show end download message
+        if is_slow_format:
+            QMessageBox.information(self.iface.mainWindow(), title,
+                self.tr("File downloaded:\n%s") % local_filename)
+        else:
+            # With unsupported point cloud indexing status show message
+            if not self.can_filter_point_cloud and is_points and download_layer and data_filter:
+                QMessageBox.warning(None, title,
+                    self.tr("The current version of QGIS does not allow filtering data from point cloud files, " \
+                        "so data may be displayed incorrectly."))
         # With unsupported format we try open file with external app
         if is_unsupported_format:
             if QMessageBox.question(self.iface.mainWindow(), title,
@@ -1802,7 +1878,7 @@ class OpenICGC(PluginBase):
         # If coordinates are out of Catalonia, error
         geo_limits = None
         geo_limits_epsg = None
-        if self.download_type in ["dt_area", "dt_coord"]:
+        if self.download_type in ["dt_area", "dt_coord", "dt_sheet"]:
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
         elif self.download_type == "dt_layer_polygon":
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
@@ -1811,7 +1887,7 @@ class OpenICGC(PluginBase):
                 geo = geo.makeValid()
                 if not geo.isGeosValid():
                     geo = geo.boundingBox()
-        elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
+        elif self.download_type in ["dt_municipalities", "dt_counties"]:
             limits = "cat_limits"
             geo_limits, geo_limits_epsg = self.cat_limits_dict[limits]
         if not geo_limits or geo_limits.isEmpty():
@@ -1948,8 +2024,10 @@ class OpenICGC(PluginBase):
         for action in actions_list:
             subactions_list = action.menu().actions() if action.menu() else [action]
             for subaction in subactions_list:
-                if subaction.text() and subaction.objectName() not in exclude_list:
-                    names_list.append(subaction.text())
+                text = subaction.defaultWidget().text() if type(subaction) is QWidgetAction else subaction.text()
+                object_name = subaction.defaultWidget().objectName() if type(subaction) is QWidgetAction else subaction.objectName()
+                if text and object_name not in exclude_list:
+                    names_list.append(text)
         return names_list
 
     def show_qgis_version_warnings(self):
@@ -2454,12 +2532,15 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         QMessageBox.information(self.iface.mainWindow(), title,
             self.tr("Thanks for reporting an error in photogram:\n%s\n\nWe try to fix it as soon as possible") % photo_name)
 
-    def save_map(self, report_template, title="Map"):
+    def save_map(self, report_template, file_suffix="", title="Save map as PDF"):
         """ Save current map as PDF applying a template <report_template> """
         # Prepare a default filename
+        download_path = self.get_download_folder()
+        if not download_path:
+            return False
         municipality = self.get_current_municipality()
-        default_filename = ("%s.pdf" % municipality) if municipality else ""
-        default_pathname = os.path.join(self.layers.get_download_path(), default_filename)
+        default_filename = ("%s%s.pdf" % (municipality, file_suffix)) if municipality else ""
+        default_pathname = os.path.join(download_path, default_filename)
         # Ask pdf filename
         pathname, _filter = QFileDialog.getSaveFileName(
             self.iface.mainWindow(), title, default_pathname, self.tr("PDF file (*.pdf)"))
@@ -2534,8 +2615,13 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             self.log.info("Python version: %s", sys.version)
             self.log.info("%s version: %s", self.metadata.get_name(), self.metadata.get_version())
 
-    def send_email(self, mail_text="", title="OpenICGC QGIS plugin", debug=False, last_log_lines=100, email_to="qgis.openicgc@icgc.cat"):
+    def send_email(self, mail_text="", title="OpenICGC QGIS plugin", debug=False, new_plugin_version=None, last_log_lines=100, email_to="qgis.openicgc@icgc.cat"):
         """ Sends Open ICGC email with optional debug information """
+        if new_plugin_version:
+            # Cannot report issues with obsolete version of plugin, "report_issue" show warning message
+            self.report_issue(new_plugin_version=new_plugin_version)
+            return
+
         if not mail_text:
             # Add default mail body
             mail_text = "\n\n" \
@@ -2554,3 +2640,15 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                     "%s" % (self.project.get_epsg(), log_info)
         # Send email
         self.tools.send_email(email_to, title, mail_text)
+
+    def report_issue(self, new_plugin_version=None):
+        """ Open web navigator with GitHub issues page (if not new version of plugin available) """
+        if new_plugin_version:
+            # Cannot report issues with obsolete version of plugin
+            self.log.debug("Obsolete plugin version detected. Send email cancelled")
+            QMessageBox.warning(self.iface.mainWindow(), self.tr("Report an issue"), \
+                self.tr("Please, update %s to version %s before report an issue") % (self.metadata.get_name(), new_plugin_version))
+            return False
+        # Show GitHub issues page
+        self.show_help_file("plugin_issues")
+        return True

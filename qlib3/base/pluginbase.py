@@ -212,6 +212,11 @@ class GuiBase(object):
                 "QWidget:hover {background: palette(highlight);} " \
                 "QLabel {font-size: %dpt;}" \
                 % font_size)
+        
+        def text(self):
+            """ Retorna el text de l'element """
+            return self.label_text.text()
+
 
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare i a l'iface.
@@ -2704,16 +2709,34 @@ class LayersBase(object):
             Zoom in to the entire contents of a layer. Optionally you can add a "buffer"
             """
         # Obtenim l'area de la capa
-        if type(layer) is QgsVectorLayer and layer.featureCount() < 1:
+        if not layer or (type(layer) is QgsVectorLayer and layer.featureCount() < 1):
             return False
         area = layer.extent()
+        return self.zoom_to_extent(layer, area, buffer)
+
+    def zoom_to_extent_by_id(self, layer_idprefix, area, buffer=0, pos=0):
+        """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa per id. Opcionalment se li pot afegir una orla "buffer"
+            ---
+            Zoom in to specified coordinates (QgsRectangle) of layer by id. Optionally you can add a "buffer"
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return False
+        return self.zoom_to_extent(layer, area, buffer)
+        
+    def zoom_to_extent(self, layer, area, buffer=0):
+        """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa. Opcionalment se li pot afegir una orla "buffer"
+            ---
+            Zoom in to specified coordinates (QgsRectangle) of layer. Optionally you can add a "buffer"
+            """
+        # Verifiquem les coordenades
         if area.area() == float('inf'):
             return False
         # Reprojectem les coordenades si cal
         layer_epsg = self.get_epsg(layer)
         project_epsg = self.parent.project.get_epsg()
         if layer_epsg and project_epsg and layer_epsg != project_epsg:
-            area = self.parent.crs.transform_bounding_box(area, self.get_epsg(layer))
+            area = self.parent.crs.transform_bounding_box(area, layer_epsg)
         # Ampliem el rectangle si cal
         if buffer:
             area = area.buffered(buffer)
@@ -3185,7 +3208,7 @@ class LayersBase(object):
         if set_current:
             self.set_current_layer(layer)
 
-    def add_remote_layer_definition_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, create_qlr_group=True, select_folder_text=None):
+    def add_remote_layer_definition_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, create_qlr_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers QLR o ZIP via http en la carpeta especificada i els obre a QGIS.
             Veure add_layer_definition_file per opcions
             ---
@@ -3193,7 +3216,7 @@ class LayersBase(object):
             See add_layer_definition_file for options
             """
         # Descarreguem el fitxer si cal
-        local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text)
+        local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         if not local_pathname:
             return False
         # Carreguem el fitxer
@@ -3510,12 +3533,15 @@ class LayersBase(object):
             asks if it is not defined or does not exist
         """
         download_folder = self.get_download_path(select_folder_text)
-        if filename:
-            download_folder = os.path.join(download_folder, filename)
-        if download_folder and os.path.exists(download_folder):
-            self.parent.gui.open_file_folder(download_folder)
+        if download_folder:
+            if filename:
+                download_folder = os.path.join(download_folder, filename)
+            if os.path.exists(download_folder):
+                self.parent.gui.open_file_folder(download_folder)
+                return True
+        return False
 
-    def download_remote_file(self, remote_file, local_filename=None, download_folder=None, select_folder_text=None, unzip=False):
+    def download_remote_file(self, remote_file, local_filename=None, download_folder=None, select_folder_text=None, unzip=False, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega un fitxer via http en la carpeta especificada
             ---
             Download a http file in the specified folder
@@ -3533,7 +3559,14 @@ class LayersBase(object):
         local_pathname = os.path.join(download_folder, local_filename)
 
         # Descarreguem el fitxer
-        self.download_manager.download(remote_file, local_pathname)
+        params_dict = {}
+        if title:
+            params_dict["title"] = title
+        if cancel_button_text:
+            params_dict["cancel_button_text"] = cancel_button_text
+        if time_info:
+            params_dict["time_info"] = time_info
+        self.download_manager.download(remote_file, local_pathname, **params_dict)
         
         # Descomprimim el fitxer si cal
         unzip_folder, ext = os.path.splitext(local_pathname)
@@ -3548,7 +3581,7 @@ class LayersBase(object):
 
         return local_pathname
 
-    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_raster_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, style_file=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
             ---
@@ -3556,13 +3589,13 @@ class LayersBase(object):
             See add_raster_files for options
             """
         # Descarreguem el fitxer si cal
-        local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text)
+        local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         if not local_pathname:
             return None
         # Carreguem el fitxer
         return self.add_raster_layer(layer_name, local_pathname, group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, color_default_expansion, visible, expanded, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, style_file, properties_dict, only_one_map_on_group, only_one_visible_map_on_group)
 
-    def add_remote_raster_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_raster_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, epsg=None, ref_layer=None, min_scale=None, max_scale=None, no_data=None, layer_name=None, color_default_expansion=False, visible=True, expanded=False, transparency=None, saturation=None, set_current=False, style_file=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers raster via http en la carpeta especificada i els obre a QGIS.
             Veure add_raster_files per opcions
             ---
@@ -3572,7 +3605,7 @@ class LayersBase(object):
         layers_list = []
         for remote_file in remote_files_list:
             # Descarreguem el fitxer si cal
-            local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text)
+            local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
             # Carreguem el fitxer
             if local_pathname:
                 last_layer = self.add_raster_layer(layer_name, local_pathname, group_name, group_pos, epsg, ref_layer, min_scale, max_scale, no_data, color_default_expansion, visible, expanded, transparency, saturation, set_current, style_file, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
@@ -3662,7 +3695,7 @@ class LayersBase(object):
         """ Afegeix una cape vectorial a partir d'un nom de capa i un fitxer. Opcionament se li pot especificar:
             - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
             - group_name: Crea o utilitza un grup on posar totes les capes
-            - group_pos: Crea el grup en la posició indicada (si és None, al final)
+            - group_pos: Crea el grup efn la posició indicada (si és None, al final)
             - min_scale, max_scala: Activa la visualització per escala
             - visible: Carrega la capa deixant-la visible o no
             - expanded: Espandeix la llegenda de la capa
@@ -3816,7 +3849,7 @@ class LayersBase(object):
 
         return layer
 
-    def add_remote_vector_file(self, remote_file, local_filename=None, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_vector_file(self, remote_file, local_filename=None, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers vectorials via http en la carpeta especificada i els obre a QGIS.
             Veure add_vector_files per opcions
             ---
@@ -3824,13 +3857,13 @@ class LayersBase(object):
             See add_vector_layer for options
             """
         # Descarreguem el fitxer si cal
-        local_pathname = self.download_remote_file(remote_file, local_filename, download_folder, select_folder_text)
+        local_pathname = self.download_remote_file(remote_file, local_filename, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         if not local_pathname:
             return None
         # Carreguem el fitxer
         return self.add_vector_layer(layer_name, local_pathname, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict, only_one_map_on_group, only_one_visible_map_on_group)
 
-    def add_remote_vector_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None):
+    def add_remote_vector_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers vectorials via http en la carpeta especificada i els obre a QGIS.
             Veure add_vector_files per opcions
             ---
@@ -3840,10 +3873,187 @@ class LayersBase(object):
         layers_list = []
         for remote_file in remote_files_list:
             # Descarreguem el fitxer si cal
-            local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text)
+            local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
             # Carreguem el fitxer
             if local_pathname:
                 last_layer = self.add_vector_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            else:
+                last_layer = None
+            layers_list.append(last_layer)
+        # Retornem la última capa
+        return layers_list
+
+    def add_point_cloud_layer(self, name, pathname, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group):
+        """ Afegeix una cape vectorial a partir d'un nom de capa i un fitxer. Opcionament se li pot especificar:
+            - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
+            - group_name: Crea o utilitza un grup on posar totes les capes
+            - group_pos: Crea el grup en la posició indicada (si és None, al final)
+            - min_scale, max_scala: Activa la visualització per escala
+            - visible: Carrega la capa deixant-la visible o no
+            - expanded: Espandeix la llegenda de la capa
+            - transparency: Activa factor de transparència
+            - set_current: Selecciona la capa com l'activa
+            - style_file: Especifica un fitxer d'estil .qgs a carregar amb les propietats de la capa
+            - regex_style_list: Especifica una llista de fitxers d'estil .qgs amb una expressió regular associada
+            - properties_dict_list: defineix propietats particulars d'usuari per cada capa carregada
+            - only_one_map_on_group: Indica que només pot haver una imatge en el grup, la última imatge esborra les capes anterior
+            ---
+            Adds a vector layer from a layer name and file. Options can be specified:
+            - layer_name: Specifies the name of the layer, the default is the same as the file name
+            - group_name: Create or use a group where to put all the layers
+            - group_pos: Create group on specific position (if None then to the end)
+            - min_scale, max_scale: Activates the scale view
+            - visible: Load the layer by leaving it visible or not
+            - expanded: Expand the legend of the layer
+            - transparency: Activate transparency factor
+            - set_current: Set layer as current selected layer
+            - style_file: Specifies a .qgs style file to load with the properties of the layer
+            - regex_styles_List: Specifies a .qgs styles list with an associated regular expression
+            - properties_dict_list: define custom properties for each loaded layer
+            - only_one_map_on_group: Indicates that there can only be an image in the group, the last image deletes the previous layers
+            """
+        # Detectem si hi ha algun grup seleccionat (que s'expandirà al carregar la capa i no volem)
+        selected_groups = self.parent.legend.get_selected_groups()
+        parent_group = selected_groups[0] if len(selected_groups) == 1 else None
+        collapsed_parent_group = parent_group and not parent_group.isExpanded()
+
+        # Carreguem ja el fitxer
+        if not name:
+            name = os.path.splitext(os.path.basename(pathname))[0]
+        layer = self.iface.addPointCloudLayer(pathname, name, "pdal")
+        if not layer:
+            return None
+
+        # Canviem l'estil de la capa si cal
+        if style_file:
+            ##print("Style file", style_file)
+            # Si tenim un fitxer d'estil el carreguem
+            self.load_style(layer, style_file, refresh=True)
+
+        # Si tenim una expressió regular que concordi amb la capa, carreguem el seu estil
+        if not style_file and regex_styles_list:
+            filename, ext = os.path.splitext(os.path.basename(pathname.lower()))
+            regex_style_file = None
+            for style_regex, style_qml in regex_styles_list:
+                if re.match(style_regex, filename):
+                    if style_qml:
+                        regex_style_file = style_qml
+                    else:
+                        visible = False # Si l'estil es None, fem no visualitzem la capa
+                    ##print("Style regex", regex_style_file)
+                    break
+            if regex_style_file:
+                self.load_style(layer, regex_style_file, refresh=True)
+
+        # Canviem les propiedats de la capa i movem la capa a un grup si cal
+        self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, None, set_current, properties_dict_list[i] if properties_dict_list else None)
+
+        return layer
+
+    def add_point_cloud_files(self, files_list, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True):
+        """ Afegeix capes vectorials a partir d'una llista de fitxers. Opcionament se li pot especificar:
+            - group_name: Crea o utilitza un grup on posar totes les capes
+            - group_pos: Crea el grup en la posició indicada (si és None, al final)
+            - min_scale, max_scala: Activa la visualització per escala
+            - layer_name: Especifica el nom de la capa, per defecte és el mateix que el nom de fitxer
+            - visible: Carrega la capa deixant-la visible o no
+            - expanded: Espandeix la llegenda de la capa
+            - transparency: Activa factor de transparència
+            - set_current: Selecciona la capa com l'activa
+            - style_file: Especifica un fitxer d'estil .qgs a carregar amb les propietats de la capa
+            - regex_style_list: Especifica una llista de fitxers d'estil .qgs amb una expressió regular associada
+            - properties_dict_list: defineix propietats particulars d'usuari per cada capa carregada
+            - only_one_map_on_group: Indica que només pot haver una imatge en el grup, la última imatge esborra les capes anterior
+            ---
+            Adds vector layers from a list of files. Options can be specified:
+            - group_name: Create or use a group where to put all the layers
+            - group_pos: Create group on specific position (if None then to the end)
+            - min_scale, max_scale: Activates the scale view
+            - layer_name: Specifies the name of the layer, the default is the same as the file name
+            - visible: Load the layer by leaving it visible or not
+            - expanded: Expand the legend of the layer
+            - transparency: Activate transparency factor
+            - set_current: Set layer as current selected layer
+            - style_file: Specifies a .qgs style file to load with the properties of the layer
+            - regex_styles_List: Specifies a .qgs styles list with an associated regular expression
+            - properties_dict_list: define custom properties for each loaded layer
+            - only_one_map_on_group: Indicates that there can only be an image in the group, the last image deletes the previous layers
+            """
+        # Ens guardem la capa activa
+        active_layer = self.iface.activeLayer()
+
+        ### Recuperem les capes que hi ha dins el grup (si ens el passen)
+        ##layers_list = self.get_group_layers_id(group_name) if group_name else []
+
+        # Afegim totes les imatges que ens passin
+        layers_list = []
+        error_files = []
+        last_layer = None
+        for i, filename in enumerate(files_list):
+            # Obtenim el nom de la capa a crear
+            if not layer_name:
+                name = os.path.splitext(os.path.basename(filename))[0]
+            elif layer_name.find('%s') >= 0:
+                name = (layer_name % os.path.splitext(os.path.basename(filename))[0])
+            else:
+                name = layer_name
+            ### Si existeix la capa, ens la saltem
+            ##if any([str(layer).startswith(name) for layer in layers_list]):
+            ##    continue
+
+            # Detectem si existeix el fitxer
+            if not os.path.exists(filename):
+                error_files.append(filename)
+                layers_list.append(None)
+                continue
+
+            # Creem la capa (alguns arxius multicapa, no retornen la capa)
+            last_layer = self.add_point_cloud_layer(name, filename, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
+            if not last_layer:
+                 error_files.append(filename)
+            layers_list.append(last_layer)
+
+        # Mostrem errors
+        if len(error_files) > 0:
+            LogInfoDialog(
+                "Error files not found: %d:\n   %s" % (len(error_files), "\n   ".join(error_files)),
+                "Error point cloud files",
+                LogInfoDialog.mode_error)
+
+        # Restaurem la capa activa
+        self.iface.setActiveLayer(active_layer)
+
+        # Retornem la última capa inserida
+        return layers_list
+
+    def add_remote_point_cloud_file(self, remote_file, local_filename=None, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=True, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
+        """ Descarrega un fitxer de punts via http en la carpeta especificada i l'obre a QGIS.
+            Veure add_point_cloud_lay per opcions
+            ---
+            Download http vector files in the specified folder and open them to QGIS.
+            See add_point_cloud_layer for options
+            """
+        # Descarreguem el fitxer si cal
+        local_pathname = self.download_remote_file(remote_file, local_filename, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
+        if not local_pathname:
+            return None
+        # Carreguem el fitxer
+        return self.add_point_cloud_layer(layer_name, local_pathname, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict, only_one_map_on_group, only_one_visible_map_on_group)
+
+    def add_remote_point_cloud_files(self, remote_files_list, download_folder=None, group_name=None, group_pos=None, min_scale=None, max_scale=None, layer_name=None, visible=True, expanded=False, transparency=None, set_current=False, style_file=None, regex_styles_list=None, properties_dict_list=[], only_one_map_on_group=False, only_one_visible_map_on_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
+        """ Descarrega fitxers vectorials via http en la carpeta especificada i els obre a QGIS.
+            Veure add_point_cloud_files per opcions
+            ---
+            Download http vector files in the specified folder and open them to QGIS.
+            See add_point_cloud_files for options
+            """
+        layers_list = []
+        for remote_file in remote_files_list:
+            # Descarreguem el fitxer si cal
+            local_pathname = self.download_remote_file(remote_file, None, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
+            # Carreguem el fitxer
+            if local_pathname:
+                last_layer = self.add_point_cloud_files([local_pathname], group_name, group_pos, min_scale, max_scale, layer_name, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
             else:
                 last_layer = None
             layers_list.append(last_layer)

@@ -15,6 +15,7 @@ import urllib.request
 import html
 import socket
 import re
+import datetime
 
 # Configure internal library logger (Default is dummy logger)
 import logging
@@ -52,9 +53,11 @@ def get_wms_capabilities_info(url, reg_ex_filter):
         ---
         Extract info from WMS capabilities using regular expressions
         """
+    t0 = datetime.datetime.now()
     response_data = get_wms_capabilities(url)
     data_list = re.findall(reg_ex_filter, response_data)
-    log.debug("WMS resources info URL: %s pattern: %s found: %s", url, reg_ex_filter, len(data_list))
+    t1 = datetime.datetime.now()
+    log.debug("WMS resources info URL: %s pattern: %s found: %s (%s)", url, reg_ex_filter, len(data_list), t1-t0)
     return data_list
 
 def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",

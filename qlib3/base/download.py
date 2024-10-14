@@ -44,22 +44,24 @@ class DownloadManager(object):
 
         self.queries_dict = {}
 
-    def download(self, remote_file, local_pathname, synchronous=True, callback=None, title="Downloading...", cancel_button_text="Cancel"):
+    def download(self, remote_file, local_pathname, synchronous=True, callback=None, title="Downloading ...", cancel_button_text="Cancel", time_info="Elapsed %s"):
         """ Descarrega un fitxer remote, opcionalment es pot indicar:
             - synchronous: descàrrega síncrona (espera a acabar)
             - callback: funció a executar al acabar la descàrrega (se li passa el path del fitxer descarregat)
             - title: títol del diàleg de progrés
             - cancel_button_text: Text del botó de cancel·lar de diàleg de progrés
+            - time_info: Text de la informació del temps, pex: "Elapsed %s"
             ---
             Download a remote file, optionaly you can specify:
             - synchronous: synchronous download (wait to finish)
             - callback: function to execute when download finish (function recive downloaded file pathname)
             - title: progress dialog title
             - cancel_button_text: progress dialog cancel button text
+            - time_info: time information text, for example: "Elapsed %s"
             """
         # Reservem recursos per la descàrrega i els guadem en un diccionari
         local_file = open(local_pathname, "wb+")
-        progress = ProgressDialog(os.path.basename(local_pathname), 0, title=title, cancel_button_text=cancel_button_text)
+        progress = ProgressDialog(os.path.basename(local_pathname), 0, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         self.queries_dict[remote_file] = [None, progress, local_file, callback, True, None, None] # 4:running, 5:status_ok, 6:error_msg
         
         # Realitzem la petició de descàrraga al servidor

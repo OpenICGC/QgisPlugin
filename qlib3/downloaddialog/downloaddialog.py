@@ -47,6 +47,7 @@ class DownloadDialog(QDialog, ui_download):
         super().setupUi(self)
 
         # Translate dialog
+        self.setWindowTitle(self.tr("Downloads"))
         self.label_info.setText(self.tr("Select the type of download and then use the download tool to mark a point or area of interest, enter a rectangle coordinates or select a polygons layer"))
         self.label_year.setText(self.tr("Year:"))
         self.label_gsd.setText(self.tr("Resolution (m):"))

@@ -17,6 +17,7 @@ import socket
 import ssl
 import re
 import os
+import datetime
 
 # Configure internal library logger (Default is dummy logger)
 import logging
@@ -85,6 +86,7 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
         Returns: list of regex matches
         """
     # LLegeixo les dades HTML del directori HTTP
+    t0 = datetime.datetime.now()
     response_data = get_http_dir(url)
     if not response_data:
         files_list = []
@@ -95,7 +97,8 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
         # Obtinc la informació de fitxers a partri de la regex
         http_file_regex_pattern = r'<A HREF="[\/\w-]*%s">' % file_regex_pattern
         files_list = re.findall(http_file_regex_pattern, response_data)
-    log.debug("HTTP resources files find URL: %s pattern: %s found: %s", url, file_regex_pattern, len(files_list))
+    t1 = datetime.datetime.now()
+    log.debug("HTTP resources files find URL: %s pattern: %s found: %s (%s)", url, file_regex_pattern, len(files_list), t1-t0)
     return files_list
 
 def get_dtms(urlbase_list=[
@@ -222,7 +225,7 @@ def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/data
 
     return delimitations_list
 
-def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/divisions-administratives/json_unzip",
+def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/datacloud/divisions-administratives/json_unzip_EPSG25831",
     delimitation_http_file_pattern=r'(divisions-administratives-v\d+r\d+\-(\D+)(?:-(\d+))*-(\d{8})\.json)'):
     """ Obté les URLs dels arxius de talls disponibles de l'ICGC
         Retorna: [(sheet_name, sheet_url)]

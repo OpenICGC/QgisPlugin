@@ -16,6 +16,7 @@ import html
 import socket
 import re
 import os
+import datetime
 
 # Configure internal library logger (Default is dummy logger)
 import logging
@@ -73,9 +74,11 @@ def get_wfs_capabilities_info(url, reg_ex_filter):
         ---
         Extract info from WFS capabilities using regular expressions
         """
+    t0 = datetime.datetime.now()
     response_data = get_wfs_capabilities(url)
     data_list = re.findall(reg_ex_filter, response_data)
-    log.debug("WFS resources info URL: %s pattern: %s found: %s", url, reg_ex_filter, len(data_list))
+    t1 = datetime.datetime.now()
+    log.debug("WFS resources info URL: %s pattern: %s found: %s (%s)", url, reg_ex_filter, len(data_list), t1-t0)
     return data_list
 
 def get_delimitations(url="https://geoserveis.icgc.cat/servei/catalunya/divisions-administratives/wfs",

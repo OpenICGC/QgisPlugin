@@ -21,11 +21,32 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=divisions%20administratives&sortBy=title"
    },
    {
+      "Producte": "Lidar territorial",
+      "Cobertura": "v3 (2021-2023)",
+      "Carpeta": "Territorial Lidar",
+      "Formats de fitxer": "laz",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Lidar territorial",
+      "Cobertura": "v3 Ortofoto color (2021-2023)",
+      "Carpeta": "Territorial Lidar Color Orthophoto",
+      "Formats de fitxer": "gtiff",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Lidar territorial",
+      "Cobertura": "v3 Ortofoto infraroja (2021-2023)",
+      "Carpeta": "Territorial Lidar Infrared Orthophoto",
+      "Formats de fitxer": "gtiff",
+      "Metadades": ""
+   },
+   {
       "Producte": "Línia de costa",
       "Cobertura": "1956",
       "Carpeta": "Coastline 1956",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-1956"
+      "Metadades": ""
    },
    {
       "Producte": "Línia de costa",
@@ -60,7 +81,7 @@
       "Cobertura": "2022-2023",
       "Carpeta": "Coastline 2022-2023",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2022-2023"
+      "Metadades": ""
    },
    {
       "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",

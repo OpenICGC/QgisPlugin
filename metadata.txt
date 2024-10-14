@@ -28,8 +28,18 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.21
-changelog=V1.1.21 (2024-09-09)
+version=1.1.22
+changelog=v1.1.22
+	- Added new lidar products (points cloud and orthophotos) to download
+	- Added download full photograms option
+	- Added reminder to update plugin before reporting a problem
+	- Updated administrative divisions product with ETRS89 UTM31N version
+	- Reorganized download menu
+	- Removed obsolete topographic products 25K, 50K, 100K, 2M
+	- Fixed problem saving PDF map without "download folder" defined
+	- Fixed problem showing available products list (help menu)
+
+	v1.1.21 (2024-09-09)
 	- Fixed problem showing temporal slider bars with activated interface theme "Night Mapping"
 	- Removed unavailable download products
 
