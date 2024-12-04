@@ -34,13 +34,14 @@ FME_URL = "https://qgis:qgis@descarregues.icgc.cat" # Servidor extern / adreça 
 
 FME_DOWNLOAD_EPSG = 25831
 FME_MAX_POLYGON_POINTS = 100
+FME_MAX_ASPECT_RATIO = 5
 
 
 ###############################################################################
-# Define list of services availables
+# Define list of available services
 
 services_list = [
-    # (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_type_list, default_filename, 
+    # (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_type_list, default_filename,
     #    download_limits_id, url_pattern, <(url_ref, qml_style) | (wms_url, wms_layer, wms_style, wms_format)>),
     ("of25c", "Ortofoto color vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "of25cm.tif", "5k_limits", \
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=0.25", \
@@ -117,7 +118,7 @@ services_list = [
     ("topografia-territorial-3d-dgn", "Referencial topogràfic territorial 3D DGN", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-3d.dgn", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt3&Codi=%s", None),
     ("topografia-territorial-3d-dwg", "Referencial topogràfic territorial 3D DWG", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-3d.dwg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DWG&file_name=tt3d&Codi=%s", None),
     ("topografia-territorial-volum-dwg", "Referencial topogràfic territorial Volum DWG", 50, 12500000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial-volum.dwg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD3D.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DWG&gen_volum=si&file_name=ttvolum&Codi=%s", None),
-    ("topografia-territorial-bim-ifc", "Referencial topogràfic territorial BIM", None, None, None, None, None, None, ["full"], "topografia-territorial-bim.ifc-zip", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_download_IFC.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&file_name=tt&Codi=%s", 
+    ("topografia-territorial-bim-ifc", "Referencial topogràfic territorial BIM", None, None, None, None, None, None, ["full"], "topografia-territorial-bim.ifc-zip", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_download_IFC.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&file_name=tt&Codi=%s",
         ("https://datacloud.icgc.cat/datacloud/talls_ETRS89/vigent/json_unzip/tall5m.json", "tall-5k.qml")),
 
     ("cobertes-sol-raster", "Mapa de cobertes del sòl", 100, 200000000, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "cobertes-sol.tif", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mcsc&Format=GEOTIFF&Projecte=cobertes-sol&Codi=%s&piramide=True", None),
@@ -126,7 +127,7 @@ services_list = [
     ("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
     ("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
 
-    ] + [                          
+    ] + [
     ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, None, None, ["tot"], "gt1.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
     ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, None, None, ["tot"], "mg50m.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
     ("mg250m", "Mapa geològic 1:250.000", None, 250000000000, None, None, None, None, ["", "pol", "co", "tot"], "mg250m.gpkg", "cat_limits", "%s/fmedatastreaming/geologia-territorial/ICGC_geologia-territorial-250000-geologic_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
@@ -144,7 +145,7 @@ services_list = [
     #    ("https://geoserveis.icgc.cat/icgc_geotreballs/wms/service", "geotreball_V", "", "image/png")),
     #("mah250m", "Mapa Àrees Hidrogeològiques 1:250.000", None, 50000000, None, None, None, ["cat", "tot"], "mah250m.shp-zip", "cat_simple", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mah250m&Codi=%s", None),
 
-    ("lidar-territorial", "Lidar Territorial 2021-2023", None, None, None, None, None, ["2021-2023"], ["full"], "lidar.laz", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&Projecte=lidar&Codi=%s", 
+    ("lidar-territorial", "Lidar Territorial 2021-2023", 10, 200000, None, None, None, ["2021-2023"], ["","full"], "lidar.laz", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&Projecte=lidar&Codi=%s",
         ("https://datacloud.icgc.cat/datacloud/lidar-territorial/json/lidar-territorial-tall.json", "tall-5k.qml")),
 
     ("photo", "Fotogrames", None, None, 100, 100000000, None, None, ["", "pol", "tot"], "photo.tif", "cat_rect", "%s/fmedatastreaming/Fototeca/ICGC_fototeca_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Codi=%s&Any=%s&CodiVol=%s&NomFoto=%s&Nom=%s", None),
@@ -153,12 +154,12 @@ services_dict = dict([(id, (name, min_side, max_query_area, min_px_side, max_px_
 
 def get_services():
     """ Retorna una llista de tuples de productes descarregables amb els valors:
-            (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, 
+            (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list,
             download_list, default_filename, limits, url_pattern, ref_tuple, enabled)
         """
     final_services_list = []
     t0 = datetime.datetime.now()
-    for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple in services_list:        
+    for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple in services_list:
         # Si ens passen un time_list buit (no None) desactivem la entrada
         enabled = time_list is None or len(time_list) > 0
         # Injectem el path dels arxiu .qml
@@ -233,4 +234,3 @@ def get_layer_style(layer_name):
                 qml_style += ".qml"
             return os.path.join(os.path.dirname(__file__), "symbols", qml_style)
     return None
-

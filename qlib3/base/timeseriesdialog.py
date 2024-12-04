@@ -16,7 +16,7 @@ import os
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPainter, QPen, QFont
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QStyleFactory
 
 from .qtextra import QtExtra
@@ -32,7 +32,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
 
     layer = None
     time_series_list = []
-
+    
     def __init__(self, time_series_list, current_time, layer_name, update_callback=None, title=None, current_label="", autoshow=True, parent=None):
         """ Inicialització del diàleg "about", cal informar de:
             - title: Títol del diàleg
@@ -61,6 +61,12 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         # Canviem el títol i la icona
         if title:
             self.setWindowTitle(title)
+
+        # Configurem un timer per fer les actualitzacions amb retard (i evitar events molt seguits)
+        self.timer_delay = 500
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update)
+
         # Carreguem la sèrie temporal
         self.set_time_series(time_series_list, current_time, layer_name, update_callback)
 
@@ -108,11 +114,18 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
 
         # Volem detectar només events de click o de soltar el slider
         if not self.horizontalSlider.isSliderDown():
-            # Modifiquem la capa referenciada
-            if self.update_callback:
-                new_layer_name = self.update_callback(self.get_current_time())
-                if new_layer_name:
-                    self.set_title(new_layer_name)
+            # Activem el refresc retardat
+            self.timer.start(self.timer_delay)
+
+    def update(self):
+        # Modifiquem la capa referenciada
+        if self.update_callback:
+            new_layer_name = self.update_callback(self.get_current_time())
+            if new_layer_name:
+                self.set_title(new_layer_name)
+
+        # Aturem el temporitzador de refersc retardat
+        self.timer.stop()
 
     def set_enabled(self, enable=True):
         # Activa o desactiva la barra temporal

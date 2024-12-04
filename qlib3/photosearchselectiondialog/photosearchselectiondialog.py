@@ -14,19 +14,27 @@ Module with a dialog class to manage photo library searches
 
 import os
 
-from PyQt5.QtCore import QDateTime
 from PyQt5 import uic
-from PyQt5.QtGui import QPainter, QPen, QFont, QIcon, QColor
-from PyQt5.QtCore import Qt, QPoint, QSize, QTimer
-from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QTableWidgetItem, QHeaderView, QStyle, QMenu
+from PyQt5.QtCore import QDateTime
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QDockWidget, QTableWidgetItem, QHeaderView, QStyle, QMenu
 
-from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
+# No cal fer import, està definit en el mateix arxiu ui_photosearchselection.ui
+#from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
 
 from ..base.qtextra import QtExtra
 
 from . import resources_rc
 
-Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_%s.ui' % os.path.basename(__file__).replace("dialog.py", "")))
+# En MAC/OS antics amb QGIS3.8 peta la càrrega de QtRangeSlider, ho protegim i informem
+# de l'estat a la variable photo_search_selection_dialog_ok
+try:
+    photo_search_selection_dialog_ok = True
+    Ui_TimeSeries, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_%s.ui' % os.path.basename(__file__).replace("dialog.py", "")))
+except Exception:
+    photo_search_selection_dialog_ok = False
+    Ui_TimeSeries = object
 
 
 class PreviewType:
@@ -43,7 +51,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
     preview_type = PreviewType.NOMINAL
 
     def __init__(self, photo_layer, time_series_list, current_time,
-        update_callback=None, photo_selection_callback=None, show_info_callback=None, 
+        update_callback=None, photo_selection_callback=None, show_info_callback=None,
         preview_callback=None, rectified_preview_callback=None, stereo_preview_callback=None, adjust_callback=None,
         download_callback=None, request_certificate_callback=None, request_scan_callback=None, report_bug_callback=None,
         name_field_name="name", gsd_field_name="gsd", date_field_name="flight_date", image_field_name="image_filename",
@@ -153,7 +161,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
         # Update time, photo information and callbacks
         self.set_info(photo_layer, time_series_list, current_time,
-            update_callback, photo_selection_callback, show_info_callback, 
+            update_callback, photo_selection_callback, show_info_callback,
             preview_callback, rectified_preview_callback, stereo_preview_callback, adjust_callback,
             download_callback, request_certificate_callback, request_scan_callback, report_bug_callback)
 
@@ -182,7 +190,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
     def show(self):
         """ Show dialog and synchronize preview buttons size """
-        super().show()        
+        super().show()
         # Fix preview type button size
         self.pushButton_link_preview_type.setMinimumSize(self.pushButton_link_preview_type.minimumWidth(), self.pushButton_link_preview.height())
 
@@ -203,7 +211,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
             preview_callback()
 
     def set_info(self, photo_layer, time_series_list, current_time,
-            update_callback, photo_selection_callback, show_info_callback, 
+            update_callback, photo_selection_callback, show_info_callback,
             preview_callback, rectified_preview_callback, stereo_preview_callback, adjust_callback,
             download_callback, request_certificate_callback, request_scan_callback, report_bug_callback):
         """ Store time, photo information and callbacks """
@@ -222,7 +230,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
         # Update windows title with photo_layer
         self.setWindowTitle(self.photo_layer.name() if self.photo_layer else self.windowTitle().split(":")[0])
-        
+
         # Update year sliders
         self.set_time_series(time_series_list, current_time)
 
@@ -243,7 +251,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
     def get_photo_info(self, feature):
         """ Returns tuplue with photo info from layer feature :
-            id, name, year, flight_datetime_text, gsd, image_available, publishable, available, analog 
+            id, name, year, flight_datetime_text, gsd, image_available, publishable, available, analog
         """
         def get_field(feature, field_name, default_value=None):
             """ Funció auxiliar per protegir la consulta camps que poden no existir o ser nulls """
@@ -269,7 +277,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.set_info(photo_layer=None, time_series_list=[], current_time=None,
             update_callback=None, photo_selection_callback=None, show_info_callback=None,
             preview_callback=None, rectified_preview_callback=None, stereo_preview_callback=None,
-            adjust_callback=None, download_callback=None, request_certificate_callback=None, request_scan_callback=None, 
+            adjust_callback=None, download_callback=None, request_certificate_callback=None, request_scan_callback=None,
             report_bug_callback=None)
         # Hide dialog
         if hide:
@@ -456,7 +464,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
         # Update filteredd photograms list
         self.update_filter()
-    
+
     def set_range_value(self, new_value):
         """ Set QRangeValue value with 1 value offset between begin and end"""
         if new_value == self.horizontalSlider_range.maximum():
@@ -538,14 +546,14 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
                 if  photo_id2 == photo_id:
                     row = i
                     break
-            
+
         # If no row and we have year, try change year and search again
         if row is None and year:
             self.set_current_time(year)
             return self.select_photo(photo_id, year=None, update_map=update_map)
-                
+
         # Select found row (or not)
-        # Blocks events 
+        # Blocks events
         self.tableWidget_photos.blockSignals(not update_map)
         if row is not None:
             self.tableWidget_photos.selectRow(row)
@@ -571,19 +579,19 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         current_time, current_range = self.get_current_time_range()
         if self.update_callback and current_time:
             new_layer_name = self.update_callback(current_time, current_range)
-        
+
         # Select "photo view" type for non rectifiable photograms (disable rectified modes)
         if not rectifiable:
             if len(self.pushButton_link_preview_type.menu().actions()) > 0:
                 self.update_preview_button(self.preview,
-                    self.pushButton_link_preview_type.menu().actions()[0].text(), 
+                    self.pushButton_link_preview_type.menu().actions()[0].text(),
                     self.pushButton_link_preview_type.menu().actions()[0].icon(),
                     False)
         # Enable or disable option for photogram
         enable = photo_id is not None
         nominal_preview = (self.preview_type == PreviewType.NOMINAL)
         self.pushButton_report_bug.setEnabled(enable and image_available)
-        self.pushButton_show_info.setEnabled(enable)        
+        self.pushButton_show_info.setEnabled(enable)
         self.pushButton_link_preview.setEnabled(enable and image_available)
         self.pushButton_link_preview_type.setEnabled(enable and image_available)
         if len(self.pushButton_link_preview_type.menu().actions()) > 1:
@@ -596,13 +604,13 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_request_scan.setEnabled(enable and not image_available and available)
 
         return photo_id
-        
+
     def show_info(self):
         """ Mapped event to show photo information when push button """
         photo_id = self.get_selected_photo_id()
         if self.show_info_callback and photo_id is not None:
             self.show_info_callback(photo_id)
-    
+
     def preview(self):
         """ Mapped event to load photo raster when push button """
         photo_id = self.get_selected_photo_id()
@@ -688,11 +696,11 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         else:
             self.parallax_timer.stop()
             self.pushButton_link_preview.click()
-    
+
     def on_inverted_stereo(self, inverted):
         # Refresh visualization
         self.pushButton_link_preview.click()
-        
+
     def get_parallax(self):
         return self.horizontalSlider_parallax.value() * 4 + 80
 

@@ -25,21 +25,21 @@
       "Cobertura": "v3 (2021-2023)",
       "Carpeta": "Territorial Lidar",
       "Formats de fitxer": "laz",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/lidar-territorial-v3r0-2021-2023"
    },
    {
       "Producte": "Lidar territorial",
       "Cobertura": "v3 Ortofoto color (2021-2023)",
       "Carpeta": "Territorial Lidar Color Orthophoto",
       "Formats de fitxer": "gtiff",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/lidar-territorial-v3r0-2021-2023"
    },
    {
       "Producte": "Lidar territorial",
       "Cobertura": "v3 Ortofoto infraroja (2021-2023)",
       "Carpeta": "Territorial Lidar Infrared Orthophoto",
       "Formats de fitxer": "gtiff",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/lidar-territorial-v3r0-2021-2023"
    },
    {
       "Producte": "Línia de costa",

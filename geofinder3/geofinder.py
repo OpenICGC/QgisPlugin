@@ -27,6 +27,7 @@ class GeoFinder(object):
 
     ###########################################################################
     # Web service management
+    timeout = 10 # seconds
 
     ## Web Service Cadastre (alternative)
     #cadastral_streets_client = None
@@ -43,7 +44,7 @@ class GeoFinder(object):
         if not self.cadastral_coordinates_client:
             # SOAP client configuration
             # Available functions: [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
-            self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl")
+            self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl", timeout=self.timeout)
         return self.cadastral_coordinates_client
 
     # ICGC Web Service. ICGC Web service requires a md5 / base64 encoded security header
@@ -56,8 +57,8 @@ class GeoFinder(object):
             wsse_security.tokens.append(username_digest_token)
             # SOAP client configuration with Password Digest
             # Available functions: [localitzaAdreca, obtenirInfoPunt, localitzaToponim, cercaCaixaUnica, localitzaCruilla, localitzaPK, geocodificacioInversa]
-			# DOC: https://intranet/pages/viewpage.action?pageId=185862094
-            self.icgc_geoencoder_client = Client(url="https://eines.icgc.cat/geocodificador/soap/ws/wss_1.0?wsdl", wsse=wsse_security)#, timeout=3)
+            # DOC: https://intranet/pages/viewpage.action?pageId=185862094
+            self.icgc_geoencoder_client = Client(url="https://eines.icgc.cat/geocodificador/soap/ws/wss_1.0?wsdl", wsse=wsse_security, timeout=self.timeout)
         return self.icgc_geoencoder_client
 
     def __init__(self, logger=None):
@@ -261,7 +262,7 @@ class GeoFinder(object):
 
         if show_log:
             self.log.info("Geoencoder find rectangle: %s %s %s %s EPSG:%s", west, north, east, south, epsg)
-        
+
         # Find central point (exclude last result: "Point x, y")
         central_x = west + (west-east) / 2.0
         central_y = south + (north-south) / 2.0
@@ -287,7 +288,7 @@ class GeoFinder(object):
                 'east': float(east),
                 'south': float(south),
                 'epsg': int(epsg)
-                })        
+                })
         return dicts_list
 
     def find_point_coordinate(self, x, y, epsg, add_point_if_empty=True, show_log=True):
@@ -342,16 +343,16 @@ class GeoFinder(object):
         return dicts_list
 
     def transform_point(self, x, y, source_epsg, destination_epsg):
-        # EN GDAL 3 al convertir una coordenada a WGS84 gira x<->y per evitar-ho canviar WGS84 oer CRS84!!          
+        # EN GDAL 3 al convertir una coordenada a WGS84 gira x<->y per evitar-ho canviar WGS84 oer CRS84!!
         source_crs = osr.SpatialReference()
         source_crs.ImportFromEPSG(int(source_epsg))
         if source_epsg == 4326:
-            source_crs.SetWellKnownGeogCS("CRS84") 
+            source_crs.SetWellKnownGeogCS("CRS84")
 
         destination_crs = osr.SpatialReference()
         destination_crs.ImportFromEPSG(int(destination_epsg))
         if destination_epsg == 4326:
-            destination_crs.SetWellKnownGeogCS("CRS84") 
+            destination_crs.SetWellKnownGeogCS("CRS84")
 
         ct = osr.CoordinateTransformation(source_crs, destination_crs)
         destination_x, destination_y, _h = ct.TransformPoint(x, y)

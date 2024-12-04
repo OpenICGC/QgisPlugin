@@ -144,7 +144,7 @@ def showPluginHelp(packageName: str = None, filename: str = "index", section: st
 
 
 class WaitCursor:
-    """ Classe per mostrar el cursor d'espera en un context 
+    """ Classe per mostrar el cursor d'espera en un context
         ---
         Class to display the wait cursor in a given context """
     def __enter__(self):
@@ -162,7 +162,7 @@ class GuiBase(object):
     class MenuItemWidget(QWidget):
         """ Classe per crear entrades de menú amb botons
             ---
-            SubClass to creates menu items with buttons 
+            SubClass to creates menu items with buttons
             """
         def __init__(self, text, icon, buttons_list, parent, icon_size=20, font_size=9):
             """ Crea una entrada de menú amb text, icona i botons extra
@@ -172,13 +172,13 @@ class GuiBase(object):
                 buttons_list = [(name, callback, icon), ...]
                 """
             super().__init__(parent)
-        
+
             self.label_icon = QLabel()
             self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
-        
+
             self.label_text = QLabel(text)
-        
+
             self.push_button_list = []
             for button_text, button_callback, button_icon in buttons_list:
                 push_button = QPushButton()
@@ -201,18 +201,18 @@ class GuiBase(object):
 
             self.container = QWidget()
             self.container.setLayout(self.layout)
-        
+
             self.container_layout = QHBoxLayout(self)
             self.container_layout.setContentsMargins(0, 0, 0, 0)
             self.container_layout.addWidget(self.container)
-        
+
             self.setLayout(self.container_layout)
             self.setStyleSheet(
                 #"QWidget:hover {background: palette(highlight); color: white;} " \
                 "QWidget:hover {background: palette(highlight);} " \
                 "QLabel {font-size: %dpt;}" \
                 % font_size)
-        
+
         def text(self):
             """ Retorna el text de l'element """
             return self.label_text.text()
@@ -287,7 +287,7 @@ class GuiBase(object):
 
         self.action_plugin = QAction(icon, name, self.iface.mainWindow())
         self.action_plugin.triggered.connect(callback)
-        
+
         if add_to_plugins_toolbar:
             self.iface.addToolBarIcon(self.action_plugin) # Afegeix l'acció com un botó a la toolbar general de complements
         if add_to_plugins_menu:
@@ -407,17 +407,18 @@ class GuiBase(object):
                     # Inserim el control
                     if type(menu_or_toolbar) == QToolBar:
                         if ref_action:
-                            action = menu_or_toolbar.insertWidget(ref_action, menu_item)
+                            button_action = menu_or_toolbar.insertWidget(ref_action, menu_item)
                         else:
-                            action = menu_or_toolbar.addWidget(menu_item)
+                            button_action = menu_or_toolbar.addWidget(menu_item)
                     elif type(menu_or_toolbar) == QMenu:
-                        action = QWidgetAction(menu_or_toolbar)
-                        action.setDefaultWidget(menu_item)
+                        button_action = QWidgetAction(menu_or_toolbar)
+                        button_action.setDefaultWidget(menu_item)
                         if ref_action:
-                            menu_or_toolbar.insertAction(ref_action, action)
+                            menu_or_toolbar.insertAction(ref_action, button_action)
                         else:
-                            menu_or_toolbar.addAction(action)
-                    action.triggered.connect(callback)
+                            menu_or_toolbar.addAction(button_action)
+                    button_action.triggered.connect(callback)
+                    self.actions.append((menu_or_toolbar, button_action))
                 else:
                     # Submenú
                     submenu = QMenu()
@@ -853,12 +854,17 @@ class GuiBase(object):
             ---
             Changes an action icon from its id
             """
+        # Obtenim l'item a modificar (action)
         action = self.find_action(item_id)
         if not action:
             return False
         if type(action) == QWidgetAction:
             action = action.defaultWidget().defaultAction()
+        # Si la icona no és de tipus QIcon, suposem que és un identificador d'icona i intentem carregar-la
+        if icon and type(icon) is not QIcon:
+            icon = self.get_icon(icon)
         action.setIcon(icon)
+        # Si cal modifiquem el text d'ajuda
         if tooltip_text is not None:
             action.setToolTip(tooltip_text)
 
@@ -962,7 +968,7 @@ class GuiBase(object):
     def enable_toolbar_by_name(self, toolbar_name, enable=True):
         """ Activa / Desactiva toolbar per nom de la toolbar
             ---
-            Enable / Disable toolbar by toolbar name 
+            Enable / Disable toolbar by toolbar name
             """
         toolbar = self.get_toolbar_by_name(toolbar_name)
         if not toolbar:
@@ -975,7 +981,7 @@ class GuiBase(object):
     def enable_toolbar_by_object_name(self, toolbar_object_name, enable=True):
         """ Activa / Desactiva toolbar per nom de l'objecte
             ---
-            Enable / Disable toolbar by object name 
+            Enable / Disable toolbar by object name
             """
         toolbar = self.get_toolbar_by_object_name(toolbar_object_name)
         if not toolbar:
@@ -1079,9 +1085,9 @@ class GuiBase(object):
     # Other
     #
     def get_icon(self, icon_name):
-        """ Carrega una icona a partir del seu path (relatiu o absolut) 
+        """ Carrega una icona a partir del seu path (relatiu o absolut)
             o el seu nom (a partir d'un fitxer de recursos)
-            --- 
+            ---
             Loads icon by pathname (relative or absolut) or by name
             (from resource file)
             """
@@ -1114,15 +1120,15 @@ class GuiBase(object):
         return None
 
     def open_file_folder(self, folder):
-        """ Obre una carpeta en el navegador d'arxius del sistema 
+        """ Obre una carpeta en el navegador d'arxius del sistema
             ---
-            Open folder in system file explorer 
+            Open folder in system file explorer
             """
         if sys.platform == "win32":
             os.startfile(folder)
         else:
             opener ="open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.call([opener, folder])       
+            subprocess.call([opener, folder])
 
 
 class ProjectBase(object):
@@ -1260,7 +1266,7 @@ class LayersBase(object):
             """
         self.map_refreshed = False
         # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-        # self.iface.mapCanvas().refresh() 
+        # self.iface.mapCanvas().refresh()
         # ATENCIÓ: A partir de la versió 3.16 refreshAllLayers deselecciona els elements. Anteriorment feiem server refresh però a vegades no refrescava correctament.
         # Caldrà valorar quines de les dues deixem.
         # ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1338,7 +1344,7 @@ class LayersBase(object):
             ---
             Returns visible layer's features (from a list)
             """
-        visible_features = []        
+        visible_features = []
         if layer and layer.renderer():
             renderer = layer.renderer().clone()
             ctx = QgsRenderContext()
@@ -1349,6 +1355,34 @@ class LayersBase(object):
                     visible_features.append(feature)
             renderer.stopRender(ctx)
         return visible_features
+
+    def get_features_by_area_by_id(self, idprefix, area, area_epsg, pos=0):
+        """ Retorna l'elements que intersequin amb el QgsRectangle
+            ---
+            Returns features than intersects with QgsRectangle
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return None
+        return self.get_features_by_area(layer, area, area_epsg)
+
+    def get_features_by_area(self, layer, area, area_epsg):
+        """ Retorna l'elements que intersequin amb el QgsRectangle
+            ---
+            Returns features than intersects with QgsRectangle
+            """
+        # Cal que sigui una capa de tipus vector
+        if type(layer) is not QgsVectorLayer:
+            return []
+        # Obtenim l'area a buscar, i la reprojectem si cal a coordenades de la serie50k
+        if area_epsg and self.get_epsg(layer) != area_epsg:
+            area = self.parent.crs.transform_bounding_box(area, area_epsg, self.get_epsg(layer))
+
+        # Cerquem elements que intersequin amb l'àrea
+        feature_request = QgsFeatureRequest()
+        feature_request.setFilterRect(area)
+        feature_list = layer.getFeatures(feature_request)
+        return feature_list
 
     def get_feature_by_id(self, idprefix, feature_id, pos=0):
         """ Retorna l'element de l'id especificat
@@ -1668,7 +1702,8 @@ class LayersBase(object):
             ---
             Returns a list with the specified attribute of the layer of the selected elements for the specified area
             """
-        return self.get_attributes_by_area(layer, [field_name], area, area_epsg)
+        attributes_list = self.get_attributes_by_area(layer, [field_name], area, area_epsg)
+        return attributes_list
 
     def get_attributes_by_area_by_id(self, layer_idprefix, fields_name_list, area, area_epsg=None, pos=0):
         """ Retorna una llista de tuples amb els atributs especificats de la capa dels elements seleccionats per l'àrea especificada
@@ -1689,7 +1724,7 @@ class LayersBase(object):
 
         # Cerquem elements que intersequin amb l'àrea
         feature_request = QgsFeatureRequest()
-        feature_request.setFilterRect(area) 
+        feature_request.setFilterRect(area)
         feature_list = layer.getFeatures(feature_request)
 
         # Recuperem els camps demanats
@@ -1721,7 +1756,7 @@ class LayersBase(object):
             self.set_selection(layer, [])
         layer.triggerRepaint()
         self.refresh_legend(layer)
-        
+
         # Desactivo la crida a refresh_map perquè la funció refreshAllLayers (que es crida dins)
         # deselecciona a pinyó tots els elements de totes les capes a QGIS 3.22 (a QGIS 3.10 no passava)
         #self.refresh_map()
@@ -1871,7 +1906,7 @@ class LayersBase(object):
             with codecs.open(style_pathname, encoding='utf-8', mode='r') as fin:
                 text = fin.read()
             for old_value, new_value in sorted(replace_dict.items(), key=lambda item: len(item[0]), reverse=True):
-                text = text.replace(old_value, new_value)
+                text = text.replace('"%s"' % old_value, '"%s"' % new_value)
             tmp_style_pathname = os.path.join(os.environ['temp'], os.path.basename(style_pathname))
             with codecs.open(tmp_style_pathname, encoding='utf-8', mode="w") as fout:
                 fout.write(text)
@@ -2712,9 +2747,10 @@ class LayersBase(object):
         if not layer or (type(layer) is QgsVectorLayer and layer.featureCount() < 1):
             return False
         area = layer.extent()
-        return self.zoom_to_extent(layer, area, buffer)
+        epsg = self.get_epsg(layer)
+        return self.zoom_to_extent(layer, area, epsg, buffer)
 
-    def zoom_to_extent_by_id(self, layer_idprefix, area, buffer=0, pos=0):
+    def zoom_to_extent_by_id(self, layer_idprefix, area, epsg=None, buffer=0, pos=0):
         """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa per id. Opcionalment se li pot afegir una orla "buffer"
             ---
             Zoom in to specified coordinates (QgsRectangle) of layer by id. Optionally you can add a "buffer"
@@ -2722,9 +2758,9 @@ class LayersBase(object):
         layer = self.get_by_id(layer_idprefix, pos)
         if not layer:
             return False
-        return self.zoom_to_extent(layer, area, buffer)
-        
-    def zoom_to_extent(self, layer, area, buffer=0):
+        return self.zoom_to_extent(layer, area, epsg, buffer)
+
+    def zoom_to_extent(self, layer, area, epsg=None, buffer=0):
         """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa. Opcionalment se li pot afegir una orla "buffer"
             ---
             Zoom in to specified coordinates (QgsRectangle) of layer. Optionally you can add a "buffer"
@@ -2734,15 +2770,36 @@ class LayersBase(object):
             return False
         # Reprojectem les coordenades si cal
         layer_epsg = self.get_epsg(layer)
-        project_epsg = self.parent.project.get_epsg()
-        if layer_epsg and project_epsg and layer_epsg != project_epsg:
+        if not epsg:
+            epsg = self.parent.project.get_epsg()
+        if layer_epsg and epsg and layer_epsg != epsg:
             area = self.parent.crs.transform_bounding_box(area, layer_epsg)
         # Ampliem el rectangle si cal
         if buffer:
             area = area.buffered(buffer)
         # Fem zoom a l'area
         self.iface.mapCanvas().setExtent(area)
+        self.iface.mapCanvas().refresh()
         return True
+
+    def zoom_to_cat_by_id(self, layer_idprefix, buffer=0, pos=0):
+        """ Fa zoom d'una capa per id. de manera que es vegi tota Catalunya
+            ---
+            Zoom to Catalonia area by layer id.
+            """
+        layer = self.get_by_id(layer_idprefix, pos)
+        if not layer:
+            return False
+        return self.zoom_to_cat(layer, buffer)
+
+    def zoom_to_cat(self, layer, buffer=0):
+        """ Fa zoom de manera que es vegi tota Catalunya
+            ---
+            Zoom to Catalonia area
+            """
+        cat_rect = QgsRectangle(250000, 4480000, 535000, 4755000)
+        epsg = 25831
+        return self.zoom_to_extent(layer, cat_rect, epsg, buffer)
 
     def ensure_visible_by_id(self, layer_idprefix, pos=0):
         """ Asegura que els elements d'una capa per id són visibles fent un zoom a la extensió si cal
@@ -3567,7 +3624,7 @@ class LayersBase(object):
         if time_info:
             params_dict["time_info"] = time_info
         self.download_manager.download(remote_file, local_pathname, **params_dict)
-        
+
         # Descomprimim el fitxer si cal
         unzip_folder, ext = os.path.splitext(local_pathname)
         is_zipped_file = (ext == ".zip")
@@ -3763,11 +3820,11 @@ class LayersBase(object):
             else:
                 # Si no cal afegir grup de geopackage "manualment", carreguem ja el fitxer...
                 layer = self.iface.addVectorLayer(pathname, filename, "ogr")
-                if self.parent.legend.is_group_by_name(filename):                               
+                if self.parent.legend.is_group_by_name(filename):
                     # Si es crear un grup automàticament amb el nom de fitxer, només cal moure el grup dins del grup indicat
                     self.parent.legend.collapse_group_by_name(filename)
-                    pathnames_list = [(layer.id(), 
-                        re.sub(r"_\d+_", "", layer.name(), 1)                    
+                    pathnames_list = [(layer.id(),
+                        re.sub(r"_\d+_", "", layer.name(), 1)
                         ) for layer in self.get_group_layers_by_id(filename)]
                 elif len(layers_list) > 1:
                     # Si tenim les capes per separat, estaran totes prefixades pel nom de fitxer
@@ -3798,7 +3855,7 @@ class LayersBase(object):
             if is_geopackage_file and not add_geopackage_group:
                 # Si es tracta d'un Geopackage i no cal crear grup manualment, ja està la capa carregada
                 layer = self.get_by_id(vector_pathname) # En aquest cas és el nom de la capa carregada prèviament ...
-            else:   
+            else:
                 # Carreguem la capa indicada
                 layer = self.iface.addVectorLayer(vector_pathname, layer_name, "ogr")
             if layer:
@@ -4077,9 +4134,8 @@ class LayersBase(object):
                 url_time = url
             else:
                 if not default_time:
-                    default_time = layer_id
-                default_layer = layer_id
-                url_time = dict(time_series_list)[default_layer]
+                    default_time = time_series_list[-1][0]
+                url_time = dict(time_series_list)[default_time]
         elif time_series_regex:
             # Utilitzem la expressió regular per cercar capes i simular una sèrie temporal
             time_series_list, default_time2 = self.get_wms_t_time_series(url, None, time_series_regex)
@@ -4297,7 +4353,7 @@ class LayersBase(object):
         if ignore_get_map_url:
             uri += "&IgnoreGetMapUrl=1"
         return uri
-        
+
     def add_wms_url_query_layer(self, layer_name, url_query, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, ignore_get_map_url=True):
         """ Afegeix una capa WMS a partir d'una petició WMS (URL). Retorna la capa.
             Veure add_wms_layer per opcions
@@ -4321,8 +4377,8 @@ class LayersBase(object):
 
         if url and current_layer:
             # Actualitzem la capa a WMS carregar (pot ser un canvi de capa (fals WMS-T) o un canvi de temps)
-            if self.parent.check_qgis_version(31600): 
-                # Incompatible with version 3.4 and 3.10 (not update value)            
+            if self.parent.check_qgis_version(31600):
+                # Incompatible with version 3.4 and 3.10 (not update value)
                 new_uri = layer.source()
             else:
                 new_uri = layer.dataProvider().dataSourceUri()
@@ -4341,8 +4397,8 @@ class LayersBase(object):
         else:
             # Si tenim un fals WMS-T amb link a arxius raster, cal fer més refrescos...
             new_uri = wms_layer
-            
-        if self.parent.check_qgis_version(31600): 
+
+        if self.parent.check_qgis_version(31600):
             # Incompatible with version 3.4 and 3.10 (not updated)
             layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
         else:
@@ -4352,7 +4408,7 @@ class LayersBase(object):
             layer.triggerRepaint()
 
     def is_anaglyph_layer(self, layer):
-        """ Retorna si una capa té informació WMS anaglif 
+        """ Retorna si una capa té informació WMS anaglif
             ---
             Returns layer is WMS anaglyph
             """
@@ -4405,7 +4461,7 @@ class LayersBase(object):
 
     def add_vector_db_layer(self, host, port, dbname, schema, table, user, password, geometry_column=None, filter=None, key_column=None, provider='postgres',
                             epsg=25831, wkbtype=QgsWkbTypes.Polygon, layer_name=None, group_name="", group_pos=None, only_one_map_on_group=False,
-                            only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None, 
+                            only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None,
                             if_empty_retry_without_geo=False):
         """ Afegeix una capa tipus BBDD. Retorna la capa
             Paràmetres de la connexió: host, port, dbname, schema, table, user, password, geometry_column, filter, key_column
@@ -4424,7 +4480,7 @@ class LayersBase(object):
         uri.setDataSource(schema, table, geometry_column, filter, key_column)
         # afegim la capa
         layer = self.add_vector_uri_layer(layer_name, uri.uri(), provider, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, set_current, style_file)
-        # CAS ESPECIAL! A VEGADES NO CARREGA BÉ VISTES POSTGRES SI CAP ELEMENT TÉ GEOMETRIA... 
+        # CAS ESPECIAL! A VEGADES NO CARREGA BÉ VISTES POSTGRES SI CAP ELEMENT TÉ GEOMETRIA...
         # EN AQUEST CAS PODEM FORÇAR CARREGAR LA CAPA SENSE GEOMETRIA
         if if_empty_retry_without_geo and layer and layer.featureCount() < 1:
             self.remove_layer(layer)
@@ -4592,7 +4648,7 @@ class LayersBase(object):
         if not layer:
             return None
         return self.show_attributes_dialog(layer, feature, edit_mode, modal_mode, width, height)
-    
+
     def show_attributes_dialog(self, layer, feature, edit_mode=False, modal_mode=False, width=None, height=None):
         """ Mostra el formulari d'edició de camps de l'element amb el valor especificat o seleccionat
             ---
@@ -5532,7 +5588,7 @@ class CrsToolsBase(object):
         ct = self.get_transform(source_epsg, destination_epsg)
         if type(geo) == QgsPointXY:
             # Tranformació de punt
-            new_geo = ct.transform(geo) 
+            new_geo = ct.transform(geo)
         elif type(geo) == QgsRectangle:
             # Tranformació de rectangle
             new_geo = ct.transformBoundingBox(geo)
@@ -5636,11 +5692,11 @@ class DebugBase(object):
             """
         test_files_path = os.path.join(self.parent.plugin_path, plugin_subfolder)
         if not os.path.exists(test_files_path):
-            return False        
+            return False
         return len(glob.glob(os.path.join(test_files_path, test_files_pattern))) > 0
 
     def get_test_suite(self, plugin_subfolder="test", test_files_pattern="test*.py"):
-        """ Detecta arxius de test i retorna un UnitTestSuit 
+        """ Detecta arxius de test i retorna un UnitTestSuit
             ---
             Detects test files and return a UnitTestSuit
             """
@@ -5662,7 +5718,7 @@ class DebugBase(object):
             for t in suite:
                 names_list += self.get_test_names(suite=t)
         else:
-            names_list.append(str(suite))
+            names_list.append(suite._testMethodName)
         return names_list
 
     def get_test(self, test_name, suite):
@@ -5675,13 +5731,13 @@ class DebugBase(object):
         test_call = None
         if hasattr(suite, '__iter__'):
             for t in suite:
-                test_call = self.get_test_names(suite=t)
+                test_call = self.get_test(test_name, suite=t)
                 if test_call:
                     break
         else:
-            test_call = suite if str(suite) == test_name else None
+            test_call = suite if suite._testMethodName == test_name else None
         return test_call
-        
+
     def test_plugin(self, test_name=None, plugin_subfolder="test", test_files_pattern="test*.py"):
         """ Executa els UnitsTests del plugin i retorna objecte UnitTestResult i un text amb el resultat del test
             ---
@@ -5691,7 +5747,7 @@ class DebugBase(object):
         if test_name:
             test_call = self.get_test(test_name, test_suite)
             if test_call:
-                test_suit = test_call
+                test_suite = test_call
         with io.StringIO() as memory:
             test_result = unittest.TextTestRunner(stream=memory, verbosity=2).run(test_suite)
             memory.seek(0)
@@ -5743,14 +5799,14 @@ class DebugBase(object):
         self.timestamps.append((description, datetime.datetime.now() if timestamp is None else timestamp))
 
     def get_timestamps_total_time(self):
-        """ Retorna el temps total registrat 
-            --- 
+        """ Retorna el temps total registrat
+            ---
             Retuns registered total time
             """
         if len(self.timestamps) < 2:
             return None
         return self.timestamps[-1][1] - self.timestamps[0][1]
-    
+
     def get_timestamps_info(self, info = "Load times"):
         """ Obté informació dels timestamps existents
             ---
@@ -6654,15 +6710,15 @@ class PluginBase(QObject):
             path = os.path.join(self.plugin_path, path)
         pathname = os.path.join(path, basename)
         filename, ext = os.path.splitext(basename)
-        if not ext or ext == ".html":        
+        if not ext or ext == ".html":
             showPluginHelp(filename=pathname)
         else:
             self.gui.open_file_folder(pathname)
 
     def show_url(self, url, parse_mode=QUrl.TolerantMode):
-        """ Mostra una URL en el navegador per defecte 
+        """ Mostra una URL en el navegador per defecte
             ---
-            Show URL in default web navigator 
+            Show URL in default web navigator
             """
         return QDesktopServices.openUrl(QUrl(url, parse_mode))
 
@@ -6682,7 +6738,7 @@ class PluginBase(QObject):
             Locate the map in the coordinates indicated on a given scale from a central point.
             Reproject the coordinate to the project reference system if necessary
             """
-        # Cal, transformem les coordenades al sistema del projecte        
+        # Cal, transformem les coordenades al sistema del projecte
         ##print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
         if epsg and epsg != int(self.project.get_epsg()):
             x, y = self.crs.transform_point(x, y, epsg)
@@ -6814,7 +6870,7 @@ class PluginBase(QObject):
             Returns: (bool, [<font_id>,...]) True if ok and a font id's list
             """
         # Si no ens passen un path, utilitzem el path per defecte: <plugin_path>\fonts
-        if not fonts_path:            
+        if not fonts_path:
             fonts_path = os.path.join(self.plugin_path, "fonts")
         if not os.path.exists(fonts_path):
             return False, []
@@ -6857,7 +6913,7 @@ class PluginBase(QObject):
             for file_type in file_types_list:
                 if os.path.exists(font_pathname + "." + file_type):
                     font_pathname += ("." + file_type)
-                    break                        
+                    break
         # Carreguem la font
         return QFontDatabase.addApplicationFont(font_pathname)
 

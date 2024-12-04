@@ -27,12 +27,12 @@ log.addHandler(logging.NullHandler())
 
 styles_path = os.path.join(os.path.dirname(__file__), "symbols")
 style_dict = {
-    "caps-municipi": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"), 
-    "municipis": os.path.join(styles_path, "divisions-administratives-municipis-ref.qml"), 
-    "comarques": os.path.join(styles_path, "divisions-administratives-comarques-ref.qml"), 
-    "vegueries": os.path.join(styles_path, "divisions-administratives-vegueries-ref.qml"), 
-    "provincies": os.path.join(styles_path, "divisions-administratives-provincies-ref.qml"), 
-    "catalunya": os.path.join(styles_path, "divisions-administratives-catalunya-ref.qml"), 
+    "caps-municipi": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"),
+    "municipis": os.path.join(styles_path, "divisions-administratives-municipis-ref.qml"),
+    "comarques": os.path.join(styles_path, "divisions-administratives-comarques-ref.qml"),
+    "vegueries": os.path.join(styles_path, "divisions-administratives-vegueries-ref.qml"),
+    "provincies": os.path.join(styles_path, "divisions-administratives-provincies-ref.qml"),
+    "catalunya": os.path.join(styles_path, "divisions-administratives-catalunya-ref.qml"),
     }
 styles_order_dict = {
     "caps-municipi": 1,
@@ -55,7 +55,7 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
-    
+
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
     response_data = ""
     remaining_retries = retries
@@ -161,7 +161,7 @@ def get_coastline_filenames():
 def get_coastline_years():
     return sorted([year for year, url in get_coastlines()])
 
-def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89/json_unzip", 
+def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89/json_unzip",
     sheet_http_file_pattern=r'(tall(\w+)etrs\w+\.json)'):
     """ Obté les URLs dels arxius de talls disponibles de l'ICGC
         Retorna: [(sheet_name, sheet_url)]
@@ -186,7 +186,7 @@ def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89
 
     return sheets_list
 
-def get_grids(grid_urlbase="https://datacloud.icgc.cat/datacloud/quadricules-utm/shp/", 
+def get_grids(grid_urlbase="https://datacloud.icgc.cat/datacloud/quadricules-utm/shp/",
     grid_http_file_pattern=r'quadricules-utm-v1r0-2021.zip'):
     """ Obté les URLs dels arxius de quadricules disponibles de l'ICGC.
         Retorna: [(sheet_name, sheet_url)]
@@ -212,7 +212,7 @@ def get_delimitations_old(delimitations_urlbase="https://datacloud.icgc.cat/data
         """
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
     delimitations_info_list = get_http_files(delimitations_urlbase, delimitation_http_file_pattern)
-    
+
     # Cerquem links a arxius json
     delimitations_list = []
     for delimitation_name, delimitation_type_pattern in delimitation_type_patterns_list:
@@ -235,7 +235,7 @@ def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/dataclou
         """
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles (canvio "caps-municipi" per parsejar-lo més fàcil...)
     delimitations_info_list = get_http_files(delimitations_urlbase, delimitation_http_file_pattern)
-    delimitations_info_list.sort(key=lambda d:d[0], reverse=True)    
+    delimitations_info_list.sort(key=lambda d:d[0], reverse=True)
     # Cerquem links a arxius json (només ens quedem els de la data més nova)
     delimitations_dict = {}
     last_name = None
@@ -245,7 +245,7 @@ def get_delimitations(delimitations_urlbase="https://datacloud.icgc.cat/dataclou
         if last_name != name or last_scale != scale:
             delimitations_dict[name] = delimitations_dict.get(name, []) + [(int(scale) if scale else None, "%s/%s" % (delimitations_urlbase, filename))]
         last_name = name
-        last_scale = scale    
+        last_scale = scale
     # Ordenem les delimitacions
     delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d: styles_order_dict[d[0]])
     # Ordenem les escales i afegim arxiu d'estil
@@ -275,7 +275,7 @@ def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-
         ---
         Gets ICGC's available topography 1:5,000 file urls
         Returns: [(year, ndvi_url)]
-        """    
+        """
     info_list = get_http_files(urlbase, http_file_pattern)
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
     file_tuple_list.sort(key=lambda f : f[0], reverse=True) # Ordenem per any
@@ -324,11 +324,11 @@ def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-t
                 source_gsd = get_source_gsd(data_dict, color_not_irc, default_gsd, year)
                 if not source_gsd or abs(gsd - default_gsd) < abs(source_gsd - default_gsd):
                     add_data(data_dict, color_not_irc, default_gsd, year, url_filename, gsd)
-   
+
     return data_dict
 
 def get_historic_ortho_years(rgb_not_irc, gsd):
-    """ Obté els anys disponibles per un tipus d'orto (RGB/IRC) i GSD """    
+    """ Obté els anys disponibles per un tipus d'orto (RGB/IRC) i GSD """
     gsd_dict = get_historic_ortho_dict().get(rgb_not_irc, None)
     if not gsd_dict:
         return []
@@ -338,7 +338,7 @@ def get_historic_ortho_years(rgb_not_irc, gsd):
     return list(years_dict.keys())
 
 def get_historic_ortho_file(rgb_not_irc, gsd, year):
-    """ Obté el fitxer assicat a una ortofoto color/resolució/any """    
+    """ Obté el fitxer assicat a una ortofoto color/resolució/any """
     gsd_dict = get_historic_ortho_dict().get(rgb_not_irc, None)
     if not gsd_dict:
         return None
@@ -346,7 +346,7 @@ def get_historic_ortho_file(rgb_not_irc, gsd, year):
     if not years_dict:
         return None
     filename_and_source_gsd = years_dict.get(year, None) # Tuple (filename, source_gsd)
-    return filename_and_source_gsd[0] if filename_and_source_gsd else None 
+    return filename_and_source_gsd[0] if filename_and_source_gsd else None
 
 def get_historic_ortho_code(rgb_not_irc, gsd, year):
     """ Obté el codi de descàrrega FME associat a una ortofoto color/resolució/any """
@@ -358,3 +358,21 @@ def get_historic_ortho_code(rgb_not_irc, gsd, year):
 def get_historic_ortho_ref(rgb_not_irc, gsd, year):
     """ Obté l'arxiu de referència associat a una ortofoto color/resolució/any """
     return get_historic_ortho_file(rgb_not_irc, gsd, year)
+
+def get_lidar_ortho(rgb_not_irc,
+    urlbase="https://datacloud.icgc.cat/datacloud/lidar-territorial/orto-gpkg_unzip",
+    http_rgb_file_pattern=r'(lidar-territorial-v\d+r\d+-ortofoto-rgb-\d+cm-([\d-]+)\.gpkg)',
+    http_irc_file_pattern=r'(lidar-territorial-v\d+r\d+-ortofoto-irc-\d+cm-([\d-]+)\.gpkg)'):
+    """ Obté les URLs dels arxius ortofoto LiDAR disponibles de l'ICGC
+        Retorna: [(year, ortho_url)]
+        ---
+        Gets ICGC's available orthophoto LiDAR file urls
+        Returns: [(year, ortho_url)]
+        """
+    # Llegeixo la pàgina HTTP que informa dels arxius disponibles
+    # Cerquem links a arxius json
+    http_file_pattern = http_rgb_file_pattern if rgb_not_irc else http_irc_file_pattern
+    info_list = get_http_files(urlbase, http_file_pattern)
+    file_tuple_list = [(year, "/vsicurl/%s/%s" % (urlbase, filename)) for filename, year in info_list]
+    file_tuple_list.sort(key=lambda f : f[0]) # Ordenem per any
+    return file_tuple_list
