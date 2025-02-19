@@ -28,8 +28,16 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.23
-changelog=v1.1.23 (2024-12-04)
+version=1.1.24
+changelog=v1.1.24 (2025-02-19)
+	- Added GetFeatureInfo support on photogram central layers
+	- Added reference system file on photogram downloads
+	- Added reverse geocoder option (search on point)
+	- Updated access to ICGC's geocoder service
+	- Fixed problem with time series dialog refreshment delayed events
+	- Fixed problems with LiDAR layer names translation
+
+	v1.1.23 (2024-12-04)
 	- Added new world wide topographic to background maps
 	- Added new orthophoto lidar products to background maps
 	- Added new central photograms to background maps

@@ -34,10 +34,10 @@ from importlib import reload
 
 # Import QGIS libraries
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsRectangle, QgsGeometry
-from qgis.core import Qgis, QgsProject, QgsWkbTypes
+from qgis.core import Qgis, QgsProject, QgsWkbTypes, QgsField, QgsFeature
 from qgis.gui import QgsMapTool, QgsRubberBand
 # Import the PyQt and QGIS libraries
-from PyQt5.QtCore import QSize, Qt, QPoint, QDateTime
+from PyQt5.QtCore import QSize, Qt, QPoint, QDateTime, QVariant
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInputDialog
 from PyQt5.QtWidgets import QLineEdit, QFileDialog, QWidgetAction
@@ -295,9 +295,9 @@ class OpenICGC(PluginBase):
         "hi": "Infrared orthophoto (temporal serie)",
         #"bt5m": "Topographic base 1:5,000",
         "topografia-territorial": "Territorial topographic referential",
-        "mtc250m": "Topographic map 1:250,000",
-        "mtc500m": "Topographic map 1:500,000",
-        "mtc1000m": "Topographic map 1:1,000,000",
+        "topografia-250000": "Topographic map 1:250,000",
+        #"mtc500m": "Topographic map 1:500,000",
+        "topografia-1000000": "Topographic map 1:1,000,000",
         "ct1m": "Topographic cartography 1:1,000",
         #"bm5m": "Municipal base 1:5,000",
         "divisions-administratives": "Administrative divisions",
@@ -344,6 +344,7 @@ class OpenICGC(PluginBase):
     photo_search_2_action = None
     photo_download_action = None
     geopackage_style_action = None
+    geocoder_search_action = None
 
     debug_mode = False
     test_available = False
@@ -380,18 +381,20 @@ class OpenICGC(PluginBase):
             self.log.warning("Error loading extra fonts")
 
         # Translated long tooltip text
+        # Disabled:
+            #Crossing: municipality, street, street
+            #    Barcelona, Mallorca, Aribau
+
         self.TOOLTIP_HELP = self.tr("""Find:
             Address: municipality, street number or vice versa
                 Barcelona, Aribau 86
                 Aribau 86, Barcelona
                 Barcelona, C/ Aribau 86
 
-            Crossing: municipality, street, street
-                Barcelona, Mallorca, Aribau
-
             Road: road, km
                 C32 km 10
                 C32, 10
+                B-23 10
 
             Toponym: free text
                 Barcelona
@@ -411,9 +414,11 @@ class OpenICGC(PluginBase):
                 EPSG:25831 427708.277 4582385.829 429808.277 4580285.829
 
             Cadastral reference: ref (also works with the first 14 digits)
-                9872023 VH5797S 0001 WX
-                13 077 A 018 00039 0000 FP
-                13077A018000390000FP""")
+                9503802DF2890D0001TE
+                9503802 DF2890D 0001 TE
+                95 038 0 2DF 2890D 0001 TE
+                9503802DF2890D
+                9503802 DF2890D""")
 
         # Set group name for background maps
         self.backgroup_map_group_name = self.tr("Background maps")
@@ -464,9 +469,9 @@ class OpenICGC(PluginBase):
             "hi250cm": self.tr("Historic infrared orthophoto 2.5m 1:25,000"),
             #"bt5m": self.tr("Topographic base 1:5,000"),
             "topografia-territorial": self.tr("Territorial topographic referential"),
-            "mtc250m": self.tr("Topographic map 1:250,000"),
-            "mtc500m": self.tr("Topographic map 1:500,000"),
-            "mtc1000m": self.tr("Topographic map 1:1,000,000"),
+            "topografia-250000": self.tr("Topographic map 1:250,000"),
+            #"mtc500m": self.tr("Topographic map 1:500,000"),
+            "topografia-1000000": self.tr("Topographic map 1:1,000,000"),
             "ct1m": self.tr("Topographic cartography 1:1,000"),
             #"bm5m": self.tr("Municipal base 1:5,000"),
             "divisions-administratives": self.tr("Administrative divisions"),
@@ -663,8 +668,8 @@ class OpenICGC(PluginBase):
         #self.cat_1M_scale, self.cat_1M_url = cat_scale_list[-1] # Last is 1M scale
 
         # Gets available Sheets and Grids
-        sheets_list = get_sheets()
-        grids_list = get_grids()
+        sheets_list = [(name, "/vsicurl/%s" % url) for name, url in get_sheets()]
+        grids_list = [(name, "/vsicurl/%s" % url) for name, url in get_grids()]
 
         # Gets available DTMs i costa
         dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms()]
@@ -722,9 +727,10 @@ class OpenICGC(PluginBase):
         self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""), [
             self.tr("Find"), # Label text
             self.combobox, # Editable combobox
-            (self.tr("Find place names and adresses"),
+            (self.tr("Find place names and addresses"),
                 self.run, # GeoFinder
                 "map.png"), # Action button
+            (self.tr("Find on point"), self.enable_search_geocoder, "geocoder.png", True, True, "geocoder_search"),
             "---",
             (self.tr("Background maps"),
                 # Default background map
@@ -745,10 +751,16 @@ class OpenICGC(PluginBase):
                         "cat_topo5k.png",
                         self.manage_metadata_button("Territorial topographic referential %s (temporal serie)" % topo5k_year), True)
                     for topo5k_year, _url in topo5k_time_series_list]),
-                (self.tr("Topographic map 1:250,000"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"), "https://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["mtc250m"], ["default"], "image/png", 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
-                    "cat_topo250k.png",
-                    self.manage_metadata_button("Topographic map 1:250,000"), True),
+                (self.tr("Topographic map"), None, "cat_topo1m", [
+                    (self.tr("Topographic map 1:250,000"),
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"), "https://geoserveis.icgc.cat/servei/catalunya/topografia-250000/wms", ["topografia-250000"], ["default"], "image/png", 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        "cat_topo250k.png",
+                        self.manage_metadata_button("Topographic map 1:250,000"), True),
+                    (self.tr("Topographic map 1:1,000,000"),
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:1,000,000"), "https://geoserveis.icgc.cat/servei/catalunya/topografia-1000000/wms", ["topografia-1000000"], ["default"], "image/png", 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        "cat_topo1m.png",
+                        self.manage_metadata_button("Topographic map 1:1,000,000"), True),
+                    ]),
                 "---",
                 (self.tr("Administrative divisions"), None, "cat_vector.png", self.enable_http_files, [
                     (self.tr("Administrative divisions (raster pyramid)"),
@@ -864,7 +876,7 @@ class OpenICGC(PluginBase):
                     ] + [
                     "---",
                     (self.tr("Color orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, use_qgis_time_controller=False),
                         "cat_ortho5k.png",
                         self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
                     ]),
@@ -902,7 +914,7 @@ class OpenICGC(PluginBase):
                     ] + [
                     "---",
                     (self.tr("Infrared orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"), "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms", "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831, self.request_referrer_param + "&bgcolor=0x000000", self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, use_qgis_time_controller=False),
                         "cat_ortho5ki.png",
                         self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
                     ]),
@@ -922,13 +934,13 @@ class OpenICGC(PluginBase):
                 "---",
                 (self.tr("Centered photogram"), None, "photo.png", [
                     (self.tr("Centered photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"), photolib_wms_url, "foto_central", photolib_current_time, "central", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"), photolib_wms_url, "foto_central", photolib_current_time, "central", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False, use_qgis_time_controller=True),
                         "photo.png"),
                     (self.tr("Centered rectified photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"), photolib_wms_url, "ortoxpres_central", photolib_current_time, "central", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"), photolib_wms_url, "ortoxpres_central", photolib_current_time, "central", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False, use_qgis_time_controller=True),
                         "rectified.png"),
                     (self.tr("Centered anaglyph photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"), photolib_wms_url, "anaglif_central", photolib_current_time, "central,100,false", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"), photolib_wms_url, "anaglif_central", photolib_current_time, "central,100,false", "image/png", None, None, 25831, self.request_referrer_param, self.backgroup_map_group_name, only_one_map_on_group=False, set_current=False, use_qgis_time_controller=True),
                         "stereo.png"),
                         #) for anaglyph_year, anaglyph_layer in reversed(photolib_time_series_list)]),
                     ]),
@@ -981,11 +993,11 @@ class OpenICGC(PluginBase):
                         ]),
                     (self.tr("France"), None, "france_topo.png", [
                         (self.tr("France topographic"),
-                            lambda:self.layers.add_wms_layer(self.tr("France topographic"), "http://mapsref.brgm.fr/wxs/refcom-brgm/refign", ["FONDS_SCAN"], [], "image/png", 23031, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
+                            lambda:self.layers.add_wms_layer(self.tr("France topographic"), "http://mapsref.brgm.fr/wxs/refcom-brgm/refign", ["FONDS_SCAN"], [], "image/png", 32631, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True),
                             "france_topo.png"),
                         "---",
                         (self.tr("France orthophoto 20cm"),
-                            lambda:self.layers.add_wms_layer(self.tr("France orthophoto 20cm"), "https://data.geopf.fr/annexes/ressources/wms-r/ortho.xml", ["HR.ORTHOIMAGERY.ORTHOPHOTOS"], ["normal"], "image/png", 23031, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, ignore_get_map_url=False),
+                            lambda:self.layers.add_wms_layer(self.tr("France orthophoto 20cm"), "https://data.geopf.fr/annexes/ressources/wms-r/ortho.xml", ["HR.ORTHOIMAGERY.ORTHOPHOTOS"], ["normal"], "image/png", 32631, '', self.backgroup_map_group_name, only_one_map_on_group=False, set_current=True, ignore_get_map_url=False),
                             "france_ortho.png"),
                         ]),
                     (self.tr("World"), None, "world.png", [
@@ -1147,12 +1159,16 @@ class OpenICGC(PluginBase):
         self.photo_search_action = self.gui.find_action("photo_search").defaultWidget().defaultAction() if self.gui.find_action("photo_search") else None
         self.photo_search_2_action = self.gui.find_action("photo_search_2")
         self.photo_download_action = self.gui.find_action("photo")
+        self.geocoder_search_action = self.gui.find_action("geocoder_search")
 
         # Add a tool to download map areas
         self.tool_subscene = QgsMapToolSubScene(self.iface.mapCanvas())
 
         # Add a tool to search photograms in photo library (set action to manage check/uncheck tools)
         self.tool_photo_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), self.search_photos, self.photo_search_action)
+
+        # Add a tool to search photograms in photo library (set action to manage check/uncheck tools)
+        self.tool_geocoder_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), lambda x, y:self.find(None, x, y), self.geocoder_search_action)
 
         # Log plugin started
         t1 = datetime.datetime.now()
@@ -1387,10 +1403,10 @@ class OpenICGC(PluginBase):
         searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, use_qgis_time_controller=False):
         """ Add WMS-T layer and enable timeseries dialog """
         # Add WMS-T
-        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current)
+        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, use_qgis_time_controller)
         if layer:
             if type(layer) in [QgsRasterLayer, QgsVectorLayer]:
                 # Show timeseries dialog
@@ -1409,12 +1425,20 @@ class OpenICGC(PluginBase):
 
         return layer
 
-    def find(self, user_text):
+    def enable_search_geocoder(self, checked=False):
+        """ Enables search photos interactive tool """
+        self.gui.enable_tool(self.tool_geocoder_search)
+        self.iface.messageBar().pushMessage(self.tr("Reverse geocoding"), self.tr("Select a point"), level=Qgis.Info, duration=5)
+
+    def find(self, user_text, x=None, y=None):
         """ Performs a geo-spatial query and shows the results to the user so he can choose the one he wants to visualize """
         # Check user text
         if not user_text:
-            QMessageBox.warning(self.iface.mainWindow(), self.tr("Spatial search"), self.tr("You must write any text"))
-            return
+            if x is not None and y is not None:
+                user_text = "%s %s" % (x, y)
+            else:
+                QMessageBox.warning(self.iface.mainWindow(), self.tr("Spatial search"), self.tr("You must write any text"))
+                return
 
         # Check loaded map. If we have not maps, we load default map and rerun search
         if not self.iface.mapCanvas().layers():
@@ -1435,10 +1459,14 @@ class OpenICGC(PluginBase):
             west, north, east, south, epsg = self.geofinder_dialog.get_rectangle()
             # We resituate the map (implemented in parent PluginBase)
             self.set_map_rectangle(west, north, east, south, epsg)
+            # We get point coordinates to show element found
+            x, y, epsg = self.geofinder_dialog.get_point()
+            if x is None or y is None:
+                return
         else:
             # We get point coordinates
             x, y, epsg = self.geofinder_dialog.get_point()
-            if not x or not y:
+            if x is None or y is None:
                 self.log.warning("Error, no coordinates found")
                 QMessageBox.warning(self.iface.mainWindow(), self.tr("Spatial search"),
                     self.tr("Error, location without coordinates"))
@@ -1446,6 +1474,26 @@ class OpenICGC(PluginBase):
             scale = self.geofinder_dialog.get_scale()
             # We resituate the map (implemented in parent PluginBase)
             self.set_map_point(x, y, epsg, scale)
+        site_name = self.geofinder_dialog.get_name()
+
+        # Creates a memory layer with found element
+        site_layer = QgsVectorLayer(f"Point?crs=epsg:{epsg}", site_name, "memory")
+        site_provider = site_layer.dataProvider()
+        site_provider.addAttributes([QgsField("lloc", QVariant.String)])
+        site_layer.updateFields()
+        # Adds element found to layer
+        site_feature = QgsFeature()
+        geometry = QgsGeometry.fromPointXY(QgsPointXY(x, y))
+        site_feature.setGeometry(geometry)
+        site_feature.setAttributes([site_name])
+        site_provider.addFeature(site_feature)
+        site_layer.updateExtents()
+        # Adds layer to project
+        self.layers.add_layer(site_layer)
+        self.legend.move_layer_to_group_by_name(self.tr("Sites"),
+            site_layer, autocreate_group=True, group_pos=0, visible_layer=True, pos=0,
+            remove_repeated_layers=True)
+        self.iface.mapCanvas().refresh()
 
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg", "ifc"])
@@ -1684,13 +1732,11 @@ class OpenICGC(PluginBase):
         elif self.download_type in ["dt_municipalities", "dt_counties", "dt_sheet"]:
             # Find point on GeoFinder
             center = geo.center()
-            found_dict_list = self.find_point_secure(center.x(), center.y(), download_epsg)
+            municipality, county = self.get_municipality_and_county(center.x(), center.y(), download_epsg)
             # Set download information
             if self.download_type in ["dt_municipalities", "dt_sheet"]:
-                municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
                 confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nMunicipality:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.center().x(), geo.center().y(), download_epsg, municipality, download_folder, download_ext[1:])
             elif self.download_type == "dt_counties":
-                county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
                 confirmation_text = self.tr("Data type:\n   %s (%s)\nPoint:\n   %.2f, %.2f (EPSG:%s)\nCounty:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, geo.center().x(), geo.center().y(), download_epsg, county, download_folder, download_ext[1:])
         else:
             zone = self.tr("Catalonia") if self.download_type == "dt_cat" \
@@ -1732,6 +1778,7 @@ class OpenICGC(PluginBase):
         current_layer = self.layers.get_current_layer()
         download_layer = None
         geometry_ok = True
+        reference_system_ok = True
         data_filter = self.fme_data_filters_dict.get(data_type, None)
         try:
             if is_compressed:
@@ -1753,16 +1800,22 @@ class OpenICGC(PluginBase):
                 # With an unsupported format we only download file
                 local_filename = self.layers.download_remote_file(url, local_filename, download_folder=None, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
             elif is_raster:
-                # With full photograms need download additional georeference file
+                # With full photograms need download additional georeference and reference system files
                 if is_photo and download_operation_code == "tot":
-                    world_ext = ext[0:2] + ext[3] + "w"
                     image_filename = extra_params[2]
+                    # World file
+                    world_ext = ext[0:2] + ext[3] + "w"
                     world_filename = os.path.splitext(image_filename)[0] + world_ext
                     world_file_url = url.replace(image_filename, world_filename)
                     world_pathname = os.path.splitext(local_filename)[0] + world_ext
                     geometry_ok = self.layers.download_remote_file(world_file_url, world_pathname, download_folder, unzip=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")) is not None
+                    # XML reference system
+                    xml_filename = image_filename + ".aux.xml"
+                    xml_file_url = url.replace(image_filename, xml_filename)
+                    xml_pathname = local_filename + ".aux.xml"
+                    reference_system_ok = self.layers.download_remote_file(xml_file_url, xml_pathname, download_folder, unzip=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")) is not None
                 # Force EPSG:25831 or photo EPSG by problems with QGIS 3.10 version in auto detection EPSG
-                if geometry_ok:
+                if geometry_ok and reference_system_ok:
                     download_layer = self.layers.add_remote_raster_file(url, local_filename, group_name=self.download_group_name, group_pos=0, epsg=download_epsg, only_one_visible_map_on_group=False, color_default_expansion=data_type.lower().startswith("met"), resampling_bilinear=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
             elif is_points:
                 download_layer = self.layers.add_remote_point_cloud_file(url, local_filename, group_name=self.download_group_name, group_pos=0, only_one_visible_map_on_group=False, regex_styles_list=self.fme_regex_styles_list, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
@@ -1820,7 +1873,12 @@ class OpenICGC(PluginBase):
         if not geometry_ok:
             self.log.error("Error downloading geometry file: %s", world_filename)
             QMessageBox.warning(self.iface.mainWindow(), title,
-                self.tr("Error downloading geometry file\n%s") % world_file)
+                self.tr("Error downloading geometry file\n%s") % world_filename)
+            return
+        if not reference_system_ok:
+            self.log.error("Error downloading geometry file: %s", xml_filename)
+            QMessageBox.warning(self.iface.mainWindow(), title,
+                self.tr("Error downloading geometry file\n%s") % xml_filename)
             return
         # With slow formats we show end download message
         if is_slow_format:
@@ -2083,17 +2141,6 @@ class OpenICGC(PluginBase):
     def open_download_folder(self):
         """ Open download folder and asks for it if not exists """
         self.layers.open_download_path(self.tr("Select download folder"))
-
-    def find_point_secure(self, x, y, epsg, timeout=5):
-        """ Protected find_point function """
-        try:
-            self.geofinder.get_icgc_geoencoder_client().set_options(timeout=timeout)
-            found_dict_list = self.geofinder.find_point_coordinate(x, y, epsg)
-            self.geofinder.get_icgc_geoencoder_client().set_options(timeout=None)
-        except:
-            error = self.tr("Unknow, service unavailable")
-            found_dict_list = [{'nomMunicipi': error, 'nomComarca': error}]
-        return found_dict_list
 
     def add_height_highlighting_layer(self, layer_name, dtm_url, style_file, group_name):
         """ Load shadow DTM layer to overlap to current background map in the first position of background map group"""
@@ -2385,8 +2432,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 # Get municipality information of coordinate
                 if not epsg:
                     epsg = int(self.project.get_epsg())
-                found_dict_list = self.find_point_secure(x, y, epsg)
-                municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
+                municipality, _county = self.get_municipality_and_county(x, y, epsg)
                 if municipality:
                     layer_name = self.photo_search_label % municipality
                 else:
@@ -2641,7 +2687,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         download_path = self.get_download_folder()
         if not download_path:
             return False
-        municipality = self.get_current_municipality()
+        map_center = self.iface.mapCanvas().center()
+        municipality, _county = self.get_municipality_and_county(map_center.x(), map_center.y(), self.project.get_epsg())
         default_filename = ("%s%s.pdf" % (municipality, file_suffix)) if municipality else ""
         default_pathname = os.path.join(download_path, default_filename)
         # Ask pdf filename
@@ -2699,12 +2746,17 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             QMessageBox.warning(self.iface.mainWindow(), title, self.tr("Error saving PDF file"))
         return status_ok
 
-    def get_current_municipality(self):
-        """ Return center of map municipality """
-        map_center = self.iface.mapCanvas().center()
-        found_dict_list = self.find_point_secure(map_center.x(), map_center.y(), self.project.get_epsg())
+    def get_municipality_and_county(self, x, y, epsg):
+        """ Return coodinates municipality and county """
+        try:
+            found_dict_list = self.geofinder.find_point_coordinate_icgc(x, y, epsg, \
+                layers="topo1,topo2", search_radious_km=None, size=1)
+        except:
+            error = self.tr("Unknow, service unavailable")
+            found_dict_list = [{'nomMunicipi': error, 'nomComarca': error}]
         municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
-        return municipality
+        county = found_dict_list[0]['nomComarca'] if found_dict_list else ""
+        return municipality, county
 
     def enable_debug_log(self, enable=True):
         """ Enable or disable log level debug """

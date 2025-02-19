@@ -2,9 +2,9 @@
    {
       "Producte": "Batimetria",
       "Cobertura": "2021-2024",
-      "Carpeta": "Bathymetric chart (-50m) 2022-2024",
+      "Carpeta": "Bathymetric chart (-50m) 2021-2024",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/batimetria-v1r0-2021-2024"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/batimetria-v2r0-2021-2024"
    },
    {
       "Producte": "Cartografia topogràfica 1:1.000",
@@ -43,13 +43,6 @@
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "1956",
-      "Carpeta": "Coastline 1956",
-      "Formats de fitxer": "",
-      "Metadades": ""
-   },
-   {
-      "Producte": "Línia de costa",
       "Cobertura": "2015",
       "Carpeta": "Coastline 2015",
       "Formats de fitxer": "",
@@ -74,12 +67,26 @@
       "Cobertura": "2019",
       "Carpeta": "Coastline 2019",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2019"
+      "Metadades": ""
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2020",
+      "Carpeta": "Coastline 2020",
+      "Formats de fitxer": "",
+      "Metadades": ""
    },
    {
       "Producte": "Línia de costa",
       "Cobertura": "2022-2023",
       "Carpeta": "Coastline 2022-2023",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2024",
+      "Carpeta": "Coastline 2024",
       "Formats de fitxer": "",
       "Metadades": ""
    },
@@ -120,7 +127,7 @@
    },
    {
       "Producte": "Mapa geològic 1:50.000",
-      "Cobertura": "Vigent",
+      "Cobertura": "v2.0",
       "Carpeta": "Geological map 1:50,000",
       "Formats de fitxer": "",
       "Metadades": ""
@@ -137,7 +144,7 @@
       "Cobertura": "Vigent",
       "Carpeta": "Topographic map 1:1,000,000",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia-1000000-v2r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
    },
    {
       "Producte": "Mapa topogràfic 1:100.000",
@@ -165,7 +172,7 @@
       "Cobertura": "Vigent",
       "Carpeta": "Topographic map 1:250,000",
       "Formats de fitxer": "gtiff",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia-250000-v2r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
    },
    {
       "Producte": "Mapa topogràfic 1:50.000",

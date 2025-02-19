@@ -12,5 +12,8 @@
         <file>images/flag.png</file>
         <file>images/pin.png</file>
         <file>images/town.png</file>	
+        <file>images/address.png</file>	
+        <file>images/road.png</file>	
+        <file>images/cadastral.png</file>	
 	</qresource>
 </RCC>

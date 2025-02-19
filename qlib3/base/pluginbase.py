@@ -45,7 +45,7 @@ import unittest
 reload(unittest)
 
 from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from PyQt5.QtCore import QVariant, QDateTime, QDate, QLocale, QUrl
+from PyQt5.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
@@ -59,7 +59,7 @@ from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
 from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler, QgsSimpleLineSymbolLayer
 from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
-from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression
+from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression, QgsDateTimeRange
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
 from . import resources_rc
@@ -1356,7 +1356,7 @@ class LayersBase(object):
             renderer.stopRender(ctx)
         return visible_features
 
-    def get_features_by_area_by_id(self, idprefix, area, area_epsg, pos=0):
+    def get_features_by_area_by_id(self, idprefix, area, area_epsg=None, pos=0):
         """ Retorna l'elements que intersequin amb el QgsRectangle
             ---
             Returns features than intersects with QgsRectangle
@@ -1366,7 +1366,7 @@ class LayersBase(object):
             return None
         return self.get_features_by_area(layer, area, area_epsg)
 
-    def get_features_by_area(self, layer, area, area_epsg):
+    def get_features_by_area(self, layer, area, area_epsg=None):
         """ Retorna l'elements que intersequin amb el QgsRectangle
             ---
             Returns features than intersects with QgsRectangle
@@ -1381,8 +1381,27 @@ class LayersBase(object):
         # Cerquem elements que intersequin amb l'àrea
         feature_request = QgsFeatureRequest()
         feature_request.setFilterRect(area)
-        feature_list = layer.getFeatures(feature_request)
+        feature_list = [f for f in layer.getFeatures(feature_request) if f.geometry().intersects(area)]
+
         return feature_list
+
+    def get_features_by_point(self, layer, x, y, area_epsg=None):
+        """ Retorna l'elements que intersequin amb la coordenada
+            ---
+            Returns features than intersects with coordinate
+            """
+        area = QgsRectangle(QgsPointXY(x, y), QgsPointXY(x + 0.01, y + 0.01))
+        return self.get_features_by_area(layer, area, area_epsg)
+
+    def get_features_by_point_by_id(self, idprefix, x, y, area_epsg=None, pos=0):
+        """ Retorna l'elements que intersequin amb la coordenada
+            ---
+            Returns features than intersects with coordinate
+            """
+        layer = self.get_by_id(idprefix, pos)
+        if not layer:
+            return None
+        return self.get_features_by_point(layer, x, y, area_epsg)
 
     def get_feature_by_id(self, idprefix, feature_id, pos=0):
         """ Retorna l'element de l'id especificat
@@ -4117,7 +4136,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, use_qgis_time_controller=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -4157,6 +4176,8 @@ class LayersBase(object):
             default_layer = dict(time_series_list)[default_time]
             is_question_mark = url.find("?") >= 0
             url_time = "%s%stime=%s" % (url, "%26" if is_question_mark else "?", default_time)
+            if use_qgis_time_controller:
+                extra_tags = (extra_tags or "") + ("&" if extra_tags else "") + "allowTemporalUpdates=true&temporalSource=provider&type=wmst" #&timeDimensionExtent=time=2006/2024/P1Y"
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
@@ -4196,20 +4217,57 @@ class LayersBase(object):
             ---
             Update WMS layer to read
             """
+
+        def wms_datetime_to_qdatetime(wms_text):
+            """ Funció auxiliar per convertir una data text en QDateTime """
+            # Parsegem el format ISO 8601, si funciona ja hem acabat
+            wms_datetime = QDateTime.fromString(wms_text, "yyyy-MM-ddThh:mm:ss.zzzZ")
+            if wms_datetime:
+                return wms_datetime
+            # Si no és format ISO intentem parsejar la data manualment
+            dt_separator = "T" if wms_text.find("T") >= 0 else " " if wms_text.find(" ") >= 0 else ""
+            if dt_separator:
+                wms_date_text, wms_time_text = wms_text.split(dt_separator)
+            else:
+                wms_date_text, wms_time_text = ("", wms_text) if wms_text.find(":") >= 0 else (wms_text, "")
+            wms_date_parts = [int(v) for v in wms_date_text.split("-") if v]
+            wms_date_parts += [1] * (3-len(wms_date_parts))
+            wms_time_parts = [int(v) for v in wms_time_text.split("-") if v]
+            wms_time_parts += [0] * (3 - len(wms_time_parts))
+            wms_datetime = QDateTime(QDate(*wms_date_parts), QTime(*wms_time_parts))
+            return wms_datetime
+
         # Obtenim el nom de la capa associada al temps escollit
         time_series_list = self.time_series_dict.get(layer, [])
         if not time_series_list:
             return
         layer_id = dict(time_series_list)[wms_time]
+        #print("update wms-t time", layer_id, wms_time)
 
-        # Actualitzem la capa
-        ##print("update wms-t time", layer_id, wms_time)
-        self.update_wms_layer(layer, layer_id, wms_time)
+        # Actualitzem el control temporal de QGIS per que pugui fer GetFeatureInfo amb el paràmetre TIME
+        # si QGIS l'ha detectat com a capa amb capacitats temporals...
+        # Si creem i esborrem la capa molt ràpid pot petar (això passa fent tests unitaris)
+        try:
+            if layer.temporalProperties().isActive():
+                try:
+                    temporal_controller = self.iface.mapCanvas().temporalController()
+                except Exception as _e:
+                    temporal_controller = None
+                if temporal_controller:
+                    temporal_controller.setNavigationMode(2) # Activa la navegació
+                    temporal_controller.setAnimationState(temporal_controller.FixedRange.numerator)
+                    wms_datetime = wms_datetime_to_qdatetime(wms_time)
+                    temporal_controller.setTemporalExtents(QgsDateTimeRange(wms_datetime, wms_datetime))
+            # Actualitzem el pintat de la capa
+            self.update_wms_layer(layer, layer_id, wms_time)
 
-        # Canviem el nom de la capa
-        base_name = layer.name().split(' [')[0]
-        new_name = "%s [%s]" % (base_name, wms_time)
-        layer.setName(new_name)
+            # Canviem el nom de la capa
+            base_name = layer.name().split(' [')[0]
+            new_name = "%s [%s]" % (base_name, wms_time)
+            layer.setName(new_name)
+        except Exception as _e:
+            new_name = ""
+
         return new_name
 
     def get_wms_t_time_series(self, url, layer_id, ts_regex=None, version="1.1.1", timeout_seconds=5, retries=3):
@@ -4947,6 +5005,7 @@ class LegendBase(object):
                 group = self.move_group_to_group(group, group_parent, group_pos)
         if layer_list:
             self.move_layers_to_group(group, layer_list, visible_layer=visible_group)
+        group.setExpanded(not expanded) # No ho activa si no faig el doble check!!!
         group.setExpanded(expanded)
         return group
 
@@ -6122,9 +6181,9 @@ class ToolsBase(object):
                 current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
             time_series_list = [name for name, layer_id in time_series_tuple_list]
 
-            # Si no tenim el diàleg el creem i el mostrem
             update_callback = lambda current_time: self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
             if not self.time_series_dialog:
+                # Si no tenim el diàleg el creem i el mostrem
                 self.time_series_dialog = TimeSeriesDialog(time_series_list, current_time,
                     layer.name().replace(" [%s]" % current_time, ""), update_callback,
                     title, current_prefix, True, self.iface.mainWindow())
@@ -6144,6 +6203,8 @@ class ToolsBase(object):
                 self.time_series_dialog.set_enabled(True)
                 # Mostrem el diàleg
                 self.time_series_dialog.show()
+            # Forcem un refresc de la informació.
+            update_callback(current_time)
         else:
             if self.time_series_dialog:
                 self.time_series_dialog.hide()

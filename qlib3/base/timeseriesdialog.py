@@ -32,7 +32,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
 
     layer = None
     time_series_list = []
-    
+
     def __init__(self, time_series_list, current_time, layer_name, update_callback=None, title=None, current_label="", autoshow=True, parent=None):
         """ Inicialització del diàleg "about", cal informar de:
             - title: Títol del diàleg
@@ -68,7 +68,9 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.timer.timeout.connect(self.update)
 
         # Carreguem la sèrie temporal
+        self.blockSignals(True)
         self.set_time_series(time_series_list, current_time, layer_name, update_callback)
+        self.blockSignals(False)
 
         # Mostrem el diàleg
         if autoshow:
@@ -108,8 +110,8 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         return self.time_series_list[self.horizontalSlider.value()]
 
     def on_value_changed(self, value=None):
-        # Modifiquem el label de temps actual
         # Si entra per event de soltar slider, no tindrem "value", per això no el faig servir
+        # Modifiquem el label de temps actual
         self.label_current.setText(self.current_value_prefix + self.get_current_time())
 
         # Volem detectar només events de click o de soltar el slider
@@ -118,14 +120,13 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
             self.timer.start(self.timer_delay)
 
     def update(self):
+        # Aturem el temporitzador de refresc retardat
+        self.timer.stop()
         # Modifiquem la capa referenciada
         if self.update_callback:
             new_layer_name = self.update_callback(self.get_current_time())
             if new_layer_name:
                 self.set_title(new_layer_name)
-
-        # Aturem el temporitzador de refersc retardat
-        self.timer.stop()
 
     def set_enabled(self, enable=True):
         # Activa o desactiva la barra temporal
@@ -136,4 +137,3 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         # Canviem el color de la barra del slider i el títol del diàleg quan està desactivat
         self.horizontalSlider.setStyleSheet("" if enable else "selection-background-color: gray")
         self.setStyleSheet("" if enable else "color: gray")
-

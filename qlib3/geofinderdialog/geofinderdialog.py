@@ -28,6 +28,7 @@ ui_geofinder, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_geo
 
 class GeoFinderDialog(QDialog, ui_geofinder):
     """ Dialog class that allows to show the results of the spatial searches """
+    test = False
 
     # We prepare a toponym mapping with the icon to show
     TOPOICONS_DICT = {
@@ -41,7 +42,10 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         11:'pin.png', #Indret
         12:'equipment.png', #Equipaments
         13:'communications.png', #Comunicacions
-        14:'river.png', 15:'river.png' #Curs fluvial, hidrografia
+        14:'river.png', 15:'river.png', #Curs fluvial, hidrografia
+        1000:'address.png', #Adreça (codi propi del geofinder)
+        1001:'road.png', #Carretera (codi propi del geofinder)
+        1002:'cadastral.png' #Carretera (codi propi del geofinder)
         }
 
     def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], keep_scale_text=None, default_scale=1000, auto_show=False, parent=None):
@@ -94,6 +98,11 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         pos = max(self.comboBox_scale.findText(str(default_scale)), 0)
         self.comboBox_scale.setCurrentIndex(pos)
 
+    def set_test_mode(self, test=True):
+        """ Activa el mode test que fa que el do_modal no esperi entrada de dades """
+        self.test = test
+        self.setModal(not test)
+
     def set_data(self, topodata_list):
         self.tableWidget.setSortingEnabled(False)
         self.tableWidget.setRowCount(len(topodata_list))
@@ -117,8 +126,12 @@ class GeoFinderDialog(QDialog, ui_geofinder):
 
     def do_modal(self):
         """ Show GeoFinder dialog and makes it modal """
-        self.show()
-        self.status = self.exec_()
+        if self.test:
+            # En mode test només mostrem el diàleg, bloquejem esperant resposta
+            self.status = 1
+        else:
+            self.show()
+            self.status = self.exec_()
         return self.status
 
     def get_selection_index(self):
@@ -159,3 +172,6 @@ class GeoFinderDialog(QDialog, ui_geofinder):
     def get_scale(self):
         scale = int(self.comboBox_scale.currentText()) if self.comboBox_scale.currentIndex() else None
         return scale
+
+    def get_name(self):
+        return self.geofinder.get_name(self.geofinder_dict_list, self.selected)
