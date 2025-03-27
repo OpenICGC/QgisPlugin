@@ -28,8 +28,15 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.24
-changelog=v1.1.24 (2025-02-19)
+version=1.1.25
+changelog=v1.1.25 (2025-03-27)
+	- Added new coast products
+	- Added census tract product
+	- Added new administrative divisions download formats
+	- Optimized access to carthographic series and administrative divisions
+	- Updated download dialog to show maximum download area for selected product / resolution
+
+	v1.1.24 (2025-02-19)
 	- Added GetFeatureInfo support on photogram central layers
 	- Added reference system file on photogram downloads
 	- Added reverse geocoder option (search on point)

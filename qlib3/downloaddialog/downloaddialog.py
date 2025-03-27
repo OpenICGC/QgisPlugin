@@ -16,6 +16,7 @@ import os
 from PyQt5 import uic
 from PyQt5.QtWidgets import QDialog
 
+
 # Load a .ui file without pre-compiling it
 ui_download, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_download.ui'))
 
@@ -23,12 +24,13 @@ ui_download, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_down
 class DownloadDialog(QDialog, ui_download):
     """ Dialog class that allows to show product download options """
 
-    def __init__(self, data_dict, auto_show=False, parent=None):
+    def __init__(self, data_dict, language="ca", auto_show=False, parent=None):
         """ Dialog initialization with data format:
             data_dict = {
                 <year_1>: {
-                    <gsd_1>: [
-                        <download_type_1>...<download_type_n>
+                    <gsd_1>: {
+                        "download": {<description_1>:<download_type_1>...<description_n>:<download_type_n>},
+                        "max_area": <max_area>
                         ]
                      ...
                     <gsd_n>: ...
@@ -42,7 +44,8 @@ class DownloadDialog(QDialog, ui_download):
             <download_type> list is required
             """
         QDialog.__init__(self, parent)
-        
+        self.language = language
+
         # Set up the user interface from Designer.
         super().setupUi(self)
 
@@ -50,7 +53,9 @@ class DownloadDialog(QDialog, ui_download):
         self.setWindowTitle(self.tr("Downloads"))
         self.label_info.setText(self.tr("Select the type of download and then use the download tool to mark a point or area of interest, enter a rectangle coordinates or select a polygons layer"))
         self.label_year.setText(self.tr("Year:"))
+        self.label_year_static.setText(self.tr("Year:"))
         self.label_gsd.setText(self.tr("Resolution (m):"))
+        self.label_max_area.setText(self.tr("Maximum area (m<sup>2</sup>):"))
         self.label_download_type.setText(self.tr("Download type:"))
 
         # Set up values
@@ -71,19 +76,20 @@ class DownloadDialog(QDialog, ui_download):
         self.current_gsd = None
         self.download_type_list = []
         self.current_download_type = None
-        
+
         # Get initial value lists
         self.year_list = [] if None in self.data_dict.keys() \
-            and len(self.data_dict.keys()) == 1 else list(self.data_dict.keys()) 
+            and len(self.data_dict.keys()) == 1 else list(self.data_dict.keys())
         self.current_year = self.year_list[-1] if self.year_list else None
         gsd_dict = self.data_dict[self.current_year]
         self.gsd_list = [] if None in gsd_dict.keys() \
             and len(gsd_dict.keys()) == 1 else list(gsd_dict.keys())
         self.current_gsd = self.gsd_list[0] if self.gsd_list else None
-        download_type_dict = gsd_dict[self.current_gsd]
+        download_type_dict = gsd_dict[self.current_gsd]["download"]
         self.download_type_list = [] if None in download_type_dict.keys() \
             and len(download_type_dict.keys()) == 1 else list(download_type_dict.keys())
         self.current_download_type = self.download_type_list[0] if self.download_type_list else None
+        self.current_max_area = gsd_dict[self.current_gsd]["max_area"]
 
         # Update dialog controls
         self.update_controls()
@@ -93,9 +99,11 @@ class DownloadDialog(QDialog, ui_download):
         if self.updating:
             return
         self.updating = True
+
         if update_year:
             show_year = True if self.year_list else False
             enable_year = show_year
+            self.label_year_static.setVisible(show_year)
             self.label_year.setVisible(show_year)
             self.label_begin_year.setVisible(show_year)
             self.label_end_year.setVisible(show_year)
@@ -106,7 +114,7 @@ class DownloadDialog(QDialog, ui_download):
             self.horizontalSlider_year.setEnabled(enable_year)
             self.horizontalSlider_year.setRange(0, len(self.year_list) - 1)
             self.horizontalSlider_year.setValue(len(self.year_list) - 1)
-        
+
         if update_gsd:
             if self.current_year:
                 self.label_year.setText("%s: %s" % (self.label_year.text().split(":")[0], str(self.current_year)))
@@ -120,7 +128,7 @@ class DownloadDialog(QDialog, ui_download):
             self.comboBox_gsd.clear()
             self.comboBox_gsd.addItems([str(v) for v in self.gsd_list])
             self.comboBox_gsd.setCurrentText(current_text)
-        
+
         if update_download_type:
             show_download_type = True if self.year_list or self.gsd_list or self.download_type_list else False
             enable_download_type = True if self.download_type_list else False
@@ -131,6 +139,12 @@ class DownloadDialog(QDialog, ui_download):
             self.comboBox_download_type.clear()
             self.comboBox_download_type.addItems([str(v) for v in self.download_type_list])
             self.comboBox_download_type.setCurrentText(current_text)
+
+        show_max_area = self.current_max_area is not None
+        self.label_max_area.setVisible(show_max_area)
+        self.label_max_area2.setVisible(show_max_area)
+        if show_max_area:
+            self.label_max_area2.setText(self.format_thousand(self.current_max_area))
 
         self.updating = False
 
@@ -153,7 +167,8 @@ class DownloadDialog(QDialog, ui_download):
             return
         # Get current GSD value
         self.current_gsd = self.gsd_list[current_gsd_index]
-        self.download_type_list = list(self.data_dict[self.current_year][self.current_gsd].keys())
+        self.current_max_area = self.data_dict[self.current_year][self.current_gsd]["max_area"]
+        self.download_type_list = list(self.data_dict[self.current_year][self.current_gsd]["download"].keys())
         # Update dialog controls
         self.update_controls(update_year=False, update_gsd=False)
 
@@ -181,5 +196,11 @@ class DownloadDialog(QDialog, ui_download):
 
     def get_download_type(self):
         """ Return selected download type """
-        return self.data_dict[self.current_year][self.current_gsd][self.current_download_type]
+        return self.data_dict[self.current_year][self.current_gsd]["download"][self.current_download_type]
 
+    def format_thousand(self, number):
+        """ Format number thousand with locale separator """
+        text = format(number, ",d")
+        if self.language in ['ca', 'es']:
+            text = text.replace(',', '.')
+        return text

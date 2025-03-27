@@ -45,9 +45,11 @@ class PeliasClient:
     def call(self, call_name, **params_dict):
         """ Execute any Pelias's function with specified parameters """
         # Fem la petició al servidor amb tots els paràmetres indicats
+        # Atenció en alguns equips dóna error de certificat al fer la consulta!!
+        # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
             "&".join([f"{key}={value}" for key, value in params_dict.items() if value is not None])
-        response = requests.get(self.last_request, timeout=self.timeout) # Segons
+        response = requests.get(self.last_request, verify=False, timeout=self.timeout) # Segons
         json = response.json()
         return json
 

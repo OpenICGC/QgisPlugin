@@ -2,7 +2,7 @@
    {
       "Producte": "Batimetria",
       "Cobertura": "2021-2024",
-      "Carpeta": "Bathymetric chart (-50m) 2021-2024",
+      "Carpeta": "Bathymetric chart 2021-2024",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/batimetria-v2r0-2021-2024"
    },
@@ -43,52 +43,94 @@
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2015",
-      "Carpeta": "Coastline 2015",
+      "Cobertura": "2015/10",
+      "Carpeta": "coastline_201510_201511",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2015"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-201510-201511"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2016",
-      "Carpeta": "Coastline 2016",
+      "Cobertura": "2016/01",
+      "Carpeta": "coastline_201601_201602",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2016"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-201601-201602"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2017",
-      "Carpeta": "Coastline 2017",
+      "Cobertura": "2017/01 (temporal gener)",
+      "Carpeta": "coastline_201701_201701_temporal_gener",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-2017"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-201701-201701-temporal-gener"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2019",
-      "Carpeta": "Coastline 2019",
+      "Cobertura": "2017/02",
+      "Carpeta": "coastline_201702_201703",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-201702-201703"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2020",
-      "Carpeta": "Coastline 2020",
+      "Cobertura": "2019/02",
+      "Carpeta": "coastline_201902_201902",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-201902-201902"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2022-2023",
-      "Carpeta": "Coastline 2022-2023",
+      "Cobertura": "2020/01 (temporal gloria)",
+      "Carpeta": "coastline_202001_202002_temporal_gloria",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202001-202002-temporal-gloria"
    },
    {
       "Producte": "Línia de costa",
-      "Cobertura": "2024",
-      "Carpeta": "Coastline 2024",
+      "Cobertura": "2020/05",
+      "Carpeta": "coastline_202005_202005",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202005-202005"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2022/01",
+      "Carpeta": "coastline_202201_202301",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202201-202301"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2022/12",
+      "Carpeta": "coastline_202212_202301",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202212-202301"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2023/11",
+      "Carpeta": "coastline_202311_202312",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202311-202312"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2024/03",
+      "Carpeta": "coastline_202403_202403",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202403-202403"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2024/04 (temporal nelson)",
+      "Carpeta": "coastline_202404_202404_temporal_nelson",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202404-202404-temporal-nelson"
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "coastline_temporal_serie",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&type=dataset&resultType=details&sortBy=title&title=Linia%20costa&from=1&to=20"
    },
    {
       "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
@@ -238,6 +280,160 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-50cm-v7r0-color"
    },
    {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2009-08",
+      "Carpeta": "coast-orthophoto-200908-200909",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-200908-200909"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2011-02",
+      "Carpeta": "coast-orthophoto-201102-201111",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201102-201111"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2014-01",
+      "Carpeta": "coast-orthophoto-201401-201406",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201401-201406"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2015-10",
+      "Carpeta": "coast-orthophoto-201510-201511",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201510-201511"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2016-01",
+      "Carpeta": "coast-orthophoto-201601-201602",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201601-201602"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2017-01 temporal gener",
+      "Carpeta": "coast-orthophoto-201701-201701-temporal-gener",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201702-201702"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2017-02",
+      "Carpeta": "coast-orthophoto-201702-201702",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201702-201702"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2018-03 temporal març",
+      "Carpeta": "coast-orthophoto-201803-201803-temporal-marc",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201803-201803-temporal-marc"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2019-02",
+      "Carpeta": "coast-orthophoto-201902-201902",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201902-201902"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2019-04 temporal abril",
+      "Carpeta": "coast-orthophoto-201904-201905-temporal-abril",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201904-201905-temporal-abril"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2019-10 temporal octubre",
+      "Carpeta": "coast-orthophoto-201910-201910-temporal-octubre",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201910-201910-temporal-octubre"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2020-01",
+      "Carpeta": "coast-orthophoto-202001-202001",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202001-202001"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2020-01 temporal Gloria",
+      "Carpeta": "coast-orthophoto-202001-202002-temporal-gloria",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202001-202002-temporal-gloria"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2020-05",
+      "Carpeta": "coast-orthophoto-202005-202005",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202005-202005"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2021-03",
+      "Carpeta": "coast-orthophoto-202103-202103",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202103-202103"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2022-01",
+      "Carpeta": "coast-orthophoto-202201-202201",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202201-202201"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2022-12",
+      "Carpeta": "coast-orthophoto-202212-202301",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202212-202301"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2023-03",
+      "Carpeta": "coast-orthophoto-202303-202304",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202303-202304"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2023-11",
+      "Carpeta": "coast-orthophoto-202311-202312",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202311-202312"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2024-03",
+      "Carpeta": "coast-orthophoto-202403-202404",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202403-202404"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "2024-04 temporal Nelson",
+      "Carpeta": "coast-orthophoto-202404-202404-temporal-nelson",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-202404-202404-temporal-nelson"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "coast_orthophoto_temporal_serie",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&type=dataset&resultType=details&sortBy=title&title=Ortofoto%20costa&from=1&to=20"
+   },
+   {
       "Producte": "Ortofoto infraroja 25 cm",
       "Cobertura": "Vigent",
       "Carpeta": "Ortofoto infraroja 25cm 1:2.500",
@@ -355,6 +551,13 @@
       "Carpeta": "Territorial topographic referential",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=referencial%20topografic%20territorial&facet.q=category%2FrccState"
+   },
+   {
+      "Producte": "Seccions censals",
+      "Cobertura": "Vigent",
+      "Carpeta": "Census tracts",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=seccions-censals-v1r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%26category%2FrccState"
    },
    {
       "Producte": "Talls ETRS89",

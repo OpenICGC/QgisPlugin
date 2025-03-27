@@ -20,10 +20,11 @@ from importlib import reload
 
 from . import http
 reload(http)
-from .http import get_historic_ortho_years, get_coastline_years, get_coastline_filenames
+from .http import get_historic_ortho_years, get_coastline_years, get_coast_orthophoto_years
 
 # Configure internal library logger (Default is dummy logger)
 import logging
+reload(logging)
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
@@ -43,15 +44,9 @@ FME_MAX_ASPECT_RATIO = 5
 services_list = [
     # (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_type_list, default_filename,
     #    download_limits_id, url_pattern, <(url_ref, qml_style) | (wms_url, wms_layer, wms_style, wms_format)>),
-    ("of25c", "Ortofoto color vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "of25cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=0.25", \
-        None),
-    ("of5m", "Ortofoto color vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "of50cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=0.50", \
-        None),
-    ("of25m", "Ortofoto color vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "of250cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=2.50", \
-        None),
+    ("of25c", "Ortofoto color vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "of25cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=0.25", None),
+    ("of5m", "Ortofoto color vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "of50cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=0.50", None),
+    ("of25m", "Ortofoto color vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "of250cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_vigent&gsd=2.50", None),
 
     ("hc10cm", "Ortofoto color històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_ortho_years(True, 0.1), ["", "pol"], "of10cm.tif", "5k_limits", \
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=0.1", \
@@ -72,15 +67,9 @@ services_list = [
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=2.5", \
         (None, "orto-historica.qml")),
 
-    ("oi25c", "Ortofoto infraroja vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "oi25cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=0.25", \
-        None),
-    ("oi5m", "Ortofoto infraroja vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "oi50cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=0.50", \
-        None),
-    ("oi25m", "Ortofoto infraroja vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "oi250cm.tif", "5k_limits", \
-        "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=2.50", \
-        None),
+    ("oi25c", "Ortofoto infraroja vigent 25cm 1:2.500", 25, 12500000, None, None, 0.25, None, ["", "pol"], "oi25cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=0.25", None),
+    ("oi5m", "Ortofoto infraroja vigent 50cm 1:5.000", 50, 50000000, None, None, 0.5, None, ["", "pol", "mu"], "oi50cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=0.50", None),
+    ("oi25m", "Ortofoto infraroja vigent 2.5m 1:25.000", 250, 1250000000, None, None, 2.5, None, ["", "pol", "mu", "co"], "oi250cm.tif", "5k_limits", "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_vigent&gsd=2.50", None),
 
     ("hi10cm", "Ortofoto infraroja històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_ortho_years(False, 0.1), ["", "pol"], "oi10cm.tif", "5k_limits", \
         "%s/fmedatastreaming/orto-territorial/ICGC_orto-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&gsd=0.1", \
@@ -101,6 +90,11 @@ services_list = [
     ("of-lidar-territorial", "Lidar territorial ortofoto color 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "lidar_rgb.tif", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-rgb-15cm", None),
     ("oi-lidar-territorial", "Lidar territorial ortofoto infraroja 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "lidar_irc.tif", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-irc-15cm", None),
 
+    ("divisions-administratives-shp", "Divisions administratives ShapeFile", None, None, None, None, None, None, ["cat"], "divisions-administratives.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s", None),
+    ("divisions-administratives-gpkg", "Divisions administratives GeoPackage", None, None, None, None, None, None, ["cat"], "divisions-administratives.gpkg", None, "%s/fmedatastreaming/divisions-administratives/ICGC_divisions-administratives_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s&format=gpkg", None),
+    ("divisions-administratives-dwg", "Divisions administratives DWG", None, None, None, None, None, None, ["cat"], "divisions-administratives.dwg", None, "%s/fmedatastreaming/divisions-administratives/ICGC_divisions-administratives_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s&format=dwg", None),
+    ("bsenccen", "Seccions censals", None, None, None, None, None, None, ["cat"], "seccions-censals.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=bseccen&Codi=%s", None),
+
     ("topografia-territorial", "Referencial topogràfic territorial", 50, 50000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=bt5m&Format=GEOTIFF&Projecte=topografia-territorial&Codi=%s&piramide=True", None),
 
     ("topografia-250000", "Mapa topogràfic 1:250.000", 2500, None, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "topografia-250000.tif", "cat_rect", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=topografia-250000&Format=GEOTIFF&Projecte=topografia-250000&Codi=%s&piramide=True", None),
@@ -108,8 +102,6 @@ services_list = [
 
     ("ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
         ("https://datacloud.icgc.cat/datacloud/ct1m_ETRS89/json_tall/ct1m_id.json", "ct1m_disponible.qml")),
-
-    ("divisions-administratives", "Divisions administratives", None, None, None, None, None, None, ["cat"], "divisions-administratives.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=divisions-administratives&Codi=%s", None),
 
     ("topografia-territorial-gpkg", "Referencial topogràfic territorial GeoPackage", 50, 100000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.gpkg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
     ("topografia-territorial-dgn", "Referencial topogràfic territorial DGN", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.dgn", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt&Codi=%s", None),
@@ -126,6 +118,14 @@ services_list = [
 
     ("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
     ("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
+
+    ("elevacions-franja-litoral", "Model d’elevacions topobatimètric de la franja litoral", None, 200000000, None, None, None, None, ["", "pol"], "elevacions_costa.tif", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=peticio&Format=GEOTIFF&Projecte=elevacions-franja-litoral&Codi=%s&piramide=True", 
+        ("https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms", "elevacions_franja_litoral", "default", "image/png", "batimetria.qml")),
+    ("batimetria", "Mapa d’isòbates", None, 200000000 , None, None, None, None, ["", "pol", "tot"], "batimetria.gpkg", "cat_limits", "%s/fmedatastreaming/batimetries/ICGC_batimetria_gpkg_clip.fmw?geopackage_out=peticio&xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", 
+        ("https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms", "elevacions_franja_litoral", "default", "image/png", "batimetria.qml")),
+    ("lcosta", "Línia de costa", None, 200000000 , None, None, None, get_coastline_years(), ["tot"], "linia-costa.gpkg", "cat_limits", "%s/fmedatastreaming/batimetries/ICGC_linia-costa_download.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s&geopackage_in=%s", None),
+    ("ocosta", "Ortofoto costa", None, 2000000 , None, None, None, get_coast_orthophoto_years(), ["", "pol"], "orto-costa.tif", "cat_limits", "%s/fmedatastreaming/orto-costa/ICGC_orto-costa_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s", 
+        ("https://geoserveis.icgc.cat/servei/catalunya/orto-costa/wms", None, "default", "image/png", "orto-costa.qml")),
 
     ("mggt1", "GT I. Mapa geològic 1:25.000", None, None, None, None, None, None, ["tot"], "gt1.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=gt125m&Codi=%s", None),
     ("mg50m", "Mapa Geològic 1:50.000", None, None, None, None, None, None, ["tot"], "mg50m.shp-zip", None, "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=mg50m&Codi=%s", None),
@@ -155,6 +155,10 @@ def get_services():
     """ Retorna una llista de tuples de productes descarregables amb els valors:
             (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list,
             download_list, default_filename, limits, url_pattern, ref_tuple, enabled)
+        ---
+        Returns a tuple list with dowloadable products with values:
+            (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list,
+            download_list, default_filename, limits, url_pattern, ref_tuple, enabled)
         """
     final_services_list = []
     t0 = datetime.datetime.now()
@@ -166,6 +170,10 @@ def get_services():
             ref_file, style_file = ref_tuple
             style_file = os.path.join(os.path.dirname(__file__), "symbols", style_file)
             ref_tuple = (ref_file, style_file)
+        elif ref_tuple and len(ref_tuple) == 5:
+            ref_url, ref_layer, ref_style, ref_format, style_file = ref_tuple
+            style_file = os.path.join(os.path.dirname(__file__), "symbols", style_file)
+            ref_tuple = (ref_url, ref_layer, ref_style, ref_format, style_file)
         # Afegim els valors modificats a la llista
         final_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, \
             gsd, time_list, download_list, default_filename, limits, url_pattern, ref_tuple, enabled))
@@ -175,7 +183,10 @@ def get_services():
     return final_services_list
 
 def get_clip_data_url(data_type, mode, xmin, ymin, xmax, ymax, points_list=[], extra_params=[], referrer=None, url_base=FME_URL):
-    """ Retorna la petició URL FME per descarregar un producte """
+    """ Retorna la petició URL FME per descarregar un producte
+        ---
+        Returns FME URL request to download a product
+        """
     _name, _min_side, _max_query_area, _min_px_side, _max_px_area, _gsd, _time_list, download_list, _filename, _limits, url_pattern, _url_ref_or_wms_tuple = services_dict.get(data_type, (None, None, None, None, None, None, None, None, None, None, None, None))
     rect_list = [("%.2f" % v if v is not None else "0") for v in [xmin, ymin, xmax, ymax]]
     points_list = [",".join(["%.2f %.2f" % (x, y) for x, y in points_list])] if "pol" in download_list else [""]
@@ -217,7 +228,10 @@ styles_list = [ # (regex_file_pattern, qml_style)
     ]
 
 def get_regex_styles():
-    """ Retorna la llista d'estils disponibles amb el path al seu QML """
+    """ Retorna la llista d'estils disponibles amb el path al seu QML
+        ---
+        Returns available style list with path to QML
+        """
     final_styles_list = [
         (style_regex,
         # Injectem el path dels arxiu .qml
@@ -226,7 +240,10 @@ def get_regex_styles():
     return final_styles_list
 
 def get_layer_style(layer_name):
-    """ Retorna el fitxer QML d'esti associat a una capa de dades """
+    """ Retorna el fitxer QML d'estil associat a una capa de dades
+        ---
+        Returns QMS style file associated to a data layer
+        """
     for regex_pattern, qml_style in styles_list:
         if re.match(regex_pattern, layer_name):
             if not os.path.splitext(qml_style)[1]:

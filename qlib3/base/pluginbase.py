@@ -174,7 +174,8 @@ class GuiBase(object):
             super().__init__(parent)
 
             self.label_icon = QLabel()
-            self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
+            if icon:
+                self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
 
             self.label_text = QLabel(text)
@@ -418,7 +419,11 @@ class GuiBase(object):
                         else:
                             menu_or_toolbar.addAction(button_action)
                     button_action.triggered.connect(callback)
-                    self.actions.append((menu_or_toolbar, button_action))
+                    if id:
+                        button_action.setObjectName(id)
+                    if toggle_callback:
+                        button_action.toggled.connect(toggle_callback)
+                    action = button_action
                 else:
                     # Submenú
                     submenu = QMenu()
@@ -547,44 +552,44 @@ class GuiBase(object):
                 control = entry
         else:
             ##print("user")
-            name = entry[0]
+            name = entry[0] # Nom del menú
             if name == "---":
                 separator = True
             if len(entry) > 1:
-                if type(entry[1]) == tuple:
+                if type(entry[1]) == tuple: # Crida + Crida d'activació de botó
                     callback, toggle_callback = entry[1]
                 else:
-                    callback = entry[1]
+                    callback = entry[1] # Crida
                 if len(entry) > 2:
-                    icon = entry[2]
+                    icon = entry[2] # Icona
                 if len(entry) > 3:
                     if type(entry[3]) == list:
-                        subentries_list = entry[3]
-                        subentries_as_buttons = entry[4] if len(entry) > 4 else False
+                        subentries_list = entry[3] # Submenú d'opcions
+                        subentries_as_buttons = entry[4] if len(entry) > 4 else False # El submenú anterior són botons bool)
                     else:
-                        enabled = entry[3]
+                        enabled = entry[3] # Activació (bool)
                         if len(entry) > 4:
                             if type(entry[4]) == list:
-                                subentries_list = entry[4]
-                                subentries_as_buttons = entry[5] if len(entry) > 5 else False
+                                subentries_list = entry[4] # Submenú d'opcions
+                                subentries_as_buttons = entry[5] if len(entry) > 5 else False # El submenú anterior són botons bool)
                             else:
-                                checkable = entry[4]
+                                checkable = entry[4] # Marcable (checkable bool)
                                 if len(entry) > 5:
                                     if type(entry[5]) == list:
-                                        subentries_list = entry[5]
-                                        subentries_as_buttons = entry[6] if len(entry) > 6 else False
+                                        subentries_list = entry[5] # Submenú d'opcions
+                                        subentries_as_buttons = entry[6] if len(entry) > 6 else False # El submenú anterior són botons bool)
                                     else:
-                                        id = entry[5]
+                                        id = entry[5] # Id d'entrada de menú (per poder fer cerques)
                                         if len(entry) > 6:
                                             if type(entry[6]) == list:
-                                                subentries_list = entry[6]
-                                                subentries_as_buttons = entry[7] if len(entry) > 7 else False
+                                                subentries_list = entry[6] # Submenú d'opcions
+                                                subentries_as_buttons = entry[7] if len(entry) > 7 else False # El submenú anterior són botons bool)
                                             else:
-                                                tooltip = entry[6]
+                                                tooltip = entry[6] # Text de tooptip
                                                 if len(entry) > 7:
                                                     if type(entry[7]) == list:
-                                                        subentries_list = entry[7]
-                                                        subentries_as_buttons = entry[8] if len(entry) > 8 else False
+                                                        subentries_list = entry[7] # Submenú d'opcions
+                                                        subentries_as_buttons = entry[8] if len(entry) > 8 else False # El submenú anterior són botons bool)
         # Si la icona no és de tipus QIcon, suposem que és un identificador d'icona i intentem carregar-la
         if icon and type(icon) is not QIcon:
             icon = self.get_icon(icon)
@@ -2788,15 +2793,15 @@ class LayersBase(object):
         if area.area() == float('inf'):
             return False
         # Reprojectem les coordenades si cal
-        layer_epsg = self.get_epsg(layer)
+        project_epsg = self.parent.project.get_epsg()
         if not epsg:
-            epsg = self.parent.project.get_epsg()
-        if layer_epsg and epsg and layer_epsg != epsg:
-            area = self.parent.crs.transform_bounding_box(area, layer_epsg)
+            epsg = self.get_epsg(layer)
+        if project_epsg != epsg:
+            area = self.parent.crs.transform_bounding_box(area, epsg, project_epsg)
         # Ampliem el rectangle si cal
         if buffer:
             area = area.buffered(buffer)
-        # Fem zoom a l'area
+        # Fem zoom a l'area en coordenades PROJECTE!!!
         self.iface.mapCanvas().setExtent(area)
         self.iface.mapCanvas().refresh()
         return True
@@ -3284,7 +3289,10 @@ class LayersBase(object):
         if set_current:
             self.set_current_layer(layer)
 
-    def add_remote_layer_definition_file(self, remote_file, local_file=None, download_folder=None, group_name=None, group_pos=None, create_qlr_group=True, select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
+    def add_remote_layer_definition_file(self, remote_file, local_file=None, download_folder=None,
+        group_name=None, group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+        create_qlr_group=True, unzip=True, rename_group_dict={},
+        select_folder_text=None, title=None, cancel_button_text=None, time_info=None):
         """ Descarrega fitxers QLR o ZIP via http en la carpeta especificada i els obre a QGIS.
             Veure add_layer_definition_file per opcions
             ---
@@ -3292,19 +3300,25 @@ class LayersBase(object):
             See add_layer_definition_file for options
             """
         # Descarreguem el fitxer si cal
-        local_pathname = self.download_remote_file(remote_file, local_file, download_folder, select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
+        local_pathname = self.download_remote_file(remote_file, local_file, download_folder,
+            select_folder_text, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         if not local_pathname:
             return False
         # Carreguem el fitxer
-        return self.add_layer_definition_file(local_pathname, group_name, group_pos, create_qlr_group)
+        return self.add_layer_definition_file(local_pathname,
+            group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group,
+            create_qlr_group, unzip, rename_group_dict)
 
-    def add_layer_definition_file(self, qlr_pathname, group_name=None, group_pos=None, create_qlr_group=True, unzip=True):
+    def add_layer_definition_file(self, qlr_pathname,
+            group_name=None, group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+            create_qlr_group=True, unzip=True, rename_group_dict={}):
         """ Carrega un arxiu de definició de capes QLR a l'arrel del projecte o dins un carpeta
             - qlr_pathname: Arxiu a carregar
             - group_name: Crea o utilitza un grup on posar totes les capes
             - group_pos: Crea el grup en la posició indicada (si és None, al final)
             - create_qlr_group: Crea un grup amb el nom del fitxer QLR
             - unzip: Si el fitxer és un zip, el descomprimeix o no (si no es descomprimeix les capes seràn de només lectura)
+            - rename_group_dict: Renombra un grup existent (els QLR poden crear un grup base)
             Retorna True si tot ha anat bé
             ---
             Loads a layer definition file on project's root or in a specified folder
@@ -3313,6 +3327,7 @@ class LayersBase(object):
             - group_pos: Create group on specific position (if None then to the end)
             - create_qlr_group: Create group with QLR filename
             - unzip: If file is a zipfile then unzip it or not (if not descompress layers, layers will be read only)
+            - rename_group_dict: Rename a existing group (QLR may create a base group)
             Returns True if all ok
             """
         # Si ens passen un arxiu comprimit, mirem si a dins hi ha un QLR
@@ -3327,6 +3342,11 @@ class LayersBase(object):
             group = QgsProject.instance().layerTreeRoot()
         if create_qlr_group:
             group = self.parent.legend.add_group(filename, group_parent_name=group_name) # Crea el pare si cal
+        # Si cal "netegem" el grup abans d'utilitzar-lo
+        if only_one_map_on_group:
+            self.parent.legend.empty_group(group)
+        if  only_one_visible_map_on_group:
+            self.parent.legend.set_group_items_visible(group, False)
 
         # Carreguem el QLR
         is_zipped_file = (ext == ".zip")
@@ -3371,22 +3391,22 @@ class LayersBase(object):
                 context = QgsReadWriteContext()
 
                 # Carreguem el QLR
-                #layers_list = QgsLayerDefinition.loadLayerDefinitionLayers(qlr_doc, context)
-                ##print("QLR layers %s" % [layer.name() for layer in layers_list])
-                #QgsProject.instance().addMapLayers(layers_list, False)
-                ## Afegim les capes a QGIS dins el grup que calgui
-                #for layer in layers_list:
-                #    group.addLayer(layer)
-                #status = layers_list != []
-                status, error = QgsLayerDefinition().loadLayerDefinition(qlr_doc, QgsProject.instance(), group, context)
+                with WaitCursor():
+                    status, error = QgsLayerDefinition().loadLayerDefinition(qlr_doc, QgsProject.instance(), group, context)
         else:
             # Carreguem les capes del QLR a partir del fitxer QLR
-            ##print("Arxiu QLR: %s" % (qlr_pathname))
-            status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
+            with WaitCursor():
+                status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
 
         # Colapsem el grup
         if status and create_qlr_group:
             self.parent.legend.collapse_group_by_name(filename)
+
+        # Renombra grups existents si cal
+        for group_name, new_group_name in rename_group_dict.items():
+            if self.parent.legend.is_group_by_name(new_group_name):
+                self.parent.legend.remove_group_by_name(new_group_name)
+            self.parent.legend.rename_group_by_name(group_name, new_group_name)
 
         return status
 
@@ -3553,10 +3573,12 @@ class LayersBase(object):
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsBilinearRasterResampler())
             resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())
+            resample_filter.setMaxOversampling(1)
         if resampling_cubic:
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsCubicRasterResampler())
             resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())
+            resample_filter.setMaxOversampling(1)
         # Canviem les propiedats de la capa
         self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, saturation, set_current, properties_dict)
 
@@ -3796,6 +3818,8 @@ class LayersBase(object):
             - properties_dict_list: define custom properties for each loaded layer
             - only_one_map_on_group: Indicates that there can only be an image in the group, the last image deletes the previous layers
             """
+        layer = None
+
         # Detectem si hi ha algun grup seleccionat (que s'expandirà al carregar la capa i no volem)
         selected_groups = self.parent.legend.get_selected_groups()
         parent_group = selected_groups[0] if len(selected_groups) == 1 else None
@@ -3805,6 +3829,7 @@ class LayersBase(object):
         filename, ext = os.path.splitext(os.path.basename(pathname.lower()))
         is_zipped_file = ext == ".zip"
         is_geopackage_file = ext == ".gpkg"
+        is_flatgeobuf_file = ext == ".fgb"
         add_geopackage_group = is_geopackage_file and not self.parent.check_qgis_version(32200)
         if is_zipped_file:
             # Generem una llista amb tots els shapes dins el zip
@@ -3855,6 +3880,20 @@ class LayersBase(object):
                 else:
                     pathnames_list = [(layer.id(), layer.name())]
             styles_dict = None
+        elif is_flatgeobuf_file:
+            # Els flatgeobuff tenen una única capa, indiquen en la càrrega el nom de la capa i tipus de geometria
+            # perquè QGIS no pregunti res i carregui directament. El tipus de geometria ha d'estar CAPITALITZAT
+            # perquè funcioni en versions de QGIS 3.22
+            fgb_ds = ogr.Open(pathname)
+            if fgb_ds:
+                layer = fgb_ds.GetLayer(0)
+                layer_name = layer.GetName()
+                first_feature = layer.GetNextFeature() # Si no ho guardo en una variable peta QGIS...
+                geometry_name = first_feature.GetGeometryRef().GetGeometryName()
+                geometry_normalized_name = geometry_name.replace("MULTI", "MULTI ").title().replace(" ", "")
+                layer_suffix = f"|layername={layer_name}|geometrytype={geometry_normalized_name}"
+                pathnames_list = [(pathname + layer_suffix, name)]
+                fgb_ds = None
         else:
             pathnames_list = [(pathname, name)]
             styles_dict = None
@@ -4465,6 +4504,64 @@ class LayersBase(object):
             layer.reload()
             layer.triggerRepaint()
 
+    def add_xyz_layer(self, layer_name, url, min=0, max=20, epsg=3857, interpolation=None, tile_pixel_ratio=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
+        """
+        tilePixelRatio=None, 1, 2 (si None no cal afegir el paràmetre, 1: 96dpi, 2: 196dpi)
+        referrer
+
+        Afegeix una capa de tils XYZ a partir de la URL base.
+            Retorna la capa.
+            Opcionalment es pot especificar:
+            - min: capa mínima de zoom
+            - max: capa màxima de zoom
+            - epsg: codi EPSG (per defecte el del projecte),
+            - interpolation: mètode d'interpolació (None, "maptiler", "terrariumterrain")
+            - tile_pixel_ratio: escalat dels pixels (None, 1, 2)
+            - extra_tags: tags addicional per enviar al servidor
+            - group_name: un nom de grup / carpeta QGIS on afegir la capa
+            - group_pos: Crea el grup en la posició indicada (si és None, al final)
+            - only_one_map_on_group: Especifica que només tindrem una capa en el grup i la última carregada esborra les anteriors
+            - only_one_visible_map_on_group: Especifica que només tindrem una única capa visible dins el grup
+            - collapsed: Indica si volem carregar la capa amb la llegenda colapsada
+            - visible: Indica si volem carregar la capa deixant-la visible o no
+            ---
+            Adds a layer from the base URL, a list of WMS layers, a list of styles and an image format.
+            Returns the layer.
+            Optionally you can specify:
+            - min: minimum zoom layer
+            - max: maximum zoom layer
+            - epsg: EPSG code (by default the project),
+            - interpolation: interpolation method (None, "maptiler", "terrariumterrain")
+            - tile_pixel_ratio: pixel scale (None, 1, 2)
+            - extra_tags: additional tags to send to the server
+            - group_name: a QGIS group name / folder where to add the layer
+            - group_pos: Create group on specific position (if None then to the end)
+            - only_one_map_on_group: Specifies that we will only have one layer in the group and the last loaded deletes the previous ones
+            - only_one_visible_map_on_group: Specifies that we will only have one visible layer in the group
+            - collapsed: Indicates whether we want to load the layer with collapsed legend
+            - visible: Indicates whether we want to load the layer by leaving it visible or not
+            """
+        uri = self.generate_xyz_layer_uri(url, min, max, epsg, interpolation, tile_pixel_ratio, extra_tags)
+        return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current, resampling_bilinear, resampling_cubic)
+
+    def generate_xyz_layer_uri(self, url, min=0, max=20, epsg=3857, interpolation=None, tile_pixel_ratio=None, extra_tags=""):
+        """ Retorna el string uri a partir dels paràmetres XYZ
+            ---
+            Return uri string from XYZ paràmeters
+            """
+        # Si no tenim EPSG agafem el del projecte
+        if not epsg:
+            epsg = self.parent.project.get_epsg()
+        # Preparem la connexió
+        uri = "type=xyz&url=%s&zmin=%d&zmax=%d&crs=EPSG%s" % (url, min, max, epsg)
+        if interpolation:
+            uri += "&interpolation=%s" % interpolation
+        if tile_pixel_ratio:
+            uri += "&tilePixelRatio=%d" % tile_pixel_ratio
+        if extra_tags:
+            uri += "&%s" % extra_tags
+        return uri
+
     def is_anaglyph_layer(self, layer):
         """ Retorna si una capa té informació WMS anaglif
             ---
@@ -4494,10 +4591,12 @@ class LayersBase(object):
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsBilinearRasterResampler())
             resample_filter.setZoomedOutResampler(QgsBilinearRasterResampler())
+            resample_filter.setMaxOversampling(1)
         if resampling_cubic:
             resample_filter = layer.resampleFilter()
             resample_filter.setZoomedInResampler(QgsCubicRasterResampler())
             resample_filter.setZoomedOutResampler(QgsCubicRasterResampler())
+            resample_filter.setMaxOversampling(1)
         # Canviem les propiedats de la capa
         self.set_properties(layer, visible, collapsed, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, transparency=transparency, saturation=saturation, set_current=set_current)
         return layer
@@ -4979,7 +5078,7 @@ class LegendBase(object):
             return -1
         return parent_group.children().index(group)
 
-    def add_group(self, group_name, expanded=True, visible_group=True, layer_list=[], group_parent_name=None, group_pos=None):
+    def add_group(self, group_name, expanded=True, visible_group=True, layer_list=[], group_parent_name=None, group_pos=None, visible_items=True):
         """ Afegeix un grup a la llegenda i retorna l'objecte.
             Opcionalment podem especificar:
             - expanded: Indica si el grup tindrà la llegenda expandida o no
@@ -5004,10 +5103,29 @@ class LegendBase(object):
             if group_parent:
                 group = self.move_group_to_group(group, group_parent, group_pos)
         if layer_list:
-            self.move_layers_to_group(group, layer_list, visible_layer=visible_group)
+            self.move_layers_to_group(group, layer_list, visible_layer=visible_items)
         group.setExpanded(not expanded) # No ho activa si no faig el doble check!!!
         group.setExpanded(expanded)
+        group.setItemVisibilityChecked(visible_group)
         return group
+
+    def rename_group_by_name(self, group_name, new_group_name):
+        """ Renombra un grup por nom
+            ---
+            Rename a group by name
+            """
+        group = self.get_group_by_name(group_name)
+        if group is None:
+            return False
+        self.rename_group(group, new_group_name)
+        return True
+
+    def rename_group(self, group, new_group_name):
+        """ Renombra un grup
+            ---
+            Rename a group
+            """
+        group.setName(new_group_name)
 
     def remove_group_by_name(self, group_name):
         """ Esborra un grup per nom
@@ -6851,7 +6969,7 @@ class PluginBase(QObject):
             """
         self.settings.beginGroup(group_name or self.plugin_id)
         settings_dict = dict([(key, self.settings.value(key, None)) for key in self.settings.childKeys()])
-        self.settings.endGroup();
+        self.settings.endGroup()
         return settings_dict
 
     def get_setting_value(self, key, default_value=None, group_name=None):

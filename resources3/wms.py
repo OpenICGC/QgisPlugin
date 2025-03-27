@@ -42,7 +42,7 @@ def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
             log.exception("WMS resources error (%s), retries: %s, URL: %s", retries, e, capabilities_url)
     if not response:
         response_data = ""
-        log.error("WMS resources error, exhausted retries")      
+        log.error("WMS resources error, exhausted retries")
     else:
         response_data = response.read()
         response_data = response_data.decode('utf-8')
@@ -64,17 +64,17 @@ def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territo
     reg_ex_filter=r"<Name>(.+)</Name>\s+<Title>(.+)</Title>"):
     """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista de capes disponibles (per rang d'anys)
         Retorna: URL, [(layer_id, layer_name, ortho_type, color_type, year_range)]
-        ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"    
+        ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"
         color_type: "rgb"|"ir"|"bw"
         ---
         Gets the URL of the ICGC historical orthophotos server and the list of available layers (by annual ranges)
-        Returns: URL, [(layer_id, layer_name, ortho_type, color_type,  year)]
-        ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"
+        Returns: URL, [(layer_id, layer_name, ortho_type, color_type,  year)]
+        ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"
         olor_type: "rgb" | "ir" | "bw"
         """
     # Recuperem les capes històriques
     wms_list = get_wms_capabilities_info(url, reg_ex_filter)
-    
+
     # Afegim escala i any com a llista
     wms_ex_list = [(
         layer_id,
@@ -100,8 +100,8 @@ def get_historic_ortho(url="https://geoserveis.icgc.cat/icc_ortohistorica/wms/se
         color_type: "rgb"|"ir"|"bw"
         ---
         Gets the URL of the ICGC historical orthophotos server and the "clean" list of available layers (without redundant data)
-            Returns: URL, [(layer_id, layer_name, color_type, scale, year)]
-            color_type: "rgb" | "go" | "bw"
+        Returns: URL, [(layer_id, layer_name, color_type, scale, year)]
+        color_type: "rgb" | "go" | "bw"
         """
 
     # Recuperem les capes històriques
@@ -164,7 +164,7 @@ def get_lastest_ortoxpres(url="https://geoserveis.icgc.cat/icc_ortoxpres/wms/ser
             color_type: "rgb" | "go" | "bw"
         """
 
-    # Recuperem les capes    
+    # Recuperem les capes
     wms_list = get_wms_capabilities_info(url, reg_ex_filter)
 
     # Ens quedem només amb les últimes dades de Catalunya
@@ -187,13 +187,13 @@ def get_superexpedita_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/or
         color_type: "rgb" | "go" | "bw"
         """
     if not force_layers:
-        # Recuperem les capes    
+        # Recuperem les capes
         wms_list = get_wms_capabilities_info(url, reg_ex_filter)
     else:
         # $$$ FAKE! per fer proves i per si està la capa oculta en el servidor ortoDARP
         response_data = """<Name>2019_catalunya_ortofoto_rgb</Name><Title>Ortofoto ràpida Catalunya 2019 RGB</Title>"""
-        wms_list = re.findall(reg_ex, response_data)
-    
+        wms_list = re.findall(reg_ex_filter, response_data)
+
     # Reorganitzem la informació
     wms_ex_list = [(layer_id, layer_name, color_type, date_tag) for layer_id, date_tag, color_type, layer_name in wms_list]
 
@@ -222,3 +222,53 @@ def get_historic_satelite_ortho(url="https://geoserveis.icgc.cat/icgc_sentinel2/
     wms_ex_list.sort(key=lambda p: p[3], reverse=True)
 
     return url, wms_ex_list
+
+def get_coastlines(url="https://geoserveis.icgc.cat/servei/catalunya/linia-costa/wms",
+    reg_ex_filter=r"<Name>(linia_costa_(.+))</Name>\s*<Title>\s*<\!\[CDATA\[\s*Línia de costa (.+)\s*\]\]>\s*</Title>"):
+    """ Obté la URL del servidor de linies de costa i la llista capes disponibles
+        Retorna: URL, [(layer_id, layer_name, date_tag)]
+        ---
+        Gets the URL of the ICGC coastlines server and the list of available layers
+        Returns: URL, [(layer_id, layer_name, date_tag)]
+        """
+    # Recuperem les linies de costa
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+
+    # Reorganitzem la informació
+    wms_ex_list = [(layer_id, layer_name, date_tag) for layer_id, date_tag, layer_name in wms_list]
+
+    # Ordenem per any
+    wms_ex_list.sort(key=lambda p: p[-1], reverse=False)
+
+    return url, wms_ex_list
+
+def get_coast_orthos(url="https://geoserveis.icgc.cat/servei/catalunya/orto-costa/wms",
+    reg_ex_filter=r"<Name>(orto-costa-(rgb|irc)-\d+cm-(.+))</Name>\s*<Title>Ortofotos de la costa (.+)</Title>"):
+    """ Obté la URL del servidor d'ortofotos de costa i la llista capes disponibles
+        Retorna: URL, [(layer_id, layer_name, color_type, date_tag)]
+        ---
+        Gets the URL of the ICGC coast orthophoto server and the list of available layers
+        Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
+        """
+    # Recuperem les linies de costa
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+
+    # Reorganitzem la informació
+    wms_ex_list = [(layer_id, layer_name.replace("&#39;", "'"), color_type, date_tag) \
+        for layer_id, color_type, date_tag, layer_name in wms_list]
+
+    # Ordenem per any
+    wms_ex_list.sort(key=lambda p: p[-1], reverse=False)
+
+    return url, wms_ex_list
+
+coast_ortho_time_dict = None # Cached data
+def get_coast_ortho_ref(time_code):
+    """ Obté una capa de referència per una marca de temps         
+        ---
+        Gets a reference layer for a time mark
+        """
+    global coast_ortho_time_dict
+    if not coast_ortho_time_dict:
+        coast_ortho_time_dict = {date_tag: layer_id for layer_id, layer_name, color_type, date_tag in get_coast_orthos()[1]}
+    return coast_ortho_time_dict.get(time_code, None)
