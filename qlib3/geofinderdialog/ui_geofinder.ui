@@ -120,15 +120,9 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_spacer">
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>0</height>
-          </size>
-         </property>
+        <widget class="QCheckBox" name="checkBox_layer">
          <property name="text">
-          <string/>
+          <string>Create place  layer</string>
          </property>
         </widget>
        </item>

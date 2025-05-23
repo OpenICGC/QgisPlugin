@@ -551,9 +551,13 @@ class OpenICGC(PluginBase):
         # We created a GeoFinder object that will allow us to perform spatial searches
         # and we configure it with our plugin logger
         self.geofinder = GeoFinder(logger=self.log)
+        # We created the GeoFinderDialog too
+        # Attentions, seems than QSettings store boolean values as str!
+        geocoder_create_layer = self.get_setting_value("geocoder_create_layer", "true") == "true"
         self.geofinder_dialog = GeoFinderDialog(self.geofinder, title=self.tr("Spatial search"),
             columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")],
-            keep_scale_text=self.tr("Keep scale"))
+            keep_scale_text=self.tr("Keep scale"), create_layer_text=self.tr("Create site layer"),
+            default_create_layer=geocoder_create_layer)
 
         # Initialize product metatata dictionary with metadata urls
         product_dict_list = []
@@ -692,8 +696,10 @@ class OpenICGC(PluginBase):
         # Gets available Coast
         coastline_url, coastline_list = get_coastlines()
         coastline_time_series_list = [(coastline_date_tag, coastline_layer) for coastline_layer, _coastline_name,  coastline_date_tag in coastline_list]
+        coastline_current_time, coastline_current_layer = coastline_time_series_list[-1]
         coast_ortho_url, coast_ortho_list = get_coast_orthos()
         coast_ortho_time_series_list = [(coast_ortho_date_tag, coast_ortho_layer) for coast_ortho_layer, _coast_ortho_name, _coast_ortho_color_type, coast_ortho_date_tag in coast_ortho_list]
+        coast_ortho_current_time, coast_ortho_current_layer = coast_ortho_time_series_list[-1]
 
         # Gets available NDVI files to simulate WMS-T service
         ndvi_time_series_list = [(time_year, "/vsicurl/%s" % url) for time_year, url in get_ndvis()]
@@ -870,7 +876,7 @@ class OpenICGC(PluginBase):
                     (self.tr("Coastal shade"),
                         lambda _checked: self.layers.add_raster_layer(
                             self.tr("Coastal shade"),
-                            "/vsicurl/https://datacloud.icgc.cat/datacloud/batimetria/vigent/tif_unzip/batimetria.tif",
+                            "/vsicurl/https://datacloud.icgc.cat/datacloud/batimetria/vigent/tif_unzip/batimetria-elevacions.tif",
                             group_name=self.backgroup_map_group_name, group_pos=0, only_one_map_on_group=False,
                             set_current=True, color_default_expansion=True, resampling_bilinear=True),
                         "cat_coast.png", self.enable_http_files,
@@ -879,7 +885,7 @@ class OpenICGC(PluginBase):
                         (self.tr("Coastline (temporal serie)"),
                             lambda _checked: self.add_wms_t_layer(
                                 self.tr("[TS] Coastline"),
-                                coastline_url, coastline_time_series_list[-1][1], coastline_time_series_list[-1][0], "default", "image/png",
+                                coastline_url, coastline_current_layer, coastline_current_time, "default", "image/png",
                                 coastline_time_series_list, None,
                                 25831, self.request_referrer_param,
                                 group_name=self.backgroup_map_group_name, group_pos=0, only_one_map_on_group=False,
@@ -903,7 +909,7 @@ class OpenICGC(PluginBase):
                         (self.tr("Coast orthophoto (temporal serie)"),
                             lambda _checked: self.add_wms_t_layer(
                                 self.tr("[TS] Coast orthophoto"),
-                                coast_ortho_url, coast_ortho_time_series_list[-1][1], coast_ortho_time_series_list[-1][0], "default", "image/png",
+                                coast_ortho_url, coast_ortho_current_layer, coast_ortho_current_time, "default", "image/png",
                                 coast_ortho_time_series_list, None,
                                 25831, self.request_referrer_param,
                                 group_name=self.backgroup_map_group_name, group_pos=0, only_one_map_on_group=False,
@@ -1560,23 +1566,26 @@ class OpenICGC(PluginBase):
         site_name = self.geofinder_dialog.get_name()
 
         # Creates a memory layer with found element
-        site_layer = QgsVectorLayer(f"Point?crs=epsg:{epsg}", site_name, "memory")
-        site_provider = site_layer.dataProvider()
-        site_provider.addAttributes([QgsField("lloc", QVariant.String)])
-        site_layer.updateFields()
-        # Adds element found to layer
-        site_feature = QgsFeature()
-        geometry = QgsGeometry.fromPointXY(QgsPointXY(x, y))
-        site_feature.setGeometry(geometry)
-        site_feature.setAttributes([site_name])
-        site_provider.addFeature(site_feature)
-        site_layer.updateExtents()
-        # Adds layer to project
-        self.layers.add_layer(site_layer)
-        self.legend.move_layer_to_group_by_name(self.tr("Sites"),
-            site_layer, autocreate_group=True, group_pos=0, visible_layer=True, pos=0,
-            remove_repeated_layers=True)
-        self.iface.mapCanvas().refresh()
+        create_layer = self.geofinder_dialog.get_create_layer()
+        self.set_setting_value("geocoder_create_layer", create_layer)
+        if create_layer:
+            site_layer = QgsVectorLayer(f"Point?crs=epsg:{epsg}", site_name, "memory")
+            site_provider = site_layer.dataProvider()
+            site_provider.addAttributes([QgsField("lloc", QVariant.String)])
+            site_layer.updateFields()
+            # Adds element found to layer
+            site_feature = QgsFeature()
+            geometry = QgsGeometry.fromPointXY(QgsPointXY(x, y))
+            site_feature.setGeometry(geometry)
+            site_feature.setAttributes([site_name])
+            site_provider.addFeature(site_feature)
+            site_layer.updateExtents()
+            # Adds layer to project
+            self.layers.add_layer(site_layer)
+            self.legend.move_layer_to_group_by_name(self.tr("Sites"),
+                site_layer, autocreate_group=True, group_pos=0, visible_layer=True, pos=0,
+                remove_repeated_layers=True)
+            self.iface.mapCanvas().refresh()
 
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg", "ifc"])

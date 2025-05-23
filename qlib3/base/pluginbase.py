@@ -1931,6 +1931,9 @@ class LayersBase(object):
                 text = fin.read()
             for old_value, new_value in sorted(replace_dict.items(), key=lambda item: len(item[0]), reverse=True):
                 text = text.replace('"%s"' % old_value, '"%s"' % new_value)
+                text = text.replace('"&quot;%s&quot;"' % old_value, '"&quot;%s&quot;"' % new_value)
+                text = text.replace('filter="&quot;%s&quot;' % old_value, 'filter="&quot;%s&quot;' % new_value)
+                text = text.replace('(%s)' % old_value, '(%s)' % new_value)
             tmp_style_pathname = os.path.join(os.environ['temp'], os.path.basename(style_pathname))
             with codecs.open(tmp_style_pathname, encoding='utf-8', mode="w") as fout:
                 fout.write(text)

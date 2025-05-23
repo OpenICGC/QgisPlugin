@@ -48,12 +48,12 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         1002:'cadastral.png' #Carretera (codi propi del geofinder)
         }
 
-    def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], keep_scale_text=None, default_scale=1000, auto_show=False, parent=None):
+    def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], keep_scale_text=None, default_scale=1000, create_layer_text=None, default_create_layer=True, auto_show=False, parent=None):
         """ Dialog initialization """
         QDialog.__init__(self, parent)
 
         # Set up the user interface from Designer.
-        self.setupUi(title, columns_list, keep_scale_text, default_scale)
+        self.setupUi(title, columns_list, keep_scale_text, default_scale, create_layer_text, default_create_layer)
 
         # Set up values
         self.geofinder = geofinder_instance
@@ -65,7 +65,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         if auto_show:
             self.do_modal()
 
-    def setupUi(self, title, columns_list, keep_scale_text, default_scale):
+    def setupUi(self, title, columns_list, keep_scale_text, default_scale, create_layer_text, default_create_layer=True):
         """ Setup the components that form the dialog """
 
         # We Initialize the UI by associating the items in the plugin class
@@ -93,10 +93,15 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         # Setup first scale text "keep scale"
         if keep_scale_text:
             self.comboBox_scale.setItemText(0, keep_scale_text)
-
-        # Initialize default scale value 
+        # Initialize default scale value
         pos = max(self.comboBox_scale.findText(str(default_scale)), 0)
         self.comboBox_scale.setCurrentIndex(pos)
+
+        # Setup create layer text
+        if create_layer_text:
+            self.checkBox_layer.setText(create_layer_text)
+        # Initialize default create layer value
+        self.checkBox_layer.setChecked(default_create_layer)
 
     def set_test_mode(self, test=True):
         """ Activa el mode test que fa que el do_modal no esperi entrada de dades """
@@ -115,7 +120,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.tableWidget.setItem(i, 2, QTableWidgetItem(topodata['nomMunicipi']))
             self.tableWidget.setItem(i, 3, QTableWidgetItem(topodata['nomComarca']))
             # Ens guardem la posició original de l'item per si després s'ordena la llista i canvia l'index
-            self.tableWidget.item(i, 0).setData(Qt.UserRole, i); 
+            self.tableWidget.item(i, 0).setData(Qt.UserRole, i);
 
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
@@ -175,3 +180,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
 
     def get_name(self):
         return self.geofinder.get_name(self.geofinder_dict_list, self.selected)
+
+    def get_create_layer(self):
+        create_layer = self.checkBox_layer.isChecked()
+        return create_layer

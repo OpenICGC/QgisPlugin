@@ -37,62 +37,62 @@
 <context>
     <name>OpenICGC</name>
     <message>
-        <location filename="../openicgc.py" line="1556"/>
+        <location filename="../openicgc.py" line="1557"/>
         <source>Spatial search</source>
         <translation>Cerca espacial</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Find</source>
         <translation>Cercar</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Background maps</source>
         <translation>Mapes de fons</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Delete background maps</source>
         <translation>Esborrar mapes de fons</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Transparence</source>
         <translation>Transparència</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1220"/>
+        <location filename="../openicgc.py" line="1221"/>
         <source>Reload Open ICGC</source>
         <translation>Recarregar Open ICGC</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1556"/>
+        <location filename="../openicgc.py" line="1557"/>
         <source>Error, location without coordinates</source>
         <translation>Error, localització sense coordenades</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1498"/>
+        <location filename="../openicgc.py" line="1499"/>
         <source>Time series</source>
         <translation>Sèries temporals</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>About Open ICGC</source>
         <translation>Sobre Open ICGC</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Help</source>
         <translation>Ajuda</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2268"/>
+        <location filename="../openicgc.py" line="2271"/>
         <source>Select download folder</source>
         <translation>Seleccionar carpeta de descàrregues</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
@@ -127,22 +127,22 @@
         <translation>Províncies</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Color orthophoto</source>
         <translation>Ortofoto color</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Color orthophoto</source>
         <translation>[ST] Ortofoto color</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Infrared orthophoto</source>
         <translation>Ortofoto infraroja</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Infrared orthophoto</source>
         <translation>[ST] Ortofoto infraroja</translation>
     </message>
@@ -152,17 +152,17 @@
         <translation>Descàrregues</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Open download folder</source>
         <translation>Obrir carpeta de descàrregues</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Paint styles for selected layers</source>
         <translation>Estil de pintat de les capes seleccionades</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Desaturate raster layer</source>
         <translation>Desaturació de capa ràster</translation>
     </message>
@@ -172,37 +172,37 @@
         <translation>Referència %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2106"/>
+        <location filename="../openicgc.py" line="2110"/>
         <source>Download map area</source>
         <translation>Descarregar àrea de mapa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2113"/>
+        <location filename="../openicgc.py" line="2117"/>
         <source>Minimum download rect side not reached (%d m)</source>
         <translation>Mida mínima de descàrrega no aconseguida (%d m costat)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2118"/>
+        <location filename="../openicgc.py" line="2122"/>
         <source>Maximum download area exceeded (%s m%s)</source>
         <translation>Àrea màxima de descàrrega sobrepassada (%s m%s)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Change DB/geoPackage style</source>
         <translation>Canviar estil de geoPackage / base de dades</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1958"/>
+        <location filename="../openicgc.py" line="1962"/>
         <source>Error downloading file or selection is out of reference area</source>
         <translation>Error descarregant el fitxer o la selecció està fora de l&apos;àrea de referència</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1525"/>
+        <location filename="../openicgc.py" line="1526"/>
         <source>You must write any text</source>
         <translation>Cal escriure algun text</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1830"/>
+        <location filename="../openicgc.py" line="1834"/>
         <source>Data type:
    %s (%s)
 Rectangle:
@@ -225,7 +225,7 @@ Carpeta de descàrregues:
 Nom d&apos;arxiu (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1839"/>
+        <location filename="../openicgc.py" line="1843"/>
         <source>Data type:
    %s (%s)
 Point:
@@ -248,7 +248,7 @@ Carpeta de descàrregues:
 Nom d&apos;arxiu (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1841"/>
+        <location filename="../openicgc.py" line="1845"/>
         <source>Data type:
    %s (%s)
 Point:
@@ -281,27 +281,27 @@ Nom d&apos;arxiu (%s):</translation>
         <translation>Comarca</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1843"/>
+        <location filename="../openicgc.py" line="1847"/>
         <source>Catalonia</source>
         <translation>Catalunya</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1845"/>
+        <location filename="../openicgc.py" line="1849"/>
         <source>Available data</source>
         <translation>Dades disponibles</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2034"/>
+        <location filename="../openicgc.py" line="2038"/>
         <source>Download tool</source>
         <translation>Eina de descàrrega</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2106"/>
+        <location filename="../openicgc.py" line="2110"/>
         <source>Download point</source>
         <translation>Descarregar punt</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1846"/>
+        <location filename="../openicgc.py" line="1850"/>
         <source>Data type:
    %s (%s)
 Zone:
@@ -320,27 +320,27 @@ Carpeta de descàrregues:
 Arxiu (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1498"/>
+        <location filename="../openicgc.py" line="1499"/>
         <source>Selected: </source>
         <translation>Seleccionat: </translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Cartographic series</source>
         <translation>Talls cartogràfics</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1742"/>
+        <location filename="../openicgc.py" line="1746"/>
         <source>Select an area</source>
         <translation>Selecciona una àrea</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1744"/>
+        <location filename="../openicgc.py" line="1748"/>
         <source>Select municipality</source>
         <translation>Selecciona un municipi</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1746"/>
+        <location filename="../openicgc.py" line="1750"/>
         <source>Select county</source>
         <translation>Selecciona una comarca</translation>
     </message>
@@ -350,12 +350,12 @@ Arxiu (%s):</translation>
         <translation>Desconegut, servei no accessible</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2293"/>
+        <location filename="../openicgc.py" line="2296"/>
         <source>Available products list</source>
         <translation>Llista de productes disponibles</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2292"/>
+        <location filename="../openicgc.py" line="2295"/>
         <source>Linkable products:
 - %s
 
@@ -368,69 +368,69 @@ Productes descarregables:
 - %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Open ICGC Toolbar</source>
         <translation>Barra d&apos;eines d&apos;Open ICGC</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2281"/>
+        <location filename="../openicgc.py" line="2284"/>
         <source>Height highlighting</source>
         <translation>Ressaltat d&apos;alçades</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Warning:</source>
         <translation>Atenció:</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2310"/>
+        <location filename="../openicgc.py" line="2313"/>
         <source>QGIS version warnings</source>
         <translation>Alertes de la versió de QGIS</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Download plugin</source>
         <translation>Descarregar plugin</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Update
  available: v%s</source>
         <translation>Actualització
  disponible: %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2281"/>
+        <location filename="../openicgc.py" line="2284"/>
         <source>You can modify the brightness of the &quot;Height hightlghting&quot; layer to adjust the display to your background layer</source>
         <translation>Pots modificar la brillantor de la capa &quot;Ressaltat d&apos;alçades&quot; per ajustar la visualització a la teva capa de fons</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>%s serie</source>
         <translation>Tall %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>QGIS plugin repository</source>
         <translation>Repositori de connectors de QGIS</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Software Repository</source>
         <translation>Repositori de codi</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2939"/>
+        <location filename="../openicgc.py" line="2936"/>
         <source>Report an issue</source>
         <translation>Reportar una incidència</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Send us an email</source>
         <translation>Envia&apos;ns un email</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1654"/>
+        <location filename="../openicgc.py" line="1658"/>
         <source>ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.
 
 Do you want change the project coordinate system to EPSG 25831?</source>
@@ -439,12 +439,12 @@ Do you want change the project coordinate system to EPSG 25831?</source>
 Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>What&apos;s new</source>
         <translation>Novetats</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Cartographic and Geological Institute of Catalonia web</source>
         <translation>Web de l&apos;Institut Cartogràfic i Geològic de Catalunya</translation>
     </message>
@@ -479,12 +479,12 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
         <translation>Ortofoto infraroja vigent 2.5m 1:25.000</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Topographic map 1:1,000,000</source>
         <translation>Mapa topogràfic 1:1.000.000</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Topographic map 1:250,000</source>
         <translation>Mapa topogràfic 1:250.000</translation>
     </message>
@@ -494,7 +494,7 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
         <translation>Cartografia topogràfica 1:1.000</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Territorial topographic referential</source>
         <translation>Referencial topogràfic territorial</translation>
     </message>
@@ -514,17 +514,17 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
         <translation>Model d&apos;elevacions del terreny 5m 2020</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Geological map 1:250,000</source>
         <translation>Mapa geològic 1:250.000</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1283"/>
+        <location filename="../openicgc.py" line="1284"/>
         <source> vectorial data</source>
         <translation> dades vectorials</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1284"/>
+        <location filename="../openicgc.py" line="1285"/>
         <source> raster data</source>
         <translation> dades ràster</translation>
     </message>
@@ -534,119 +534,119 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
         <translation>Referencial topogràfic territorial 3D</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>NDVI color (temporal serie)</source>
         <translation>NDVI color (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] NDVI color</source>
         <translation>[ST] NDVI color</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>NDVI (temporal serie)</source>
         <translation>NDVI (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] NDVI</source>
         <translation>[ST] NDVI</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2012"/>
+        <location filename="../openicgc.py" line="2016"/>
         <source>File type %s is unsupported by QGIS
 Do you want try open downloaded file in a external viewer?</source>
         <translation>El tipus de fitxer %s no està suportat per QGIS
 Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Color orthophoto %s (provisional)</source>
         <translation>Ortofoto color %s (provisional)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Color orthophoto %s (rectification without corrections)</source>
         <translation>Ortofoto color %s (rectificació sense correccions)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Color orthophoto %s (temporal serie)</source>
         <translation>Ortofoto color %s (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Color orthophoto (annual serie)</source>
         <translation>Ortofoto color (sèrie anual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Satellite color orthophoto (monthly serie)</source>
         <translation>Ortofoto color satèl·lit (sèrie mensual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Infrared orthophoto %s (provisional)</source>
         <translation>Ortofoto infraroja %s (provisional)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Infrared orthophoto %s (rectification without corrections)</source>
         <translation>Ortofoto infraroja %s (rectificació sense correccions)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Infrared orthophoto %s (temporal serie)</source>
         <translation>Ortofoto infraroja %s (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Infrared orthophoto (annual serie)</source>
         <translation>Ortofoto infraroja (sèrie anual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Satellite infrared orthophoto (monthly serie)</source>
         <translation>Ortofoto infraroja satèl·lit (sèrie mensual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2467"/>
+        <location filename="../openicgc.py" line="2470"/>
         <source>Shading DTM layer</source>
         <translation>Ombrejat de capa MET</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2174"/>
+        <location filename="../openicgc.py" line="2178"/>
         <source>The selected area is outside Catalonia</source>
         <translation>L&apos;àrea seleccionada és fora de Catalunya</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2471"/>
+        <location filename="../openicgc.py" line="2474"/>
         <source>You must select a DTM layer</source>
         <translation>S&apos;ha de seleccionar una capa de MET</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2477"/>
+        <location filename="../openicgc.py" line="2480"/>
         <source>You can modify the angle of the sun in the layer simbology</source>
         <translation>Es pot modificar l&apos;angle del sol en la simbologia de la capa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[AS] Color orthophoto</source>
         <translation>[SA] Ortofoto color</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[MS] Satellite color orthophoto</source>
         <translation>[SM] Ortofoto color satèl·lit</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[AS] Infrared orthophoto</source>
         <translation>[SA] Ortofoto infraroja</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[MS] Satellite infared orthophoto</source>
         <translation>[SM] Ortofoto infraroja satèl·lit</translation>
     </message>
@@ -666,47 +666,47 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
         <translation>Vegueries</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Administrative divisions</source>
         <translation>Divisions administratives</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Territorial topographic referential %s (temporal serie)</source>
         <translation>Referencial topogràfic territorial %s (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Territorial topographic referential</source>
         <translation>[ST] Referencial topogràfic territorial</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Administrative divisions (raster pyramid)</source>
         <translation>Divisions administratives (Piràmide ràster)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2022"/>
+        <location filename="../openicgc.py" line="2026"/>
         <source>The download file could not be opened</source>
         <translation>No s&apos;ha pogut obrir l&apos;arxiu descarregat</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1828"/>
+        <location filename="../openicgc.py" line="1832"/>
         <source>raster</source>
         <translation>ràster</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1828"/>
+        <location filename="../openicgc.py" line="1832"/>
         <source>vector</source>
         <translation>vector</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="569"/>
+        <location filename="../openicgc.py" line="570"/>
         <source>Photograms</source>
         <translation>Fotogrames</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="571"/>
+        <location filename="../openicgc.py" line="572"/>
         <source>Photo: %s</source>
         <translation>Foto: %s</translation>
     </message>
@@ -716,204 +716,204 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
         <translation>Consulta fotos: %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2510"/>
+        <location filename="../openicgc.py" line="2513"/>
         <source>Search photograms</source>
         <translation>Cercar fotogrames</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2569"/>
+        <location filename="../openicgc.py" line="2572"/>
         <source>Coord %s %s</source>
         <translation>Coord %s %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2528"/>
+        <location filename="../openicgc.py" line="2531"/>
         <source>It exists a previous photo search. Do you want close it?</source>
         <translation>Existeix un cerca de fotogrames prèvia. Vols tancar-la?</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Search photograms interactively</source>
         <translation>Cercar fotogrames interactivament</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Search photograms by coordinates</source>
         <translation>Cercar fotogrames per coordenada</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2488"/>
+        <location filename="../openicgc.py" line="2491"/>
         <source>Photograms search tool</source>
         <translation>Eina de cerca de fotogrames</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2488"/>
+        <location filename="../openicgc.py" line="2491"/>
         <source>Select a point</source>
         <translation>Selecciona un punt</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2494"/>
+        <location filename="../openicgc.py" line="2497"/>
         <source>Enter an x y value in the project coordinate system or add the corresponding EPSG code in the following format:
    &quot;429393.19 4580194.65&quot; or &quot;429393.19 4580194.65 EPSG:25831&quot; or &quot;EPSG:25831 429393.19 4580194.65&quot;</source>
         <translation>Introdueix valors x y en el sistema de coordenades del projecte o afegeix el corresponent codi EPSG en el següent format:
    &quot;429393.19 4580194.65&quot; o &quot;429393.19 4580194.65 EPSG:25831&quot; o &quot;EPSG:25831 429393.19 4580194.65&quot;</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Flight code</source>
         <translation>Codi de vol</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Flight date</source>
         <translation>Data de vol</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Flight year</source>
         <translation>Any de vol</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Image filename</source>
         <translation>Arxiu d&apos;imatge</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Image width</source>
         <translation>Amplada d&apos;imatge</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Image height</source>
         <translation>Alçada d&apos;imatge</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Image channels</source>
         <translation>Canals d&apos;imatge</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Image bits PPC</source>
         <translation>Bits PPC d&apos;imatge</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Color type</source>
         <translation>Tipus de color</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Strip</source>
         <translation>Passada</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Camera</source>
         <translation>Càmera</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Focal Length</source>
         <translation>Distància focal</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Ground sampling distance</source>
         <translation>Mida de píxel</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Scale</source>
         <translation>Escala</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Flying height</source>
         <translation>Alçada de vol</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Mean ground height</source>
         <translation>Alçada mitja del terra</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>View type</source>
         <translation>Tipus de vista</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Northing</source>
         <translation>Nord</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Easting</source>
         <translation>Est</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>EPSG code</source>
         <translation>Codi EPSG</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Omega</source>
         <translation>Omega</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Phi</source>
         <translation>Phi</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Kappa</source>
         <translation>Kappa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Photo in strip</source>
         <translation>Fotograma dins la passada</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Spain</source>
         <translation>Espanya</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>IGN topographic</source>
         <translation>Topogràfic IGN</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>PNOA orthophoto</source>
         <translation>Ortofoto PNOA</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Andorra</source>
         <translation>Andorra</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>World</source>
         <translation>Mon</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>NASA blue marble</source>
         <translation>Nasa blue marble</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2123"/>
+        <location filename="../openicgc.py" line="2127"/>
         <source>Minimum download rect side not reached (%d px)</source>
         <translation>Mida mínima de descàrrega no aconseguida (%d px costat)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2128"/>
+        <location filename="../openicgc.py" line="2132"/>
         <source>Maximum download area exceeded (%s px%s)</source>
         <translation>Àrea màxima de descàrrega sobrepassada (%s px%s)</translation>
     </message>
@@ -923,7 +923,7 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
         <translation>Coordenades de l&apos;àrea</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2033"/>
+        <location filename="../openicgc.py" line="2037"/>
         <source>Enter west, north, east, south values in the project coordinates system or add the corresponding EPSG code in the following format:
    &quot;429393.19 4580194.65 429493.19 4580294.65&quot; or
    &quot;429393.19 4580194.65 429493.19 4580294.65 EPSG:25831&quot; or
@@ -944,12 +944,12 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
         <translation>Polígons selecionats en una capa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2069"/>
+        <location filename="../openicgc.py" line="2073"/>
         <source>You must activate a vector layer with one or more selected polygons</source>
         <translation>Cal activar una capa vectorial amb un o més polígons seleccionats</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1832"/>
+        <location filename="../openicgc.py" line="1836"/>
         <source>Data type:
    %s (%s)
 Polygon area:
@@ -968,37 +968,37 @@ Carpeta de descàrregues:
 Nom d&apos;arxiu (%s):</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2077"/>
+        <location filename="../openicgc.py" line="2081"/>
         <source>Your polygons have too many points: %d maximum %d</source>
         <translation>El polígons tenen massa punts: %d màxim %d</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Land cover map (temporal serie)</source>
         <translation>Mapa de cobertes del sòl (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Land cover map</source>
         <translation>[ST] Mapa de cobertes del sòl</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Digital Terrain Model %s</source>
         <translation>Model d&apos;elevacions del terreny %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2043"/>
+        <location filename="../openicgc.py" line="2047"/>
         <source>Incorrect coordinates format</source>
         <translation>Format de coordenades incorrecte</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Instamaps pyramid</source>
         <translation>Piràmide Instamaps</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Cadastral registry</source>
         <translation>Cadastre</translation>
     </message>
@@ -1013,12 +1013,12 @@ Nom d&apos;arxiu (%s):</translation>
         <translation>Mapa geològic per a la prevenció dels riscos geològics 1:25.000 (GT VI)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2800"/>
+        <location filename="../openicgc.py" line="2801"/>
         <source>Report photo bug</source>
         <translation>Reportar error de fotograma</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2810"/>
+        <location filename="../openicgc.py" line="2811"/>
         <source>Thanks for reporting an error in photogram:
 %s
 
@@ -1029,7 +1029,7 @@ We try to fix it as soon as possible</source>
 Intentarem corregir-ho el més aviat possible</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2802"/>
+        <location filename="../openicgc.py" line="2803"/>
         <source>Before reporting an error, bear in mind that the position of photograms is an approximation i will never completely fit the underlying cartography, since no terrain model has been used to project the imatge against. Furthermore, changes in instrumenation over time (wheter GPS is used or not, scanning and photogrammetric workflow) account for a very limited precision in positioning.
 
 Only large displacements in position (for example, an element that should appear near the center does not appear) or if there is an error in rotation (eg. the sea appears in the northern part of a photo).
@@ -1042,7 +1042,7 @@ Només cal considerar error d’ubicació si el fotograma està molt desplaçat 
 Vols continuar?</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2185"/>
+        <location filename="../openicgc.py" line="2189"/>
         <source>You must select one photogram</source>
         <translation>Cal seleccionar un fotograma</translation>
     </message>
@@ -1052,52 +1052,52 @@ Vols continuar?</translation>
         <translation>Mantenir escala</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1505"/>
+        <location filename="../openicgc.py" line="1506"/>
         <source>Anaglyph</source>
         <translation>Anàglif</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1505"/>
+        <location filename="../openicgc.py" line="1506"/>
         <source>Inverted stereo</source>
         <translation>Estèreo invertit</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2619"/>
+        <location filename="../openicgc.py" line="2621"/>
         <source>Analog</source>
         <translation>Analògic</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[AS] Centered anaglyph phootogram</source>
         <translation>[SA] Fotograma anàglif central</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Centered rectified photogram (annual serie)</source>
         <translation>Fotograma rectificat central (sèrie anual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[AS] Centered rectified photogram</source>
         <translation>[SA] Fotograma rectificat central</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Centered photogram (annual serie)</source>
         <translation>Fotograma central (sèrie anual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[AS] Centered photogram</source>
         <translation>[SA] Fotograma central</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1508"/>
+        <location filename="../openicgc.py" line="1509"/>
         <source>This layer renders only the most centered photogram in the map view, you can zoom in for continuous navigation. Please note that current year may not have full photogram coverage</source>
         <translation>Mostra només el fotograma més centrat en la vista mapa, pots apropar-te per obtenir una navegació contínua. L&apos;any actual pot no tenir una cobertura completa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2806"/>
+        <location filename="../openicgc.py" line="2807"/>
         <source>Photo: %s
 Flight code: %s
 Date: %s
@@ -1112,12 +1112,12 @@ Resolució: %.2fm
 Descripció del problema: </translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Search photograms by name</source>
         <translation>Cercar fotogrames per nom</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2511"/>
+        <location filename="../openicgc.py" line="2514"/>
         <source>Photogram name:</source>
         <translation>Nom de fotograma:</translation>
     </message>
@@ -1177,12 +1177,12 @@ Descripció del problema: </translation>
         <translation>Ortofoto color històrica 2,5m 1:25.000</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1752"/>
+        <location filename="../openicgc.py" line="1756"/>
         <source>Select a zone</source>
         <translation>Selecciona una zona</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1753"/>
+        <location filename="../openicgc.py" line="1757"/>
         <source> with available information</source>
         <translation> amb informació disponible</translation>
     </message>
@@ -1192,12 +1192,12 @@ Descripció del problema: </translation>
         <translation>Rectangle contenidor de polígons selecionats en una capa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Save map as PDF</source>
         <translation>Guardar mapa com a PDF</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Save location map as PDF</source>
         <translation>Guardar mapa de situació com a PDF</translation>
     </message>
@@ -1234,7 +1234,7 @@ Data de generació: %s</translation>
         <translation>Mapa de situació:</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1225"/>
+        <location filename="../openicgc.py" line="1226"/>
         <source>Unit tests</source>
         <translation>Tests unitaris</translation>
     </message>
@@ -1244,79 +1244,79 @@ Data de generació: %s</translation>
         <translation>Aquest PDF mostra totes les dades visibles del projecte QGIS en el moment de la seva generació</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Enable debug log info</source>
         <translation>Activar registre d&apos;informació de depuració</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>ContextMaps standard map</source>
         <translation>ContextMaps mapa estàndard</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>ContextMaps gray map</source>
         <translation>ContextMaps mapa gris</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>ContextMaps simplified gray map</source>
         <translation>ContextMaps mapa gris simplificat</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>ContextMaps hybrid orthophoto</source>
         <translation>ContextMaps ortofoto híbrida</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Andorra topographic 1:50,000 2020</source>
         <translation>Andorra topogràfic 1:25.000 2020</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Andorra orthophoto 1:5,000 2012</source>
         <translation>Andorra ortofoto 1:5.000 2012</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Debug</source>
         <translation>Depuració</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Open debug log file</source>
         <translation>Obrir arxiu de registre de depuració</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Open plugin installation folder</source>
         <translation>Obrir carpeta d&apos;instal·lació del connector</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1267"/>
+        <location filename="../openicgc.py" line="1268"/>
         <source>Product metadatas</source>
         <translation>Metadades de producte</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2678"/>
+        <location filename="../openicgc.py" line="2680"/>
         <source>The maximum number of results (%d) has been reached.
 The query may have more results than are displayed.</source>
         <translation>S&apos;ha arribat al nombre màxim de resultats (%d).
 La consulta podria tenir més resultats dels mostrats.</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Anaglyph options</source>
         <translation>Opcions anaglif</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2801"/>
+        <location filename="../openicgc.py" line="2802"/>
         <source>yyyy/MM/dd HH:mm:ss</source>
         <translation>dd/MM/yyyy HH:mm:ss</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Send us an email with debug information</source>
         <translation>Envia&apos;ns un email amb informació de depuració</translation>
     </message>
@@ -1326,7 +1326,7 @@ La consulta podria tenir més resultats dels mostrats.</translation>
         <translation>Capitals de comarca</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>%s grid</source>
         <translation>Quadrícula %s</translation>
     </message>
@@ -1341,7 +1341,7 @@ La consulta podria tenir més resultats dels mostrats.</translation>
         <translation>Full</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1748"/>
+        <location filename="../openicgc.py" line="1752"/>
         <source>Select sheet</source>
         <translation>Selecciona un full</translation>
     </message>
@@ -1351,57 +1351,57 @@ La consulta podria tenir més resultats dels mostrats.</translation>
         <translation>Model d’elevacions topobatimètric de la franja litoral</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Bathymetric chart</source>
         <translation>Mapa d’isòbates</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coastline</source>
         <translation>Línia de costa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Current color orthophoto</source>
         <translation>Ortofoto color vigent</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Current infrared orthophoto</source>
         <translation>Ortofoto infreroja vigent</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Current gray orthophoto</source>
         <translation>Ortofoto gris vigent</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>France</source>
         <translation>França</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>France topographic</source>
         <translation>França topogràfic</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>France orthophoto 20cm</source>
         <translation>França ortofoto 20cm</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>OpenStreetMap</source>
         <translation>OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2939"/>
+        <location filename="../openicgc.py" line="2936"/>
         <source>Please, update %s to version %s before report an issue</source>
         <translation>Si us plau, actualitzeu %s a la versió %s abans d&apos;informar d&apos;un problema</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Deprecated products list</source>
         <translation>Llista de productes obsolets</translation>
     </message>
@@ -1421,92 +1421,92 @@ La consulta podria tenir més resultats dels mostrats.</translation>
         <translation>Ortofoto Lidar territorial infraroja</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1873"/>
+        <location filename="../openicgc.py" line="1877"/>
         <source>File type %s can take quite a while to open in QGIS
 Do you want to open it after downloading?</source>
         <translation>El tipus de fitxer %s pot trigar força a obrir-se a QGIS
 Vols obrir-lo després de descarregar-lo?</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2002"/>
+        <location filename="../openicgc.py" line="2006"/>
         <source>File downloaded:
 %s</source>
         <translation>Arxiu descarregat:
 %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1844"/>
+        <location filename="../openicgc.py" line="1848"/>
         <source>Full photogram</source>
         <translation>Fotograma complet</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1950"/>
+        <location filename="../openicgc.py" line="1954"/>
         <source>Cancel</source>
         <translation>Cancel·lar</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1987"/>
+        <location filename="../openicgc.py" line="1991"/>
         <source>Error downloading file
 %s</source>
         <translation>Error descarragant arxiu
 %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1997"/>
+        <location filename="../openicgc.py" line="2001"/>
         <source>Error downloading geometry file
 %s</source>
         <translation>Error descarregant arxiu de geometria
 %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1950"/>
+        <location filename="../openicgc.py" line="1954"/>
         <source>Downloading ...</source>
         <translation>Descarregant ...</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1950"/>
+        <location filename="../openicgc.py" line="1954"/>
         <source>Elapsed %s</source>
         <translation>Transcorregut %s</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1943"/>
+        <location filename="../openicgc.py" line="1947"/>
         <source>Indexing points and applying data filters ...</source>
         <translation>Indexant punts i filtrant dades ...</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1868"/>
+        <location filename="../openicgc.py" line="1872"/>
         <source>File type %s is not supported by the current version of QGIS.
 It will be downloaded but not displayed</source>
         <translation>El tipus de fitxer %s no està suportat per la versió actual de QGIS.
 Es descarregarà però no es visualitzarà</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2007"/>
+        <location filename="../openicgc.py" line="2011"/>
         <source>The current version of QGIS does not allow filtering data from point cloud files, so data may be displayed incorrectly.</source>
         <translation>La versió actual de QGIS no permet filtrar dades de fitxers de núvols de punts, per la qual cosa les dades es poden visualitzar incorrectament.</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source> (location)</source>
         <translation> (situació)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>LiDAR color orthophoto (temporal serie)</source>
         <translation>Ortofoto color LiDAR (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] LiDAR color orthophoto</source>
         <translation>[ST] Ortofoto color LiDAR</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>LiDAR infrared orthophoto (temporal serie)</source>
         <translation>Ortofoto infraroja LiDAR (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] LiDAR infrared orthophoto</source>
         <translation>[ST] Ortofoto infraroja LiDAR</translation>
     </message>
@@ -1551,27 +1551,27 @@ Es descarregarà però no es visualitzarà</translation>
         <translation>Mapa base ortofoto híbrida</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Base maps (world-wide)</source>
         <translation>Mapes base (àmbit mundial)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Others</source>
         <translation>Altres</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Centered photogram</source>
         <translation>Fotograma central</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Centered anaglyph photogram (annual serie)</source>
         <translation>Fotograma anaglif central (sèrie anual)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2135"/>
+        <location filename="../openicgc.py" line="2139"/>
         <source>Maximum aspect ration exceeded (1:%d)</source>
         <translation>Màxima relació d&apos;aspecte sobrepassada (1:%d)</translation>
     </message>
@@ -1647,77 +1647,77 @@ Es descarregarà però no es visualitzarà</translation>
                9503802 DF2890D</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Find on point</source>
         <translation>Cercar en un punt</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1516"/>
+        <location filename="../openicgc.py" line="1517"/>
         <source>Reverse geocoding</source>
         <translation>Geocodificació inversa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="1578"/>
+        <location filename="../openicgc.py" line="1582"/>
         <source>Sites</source>
         <translation>Llocs</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Find place names and addresses</source>
         <translation>Cercar topònims i adreces</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Topographic map</source>
         <translation>Mapa topogràfic</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coastline (temporal serie)</source>
         <translation>Línia de costa (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Coastline</source>
         <translation>[ST] Línia de costa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coast orthophoto</source>
         <translation>Ortofoto de costa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coast orthophoto (temporal serie)</source>
         <translation>Ortofoto costa (sèrie temporal)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>[TS] Coast orthophoto</source>
         <translation>[ST] Ortofoto costa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Census tracts</source>
         <translation>Seccions censals</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coast</source>
         <translation>Costa</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Coastal shade</source>
         <translation>Ombrejat litoral</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="746"/>
+        <location filename="../openicgc.py" line="747"/>
         <source>Administrative divisions (vector pyramid)</source>
         <translation>Divisions administratives (Piràmide vectorial)</translation>
     </message>
     <message>
-        <location filename="../openicgc.py" line="2310"/>
+        <location filename="../openicgc.py" line="2313"/>
         <source>Your QGIS version is %s.
 
 In versions of QGIS lower than 3.28.0 qlr files may not load correctly. Affected products will be disabled.
@@ -1732,6 +1732,11 @@ En versions de QGIS inferiors a 3.10.4 els arxius http poden no carregar-se corr
 En versions de QGIS inferiors a 3.4.0 els arxius geopackage poden no carregarse-se correctament.
 
 Actualitza la teva versió de QGIS si és possible.</translation>
+    </message>
+    <message>
+        <location filename="../openicgc.py" line="554"/>
+        <source>Create site layer</source>
+        <translation>Crear capa del lloc</translation>
     </message>
 </context>
 <context>
@@ -1904,7 +1909,7 @@ tecla intro per visualitzar la foto</translation>
         <translation>Tipus de vista</translation>
     </message>
     <message>
-        <location filename="../../../lib/qlib3/photosearchselectiondialog/photosearchselectiondialog.py" line="693"/>
+        <location filename="../../../lib/qlib3/photosearchselectiondialog/photosearchselectiondialog.py" line="692"/>
         <source>Parallax: %+d%%</source>
         <translation>Paral·laxi: %+d%%</translation>
     </message>

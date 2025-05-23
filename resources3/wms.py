@@ -243,7 +243,7 @@ def get_coastlines(url="https://geoserveis.icgc.cat/servei/catalunya/linia-costa
     return url, wms_ex_list
 
 def get_coast_orthos(url="https://geoserveis.icgc.cat/servei/catalunya/orto-costa/wms",
-    reg_ex_filter=r"<Name>(orto-costa-(rgb|irc)-\d+cm-(.+))</Name>\s*<Title>Ortofotos de la costa (.+)</Title>"):
+    reg_ex_filter=r"<Name>(orto-costa-(rgb|irc)-\d+cm-(.+))</Name>\s*<Title>Ortofoto de costa - (.+)</Title>"):
     """ Obté la URL del servidor d'ortofotos de costa i la llista capes disponibles
         Retorna: URL, [(layer_id, layer_name, color_type, date_tag)]
         ---
@@ -264,7 +264,7 @@ def get_coast_orthos(url="https://geoserveis.icgc.cat/servei/catalunya/orto-cost
 
 coast_ortho_time_dict = None # Cached data
 def get_coast_ortho_ref(time_code):
-    """ Obté una capa de referència per una marca de temps         
+    """ Obté una capa de referència per una marca de temps
         ---
         Gets a reference layer for a time mark
         """

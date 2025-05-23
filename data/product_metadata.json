@@ -43,6 +43,20 @@
    },
    {
       "Producte": "Línia de costa",
+      "Cobertura": "1956/06",
+      "Carpeta": "coastline_202404_202404_temporal_nelson",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2014/01",
+      "Carpeta": "coastline_202404_202404_temporal_nelson",
+      "Formats de fitxer": "",
+      "Metadades": ""
+   },
+   {
+      "Producte": "Línia de costa",
       "Cobertura": "2015/10",
       "Carpeta": "coastline_201510_201511",
       "Formats de fitxer": "",
@@ -93,9 +107,16 @@
    {
       "Producte": "Línia de costa",
       "Cobertura": "2022/01",
-      "Carpeta": "coastline_202201_202301",
+      "Carpeta": "coastline_202404_202404_temporal_nelson",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0-202201-202301"
+      "Metadades": ""
+   },
+   {
+      "Producte": "Línia de costa",
+      "Cobertura": "2022/06 (batimetria)",
+      "Carpeta": "coastline_202404_202404_temporal_nelson",
+      "Formats de fitxer": "",
+      "Metadades": ""
    },
    {
       "Producte": "Línia de costa",
@@ -432,6 +453,13 @@
       "Carpeta": "coast_orthophoto_temporal_serie",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&type=dataset&resultType=details&sortBy=title&title=Ortofoto%20costa&from=1&to=20"
+   },
+   {
+      "Producte": "Ortofoto de costa",
+      "Cobertura": "batimetria 2022",
+      "Carpeta": "orto-costa-202206-202207-batimetrica",
+      "Formats de fitxer": "",
+      "Metadades": ""
    },
    {
       "Producte": "Ortofoto infraroja 25 cm",
