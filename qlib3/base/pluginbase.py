@@ -45,7 +45,7 @@ import unittest
 reload(unittest)
 
 from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from PyQt5.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl
+from PyQt5.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread
 from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
@@ -154,6 +154,45 @@ class WaitCursor:
         QApplication.restoreOverrideCursor()
 
 
+class AsyncWorker(QObject):
+    """ Classe per executar processos asíncronament i enviar un signal a l'acabar
+        Paràmetres:
+        - callback: procediment a executar
+        - signal: opcional, signal a emetre a l'acabar
+        - finished_callback(AsyncWorker): opcional, procediment a executar a l'acabar amb paràmetre AsyncWorker
+        ---
+        Class to execute async processes and send signal to end
+        Parameters:
+        - callback: procedure to execute
+        - signal: optional, signal to emit at end
+        - finished_callback(AsyncWorker): opcional, procedure to execute at end wiht AsyncWorker paràmeter
+        """
+    def __init__(self, callback, signal=None, finished_callback=None):
+        super().__init__()
+        # Store function and signal to call
+        self.callback = callback
+        self.signal = signal
+        self.finished_callback = finished_callback
+        # Starts a thread to run async function
+        self.thread = QThread()
+        self.moveToThread(self.thread)
+        self.thread.started.connect(self.run)
+        self.thread.start()
+
+    def run(self):
+        # Run process
+        self.callback()
+        # Execute signal
+        if self.signal:
+            self.signal.emit()
+        # Execute finish_callback with self (AsyncWorker) paràmeter
+        if self.finished_callback:
+            self.finished_callback(self)
+        # Kill thread
+        self.thread.quit()
+        self.thread = None
+
+
 class GuiBase(object):
     """ Classe per manegar les operacions GUI
         ---
@@ -164,7 +203,7 @@ class GuiBase(object):
             ---
             SubClass to creates menu items with buttons
             """
-        def __init__(self, text, icon, buttons_list, parent, icon_size=20, font_size=9):
+        def __init__(self, text, icon, buttons_list, parent, icon_size=16):
             """ Crea una entrada de menú amb text, icona i botons extra
                 buttons_list = [(name, callback, icon), ...]
                 ---
@@ -173,13 +212,17 @@ class GuiBase(object):
                 """
             super().__init__(parent)
 
+            # Set menú icon
             self.label_icon = QLabel()
             if icon:
-                self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
+                self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size))) # Factor escala aplicat (self.devicePixelRatioF())
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
 
+            # Set menu text
             self.label_text = QLabel(text)
+            self.label_text.setStyleSheet("QLabel {font-size: %spt;}" % parent.font().pointSize())
 
+            # Set menu options (buttons)
             self.push_button_list = []
             for button_text, button_callback, button_icon in buttons_list:
                 push_button = QPushButton()
@@ -192,6 +235,7 @@ class GuiBase(object):
                     push_button.released.connect(button_callback)
                 self.push_button_list.append(push_button)
 
+            # Create layout with all elements defining margin and spacing
             self.layout = QHBoxLayout(self)
             self.layout.addWidget(self.label_icon)
             self.layout.addWidget(self.label_text)
@@ -200,19 +244,17 @@ class GuiBase(object):
             self.layout.setContentsMargins(7, 3, 7, 3)
             self.layout.setSpacing(6)
 
+            # Create a new container with a new layout without margins
+            # to make a full available space selection
             self.container = QWidget()
             self.container.setLayout(self.layout)
-
             self.container_layout = QHBoxLayout(self)
             self.container_layout.setContentsMargins(0, 0, 0, 0)
             self.container_layout.addWidget(self.container)
 
+            # Assign final layout to this QWidget
             self.setLayout(self.container_layout)
-            self.setStyleSheet(
-                #"QWidget:hover {background: palette(highlight); color: white;} " \
-                "QWidget:hover {background: palette(highlight);} " \
-                "QLabel {font-size: %dpt;}" \
-                % font_size)
+            self.setStyleSheet("QWidget:hover {background: palette(highlight);}")
 
         def text(self):
             """ Retorna el text de l'element """
@@ -243,28 +285,53 @@ class GuiBase(object):
             ---
             Cleaning of GUI structures of the plugin
             """
-        # Desactiva les toolbar custom
-        self.enable_tool(None)
-        # Esborra els accions de menus i toolbars
-        for control, action in self.actions:
-            control.removeAction(action)
-        self.actions = []
         # Esborra les entrades del plugin
-        if self.action_plugin:
-            self.iface.removePluginMenu(self.action_plugin.text(), self.action_plugin)
-            self.iface.removeToolBarIcon(self.action_plugin)
+        self.remove_plugins_entry()
         # Esborrem els shortcuts
-        for description, keyseq, shortcut in self.shortcuts:
-            if shortcut:
-                shortcut.setEnabled(False)
-        self.shortcuts = []
-        # Els menús s'esborren sols quan no tenen actions
-        self.menus = []
+        self.remove_shortcuts()
+        # Esborra toolbars i menús
+        self.remove_toolbars_and_menus()
+
+    def remove_toolbars_and_menus(self):
+        """ Neteja d'estructures GUI del plugin
+            ---
+            Cleaning of GUI structures of the plugin
+            """
+        # Desactiva qualsevol eina activa
+        self.enable_tool(None)
         # Esborra les toolbars (canviem el títol per no trobar-les metres s'esborren retardadament...)
         for toolbar in self.toolbars:
             toolbar.setWindowTitle("[DELETE] %s" % toolbar.windowTitle())
             toolbar.deleteLater()
         self.toolbars = []
+        # Els menús s'esborren sols quan no tenen actions
+        self.menus = []
+        # Esborra els accions de menus i toolbars
+        for control, action in self.actions:
+            control.removeAction(action)
+        self.actions = []
+
+    def remove_shortcuts(self):
+        """ Neteja d'estructures de shortcuts del plugin
+            ---
+            Cleaning of shortcut structures of the plugin
+            """
+        # Esborrem els shortcuts
+        for description, keyseq, shortcut in self.shortcuts:
+            if shortcut:
+                shortcut.setEnabled(False)
+        self.shortcuts = []
+
+    def remove_plugins_entry(self):
+        """ Neteja l'entrada del plugin al menú de plugins de QGIS
+            ---
+            Cleaning plugin's entry on QGIS plugins menus
+            """
+        # Esborra les entrades del plugin
+        if self.action_plugin:
+            self.iface.removePluginMenu(self.action_plugin.text(), self.action_plugin)
+            self.iface.removeToolBarIcon(self.action_plugin)
+            self.action_plugin = None
 
     ###########################################################################
     # Plugins menú
@@ -1124,16 +1191,16 @@ class GuiBase(object):
             return icon
         return None
 
-    def open_file_folder(self, folder):
-        """ Obre una carpeta en el navegador d'arxius del sistema
+    def open_file_folder(self, file_or_folder):
+        """ Obre una carpeta o fitxer amb el programa associat al sistema
             ---
-            Open folder in system file explorer
+            Open folder or file with system associated application
             """
         if sys.platform == "win32":
-            os.startfile(folder)
+            os.startfile(file_or_folder)
         else:
             opener ="open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.call([opener, folder])
+            subprocess.call([opener, file_or_folder])
 
 
 class ProjectBase(object):
@@ -1930,10 +1997,14 @@ class LayersBase(object):
             with codecs.open(style_pathname, encoding='utf-8', mode='r') as fin:
                 text = fin.read()
             for old_value, new_value in sorted(replace_dict.items(), key=lambda item: len(item[0]), reverse=True):
+                initial_text = text
                 text = text.replace('"%s"' % old_value, '"%s"' % new_value)
                 text = text.replace('"&quot;%s&quot;"' % old_value, '"&quot;%s&quot;"' % new_value)
                 text = text.replace('filter="&quot;%s&quot;' % old_value, 'filter="&quot;%s&quot;' % new_value)
                 text = text.replace('(%s)' % old_value, '(%s)' % new_value)
+                # Si no hem fet cap canvi intentem fer el canvi sense cometes ni tags
+                if initial_text == text:
+                    text = text.replace(old_value, new_value)
             tmp_style_pathname = os.path.join(os.environ['temp'], os.path.basename(style_pathname))
             with codecs.open(tmp_style_pathname, encoding='utf-8', mode="w") as fout:
                 fout.write(text)
@@ -4219,7 +4290,10 @@ class LayersBase(object):
             is_question_mark = url.find("?") >= 0
             url_time = "%s%stime=%s" % (url, "%26" if is_question_mark else "?", default_time)
             if use_qgis_time_controller:
-                extra_tags = (extra_tags or "") + ("&" if extra_tags else "") + "allowTemporalUpdates=true&temporalSource=provider&type=wmst" #&timeDimensionExtent=time=2006/2024/P1Y"
+                # Doc: https://gis.stackexchange.com/questions/444332/pyqgis-selecting-wms-timestamp-in-a-standalone-script
+                extra_tags = (extra_tags or "") + ("&" if extra_tags else "") \
+                    + "allowTemporalUpdates=true&temporalSource=provider&type=wmst"
+                    #+ "&timeDimensionExtent=time=2006/2024/P1Y"
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
@@ -4241,6 +4315,8 @@ class LayersBase(object):
 
     def parse_wms_t_layer(self, layer):
         # Obté la URL base i la capa / temps de la URL d'una capa
+        if not layer or not layer.dataProvider():
+            return None, None, None
         layer_uri = urllib.parse.unquote(layer.dataProvider().dataSourceUri())
         reg_ex = r"(?:.*layers=([\w\d\-_]+))*.*url=([\w\d\-_:./=]+)(?:[\&\?]time=([\d\-/:]+))*(?:.*layers=([\w\d\-_]+))*"
         found = re.search(reg_ex, layer_uri)
@@ -4288,27 +4364,30 @@ class LayersBase(object):
 
         # Actualitzem el control temporal de QGIS per que pugui fer GetFeatureInfo amb el paràmetre TIME
         # si QGIS l'ha detectat com a capa amb capacitats temporals...
-        # Si creem i esborrem la capa molt ràpid pot petar (això passa fent tests unitaris)
-        try:
-            if layer.temporalProperties().isActive():
-                try:
-                    temporal_controller = self.iface.mapCanvas().temporalController()
-                except Exception as _e:
-                    temporal_controller = None
+        # ATENCIÓ! Si creem i esborrem la capa molt ràpid pot petar (això passa fent tests unitaris)
+        # ATENCIÓ! Sembla que només funciona a partir de QGIS v3.18 o v3.20?
+        if layer.temporalProperties().isActive():
+            if hasattr(self.iface.mapCanvas(), "temporalController"):
+                temporal_controller = self.iface.mapCanvas().temporalController() # QGIS >= v3.14
                 if temporal_controller:
-                    temporal_controller.setNavigationMode(2) # Activa la navegació
-                    temporal_controller.setAnimationState(temporal_controller.FixedRange.numerator)
+                    # Activem la navegació
+                    if hasattr(Qgis, "TemporalNavigationMode"): # QGIS >= v3.36
+                        navigation_mode = Qgis.TemporalNavigationMode.FixedRange
+                    elif hasattr(temporal_controller, "NavigationMode"): # v3.14 <= QGIS < v3.36
+                        navigation_mode = temporal_controller.NavigationMode.FixedRange
+                    else:
+                        navigation_mode = 2 # NO hauria de passar
+                    temporal_controller.setNavigationMode(navigation_mode)
                     wms_datetime = wms_datetime_to_qdatetime(wms_time)
                     temporal_controller.setTemporalExtents(QgsDateTimeRange(wms_datetime, wms_datetime))
-            # Actualitzem el pintat de la capa
-            self.update_wms_layer(layer, layer_id, wms_time)
 
-            # Canviem el nom de la capa
-            base_name = layer.name().split(' [')[0]
-            new_name = "%s [%s]" % (base_name, wms_time)
-            layer.setName(new_name)
-        except Exception as _e:
-            new_name = ""
+        # Actualitzem el pintat de la capa
+        self.update_wms_layer(layer, layer_id, wms_time)
+
+        # Canviem el nom de la capa
+        base_name = layer.name().split(' [')[0]
+        new_name = "%s [%s]" % (base_name, wms_time)
+        layer.setName(new_name)
 
         return new_name
 
@@ -5784,7 +5863,7 @@ class DebugBase(object):
         ---
         Class with debug and test functions
         """
-    def __init__(self, parent):
+    def __init__(self, parent, ini_console=True):
         """ Inicialització de variables membre apuntant al pare, a l'iface,
             inicialització de llista de timestamps i consola de QGIS
             ---
@@ -5798,7 +5877,8 @@ class DebugBase(object):
         self.ini_timestamps()
 
         # Inicialitem la consola
-        self.ini_console()
+        if ini_console:
+            self.ini_console()
 
     ###########################################################################
     # Gestió de consola QGIS
@@ -6296,7 +6376,10 @@ class ToolsBase(object):
             url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
             # Obtenim el nom de la capa actual (per wms-t fake tipus arxiu http)
             if not current_layer:
-                current_layer = layer.dataProvider().dataSourceUri()
+                if layer.dataProvider():
+                    current_layer = layer.dataProvider().dataSourceUri()
+                else:
+                    return
             # Obtenim el nom de la capa actual dins de la time serie (per wms-t fake tipus wms)
             if not current_time:
                 current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
@@ -6507,16 +6590,20 @@ class MetadataBase(object):
             """
         self.parent = parent
         self.iface = parent.iface
-
-        # Carreguem informació del metadata.txt
-        self.metadata = configparser.ConfigParser()
-        self.metadata.read(os.path.join(os.path.dirname(plugin_pathname), 'metadata.txt'), "utf8")
+        # Obtenim el path de l'arxiu de metadades però no el carreguem encara
+        self.metadata_pathname = os.path.join(os.path.dirname(plugin_pathname), 'metadata.txt')
+        self.metadata = None
 
     def get(self, option, section="general", default_value=""):
         """ Retorna una metadada del plugin especificada en el fitxer metadata.txt
             ---
             Returns a metadata value of the plugin specified in the metadata.txt file
             """
+        # Carreguem informació del metadata.txt si cal
+        if not self.metadata:
+            self.metadata = configparser.ConfigParser()
+            self.metadata.read(self.metadata_pathname, "utf8")
+        # Obtenim la informació demanada
         return self.metadata.get(section, option) if self.metadata.has_option(section, option) else default_value
 
     def get_name(self):
@@ -6776,13 +6863,12 @@ class PluginBase(QObject):
         ---
         Class to facilitate the creation of a QGIS plugin with a set of utilities included
         """
-    def __init__(self, iface, plugin_pathname):
+    def __init__(self, iface, plugin_pathname, ini_console=True):
         """ Inicialització d'informació del plugin, accés a iface i accés a classes auxiliar de gestió
             ---
             Initialization of plugin information, access to access and access to auxiliary management classes
             """
         super().__init__()
-
         self.plugin_pathname = os.path.abspath(plugin_pathname)
         self.plugin_path = os.path.dirname(self.plugin_pathname)
         self.plugin_id = os.path.basename(self.plugin_path)
@@ -6796,11 +6882,13 @@ class PluginBase(QObject):
         self.legend = LegendBase(self)
         self.composer = ComposerBase(self)
         self.crs = CrsToolsBase(self)
-        self.debug = DebugBase(self)
+        self.debug = DebugBase(self, ini_console)
         self.tools = ToolsBase(self)
         self.metadata = MetadataBase(self, plugin_pathname)
         self.translation = TranslationBase(self)
         self.log = PluginLogger(self)
+
+        self.worker_list = [] # List of async processes runned
 
         self.about_dlg = None
 
@@ -6826,6 +6914,7 @@ class PluginBase(QObject):
         self.about_dlg = None
         self.log.remove()
         self.log = None
+        self.worker_list = []
 
     def get_plugins_id(self):
         """ Retorna una llista amb els ids dels plugins carregats
@@ -7130,3 +7219,12 @@ class PluginBase(QObject):
             Returns: bool, True if ok else False
             """
         return QFontDatabase.removeApplicationFont(font_id)
+
+    def run_async(self, callback, signal=None):
+        """ Executa un procés de manera asíncrona i opcionalment emet un signal
+            ---
+            Execute a process asynchronously and optionally send a signal
+            """
+        # Execute callback asynchronously and at end emit signal and remove
+        # worker from worker_list
+        self.worker_list.append(AsyncWorker(callback, signal, self.worker_list.remove))

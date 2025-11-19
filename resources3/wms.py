@@ -60,7 +60,7 @@ def get_wms_capabilities_info(url, reg_ex_filter):
     log.debug("WMS resources info URL: %s pattern: %s found: %s (%s)", url, reg_ex_filter, len(data_list), t1-t0)
     return data_list
 
-def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+def get_full_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
     reg_ex_filter=r"<Name>(.+)</Name>\s+<Title>(.+)</Title>"):
     """ Obté la URL del servidor d'ortofotos històriques de l'ICGC i la llista de capes disponibles (per rang d'anys)
         Retorna: URL, [(layer_id, layer_name, ortho_type, color_type, year_range)]
@@ -70,7 +70,7 @@ def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territo
         Gets the URL of the ICGC historical orthophotos server and the list of available layers (by annual ranges)
         Returns: URL, [(layer_id, layer_name, ortho_type, color_type,  year)]
         ortho_type: "ortoxpres" | "ortofoto" | "superexpedita"
-        olor_type: "rgb" | "ir" | "bw"
+        color_type: "rgb" | "ir" | "bw"
         """
     # Recuperem les capes històriques
     wms_list = get_wms_capabilities_info(url, reg_ex_filter)
@@ -89,6 +89,33 @@ def get_full_ortho(url="http://geoserveis.icgc.cat/servei/catalunya/orto-territo
 
     # Ordenem per any
     wms_ex_list.sort(key=lambda p: int(p[4].split("-")[0]), reverse=False)
+
+    return url, wms_ex_list
+
+def get_full_local_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
+    reg_ex_filter=r"<Name>(.+)</Name>\s+<Title>(.+)</Title>"):
+    """ Obté la URL del servidor d'ortofotos històriques locals de l'ICGC i la llista de capes disponibles (per rang d'anys)
+        Retorna: URL, [(layer_id, layer_name, color_type, year_range)]
+        color_type: "rgb"|"ir"|"bw"
+        ---
+        Gets the URL of the ICGC historical local orthophotos server and the list of available layers (by annual ranges)
+        Returns: URL, [(layer_id, layer_name, color_type, year)]
+        color_type: "rgb" | "ir" | "bw"
+        """
+    # Recuperem les capes històriques
+    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+
+    # Afegim escala i any com a llista
+    wms_ex_list = [(
+        layer_id,
+        layer_name,
+        ("irc" if layer_id.lower().find("irc") >= 0 else "rgb" if layer_id.lower().find("rgb") >= 0 else ""),
+        (re.findall(r"-(\d{4})$", layer_id) + [None])[0]
+        ) for layer_id, layer_name in wms_list
+        if re.findall(r"^(orto-local)-((rgb)|(irc))-(\d+)", layer_id)]
+
+    # Ordenem per any
+    wms_ex_list.sort(key=lambda p: int(p[3]), reverse=False)
 
     return url, wms_ex_list
 

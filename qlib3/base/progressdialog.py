@@ -159,14 +159,18 @@ class ProgressDialog(object):
             ---
             Specify the passos name of the progress bar
             """
-        self.dlg.setMaximum(num_steps)
+        INT_MAX = 2147483647 # 2 ** 31 - 1 -> 2 ** (struct.Struct("i").size * 8 - 1) - 1
+        self.dlg.setMaximum(min(max(0, num_steps), INT_MAX))
 
     def set_value(self, value):
         """ Especifica la posició actual de progress bar
             ---
             Specify the current position of progress bar
             """
-        self.dlg.setValue(value)
+        INT_MAX = 2147483647 # 2 ** 31 - 1 -> 2 ** (struct.Struct("i").size * 8 - 1) - 1
+        new_value = min(max(0, value), self.dlg.maximum()) if value <= INT_MAX else (value - INT_MAX)
+        self.dlg.setValue(new_value)
+        # Actualitzem el temps
         self.update_time()
         self.app.processEvents()
         # Quan es tanca sol el diàleg de progress ens podem deixar el programa bloquejat, això ho evitarà

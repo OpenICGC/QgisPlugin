@@ -4,28 +4,35 @@
       "Cobertura": "2021-2024",
       "Carpeta": "Bathymetric chart 2021-2024",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/batimetria-v2r0-2021-2024"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?title=batimetria%202021-2024&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Cartografia topogràfica 1:1.000",
       "Cobertura": "Vigent",
       "Carpeta": "Topographic cartography 1:1,000",
       "Formats de fitxer": "shz/zip",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia%201000&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%20(ICGC)&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title&sortOrder=reverse"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState%26denominator%2F1000%26orgName%2FInstitut%2520Cartogr%25C3%25A0fic%2520i%2520Geol%25C3%25B2gic%2520de%2520Catalunya%26format%2FDGN&resultType=details&sortBy=changeDate&fast=index&_content_type=json&from=1&to=100"
    },
    {
       "Producte": "Divisions administratives",
       "Cobertura": "Vigent",
       "Carpeta": "Administrative divisions",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=divisions%20administratives&sortBy=title"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?title=Divisions%20administratives&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&facet.q=category%2FrccState"
+   },
+   {
+      "Producte": "Entitats municipals descentralitzades",
+      "Cobertura": "Vigent",
+      "Carpeta": "Decentralized municipal entities",
+      "Formats de fitxer": "gpkg",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&_content_type=json&title=Entitats%20municipals%20descentralitzades&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Lidar territorial",
-      "Cobertura": "v3 (2021-2023)",
+      "Cobertura": "Vigent",
       "Carpeta": "Territorial Lidar",
       "Formats de fitxer": "laz",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/lidar-territorial-v3r0-2021-2023"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?_uuid=lidar-territorial-v3r1-2021-2023%20or%20lidar-territorial-v3r0-2021-2023&from=1&to=20"
    },
    {
       "Producte": "Lidar territorial",
@@ -151,7 +158,7 @@
       "Cobertura": "Sèrie temporal",
       "Carpeta": "coastline_temporal_serie",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&type=dataset&resultType=details&sortBy=title&title=Linia%20costa&from=1&to=20"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=format%2FSHP&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=L%C3%ADnia%20de%20costa&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
@@ -165,10 +172,10 @@
       "Cobertura": "Vigent",
       "Carpeta": "Land cover map",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=cobertes%20sol&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%26category%2FrccState&sortBy=title"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&fast=index&_content_type=json&from=1&to=20&title=cobertes%20sol&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
-      "Producte": "Mapa geològic 1:25.000",
+      "Producte": "Mapa geològic 1:25.000 (GT1)",
       "Cobertura": "Vigent",
       "Carpeta": "Geological map 1:25,000 (GT I)",
       "Formats de fitxer": "",
@@ -196,6 +203,13 @@
       "Metadades": ""
    },
    {
+      "Producte": "Mapa geològic 1:50.000",
+      "Cobertura": "v3.0",
+      "Carpeta": "Geological map 1:50,000",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/geologia-territorial-50000-geologic-v3r0-202412"
+   },
+   {
       "Producte": "Mapa per a la prevenció dels riscos geològics 1:25.000 (GT6)",
       "Cobertura": "Vigent",
       "Carpeta": "Geological map for the prevention of geological hazards 1:25,000 (GT VI)",
@@ -207,7 +221,7 @@
       "Cobertura": "Vigent",
       "Carpeta": "Topographic map 1:1,000,000",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia-1000000-v2r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=denominator%2F1000000&resultType=details&sortBy=changeDate&_content_type=json&title=Mapa%20topogr%C3%A0fic%201:1%20000%20000&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Mapa topogràfic 1:100.000",
@@ -231,11 +245,11 @@
       "Metadades": ""
    },
    {
-      "Producte": "Mapa topogràfic 1:250.000",
+      "Producte": "Mapa topogràfic 1:250 000",
       "Cobertura": "Vigent",
       "Carpeta": "Topographic map 1:250,000",
       "Formats de fitxer": "gtiff",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=topografia-250000-v2r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&sortBy=title"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2Fdatasets&resultType=details&sortBy=changeDate&_content_type=json&title=Mapa%20topogr%C3%A0fic%201:250%20000&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Mapa topogràfic 1:50.000",
@@ -256,14 +270,14 @@
       "Cobertura": "Vigent",
       "Carpeta": "Digital Terrain Model 2m 2008-2011",
       "Formats de fitxer": "gtiff",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/model-digital-terreny-2x2-201605"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Model%20d'Elevacions%20del%20Terreny%20de%20Catalunya%202x2&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Model d'elevacions del terreny 5x5m (MET5)",
       "Cobertura": "Vigent",
       "Carpeta": "Digital Terrain Model 5m 2020",
       "Formats de fitxer": "gtiff",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/model-digital-terreny-5x5-v1r0"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&any=model-digital-terreny-5x5"
    },
    {
       "Producte": "Model d’elevacions de la franja litoral",
@@ -345,7 +359,7 @@
    {
       "Producte": "Ortofoto de costa",
       "Cobertura": "2017-02",
-      "Carpeta": "coast-orthophoto-201702-201702",
+      "Carpeta": "coast-orthophoto-201702-201703",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0-201702-201702"
    },
@@ -457,9 +471,9 @@
    {
       "Producte": "Ortofoto de costa",
       "Cobertura": "batimetria 2022",
-      "Carpeta": "orto-costa-202206-202207-batimetrica",
+      "Carpeta": "coast-orthophoto-202206-202207-batimetria",
       "Formats de fitxer": "",
-      "Metadades": ""
+      "Metadades": "https://catalegs.ide.cat/geonetwork/geonetwork/api/records/orto-costa-v1r0-202206-batimetria"
    },
    {
       "Producte": "Ortofoto infraroja 25 cm",
@@ -481,6 +495,34 @@
       "Carpeta": "Ortofoto infraroja 50cm 1:5.000",
       "Formats de fitxer": "gtiff",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortofoto-50cm-v7r0-infraroja"
+   },
+   {
+      "Producte": "Ortofoto local",
+      "Cobertura": "Sèrie temporal color",
+      "Carpeta": "Color local orthophoto (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-local-v2r0"
+   },
+   {
+      "Producte": "Ortofoto local",
+      "Cobertura": "Sèrie temporal infraroja",
+      "Carpeta": "Infrared local orthophoto (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-local-v2r0"
+   },
+   {
+      "Producte": "Ortofoto local",
+      "Cobertura": "Vigent color",
+      "Carpeta": "Color local orthophoto",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-local-v2r0"
+   },
+   {
+      "Producte": "Ortofoto local",
+      "Cobertura": "Vigent infraroja",
+      "Carpeta": "Infrared local orthophoto",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-local-v2r0"
    },
    {
       "Producte": "Ortofoto territorial",
@@ -512,17 +554,17 @@
    },
    {
       "Producte": "Ortoimatge de satèl·lit Sentinel-2 mensual 10 m",
-      "Cobertura": "Sèrie mensual IRC",
+      "Cobertura": "Sèrie temporal IRC 8 bits",
       "Carpeta": "Satellite infrared orthophoto (monthly serie)",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortoimatge-sentinel2-mensual-v1r0"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?_uuid=ortoimatge-sentinel2-mensual-v1r0%20or%20ortoimatge-sentinel2-mensual-v2r0&sortBy=title"
    },
    {
       "Producte": "Ortoimatge de satèl·lit Sentinel-2 mensual 10 m",
-      "Cobertura": "Sèrie mensual RGB",
+      "Cobertura": "Sèrie temporal RGB 8 bits",
       "Carpeta": "Satellite color orthophoto (monthly serie)",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/ortoimatge-sentinel2-mensual-v1r0"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?_uuid=ortoimatge-sentinel2-mensual-v1r0%20or%20ortoimatge-sentinel2-mensual-v2r0&sortBy=title"
    },
    {
       "Producte": "Piràmide del mapa topogràfic",
@@ -536,7 +578,14 @@
       "Cobertura": "Vigent",
       "Carpeta": "UTM (MGRS) grids",
       "Formats de fitxer": "shz/zip",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=quadricules%20utm&sortBy=title"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&_content_type=json&title=Quadr%C3%ADcules%20UTM&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
+   },
+   {
+      "Producte": "Referencial topogràfic local",
+      "Cobertura": "Vigent",
+      "Carpeta": "Local topographic referential",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-local-v1r0"
    },
    {
       "Producte": "Referencial topogràfic territorial",
@@ -575,17 +624,24 @@
    },
    {
       "Producte": "Referencial topogràfic territorial",
+      "Cobertura": "2023",
+      "Carpeta": "Territorial topographic referential 2023 (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/topografia-territorial-v1r0-2023"
+   },
+   {
+      "Producte": "Referencial topogràfic territorial",
       "Cobertura": "Vigent",
       "Carpeta": "Territorial topographic referential",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&title=referencial%20topografic%20territorial&facet.q=category%2FrccState"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&_content_type=json&title=Referencial%20topogr%C3%A0fic%20territorial&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Seccions censals",
       "Cobertura": "Vigent",
       "Carpeta": "Census tracts",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?type=dataset&any=seccions-censals-v1r0&facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya%26category%2FrccState"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Seccions%20Censals&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Talls ETRS89",
@@ -593,5 +649,12 @@
       "Carpeta": "Cartographic series",
       "Formats de fitxer": "",
       "Metadades": ""
+   },
+   {
+      "Producte": "Àrees de poblament",
+      "Cobertura": "Vigent",
+      "Carpeta": "Population zones",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&_content_type=json&title=%C3%80rees%20de%20poblament&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    }
 ]

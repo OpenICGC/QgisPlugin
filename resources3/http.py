@@ -19,7 +19,6 @@ import os
 import datetime
 from importlib import reload
 
-
 # Configure internal library logger (Default is dummy logger)
 import logging
 reload(logging)
@@ -27,7 +26,7 @@ log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
 
-# Obtenim el path dels arxius d'estil
+# Gets style files path
 styles_path = os.path.join(os.path.dirname(__file__), "symbols")
 
 
@@ -137,7 +136,19 @@ def get_dtms(urlbase_list=[
         Returns: [(dtm_name, dtm_url)]
         """
     # ATENCIÓ!!! El MET 2m encara que posi al fitxer 2020 és del 2008-2011 per això està fixat!
-    return get_products(urlbase_list)
+    # Donat que no es pot obtenir la data del nom de fitxer... FIXO els paths!
+    # return get_products(urlbase_list)
+
+    # ATENCIÓ! la carpeta vigent està tancada i no puc accedir!
+    # return [
+    #     ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/vigent/mosaic/met2_catalunya.tif"),
+    #     ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/vigent/mosaic/met5_catalunya.tif"),
+    # ]
+
+    return [
+        ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic/met2_catalunya_2020.tif"),
+        ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic/met5_catalunya_2020.tif"),
+    ]
 
 coastline_list = None # Cached data
 def get_coastlines(urlbase_list = [
@@ -301,9 +312,17 @@ def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-t
         """
     # If we have a cached result, we return it
     global historic_ortho_dict
-    if historic_ortho_dict:
-        return historic_ortho_dict
+    if not historic_ortho_dict:
+        historic_ortho_dict = get_historic_dict(urlbase, file_pattern, [0.25, 0.5, 2.5])
+    return historic_ortho_dict
 
+def get_historic_dict(urlbase, file_pattern, default_gsd_list=[]):
+    """ Obté un diccionari amb les dades históriques disponibles per descarregar:
+        Retorna dict[color_not_irc][gsd][year] = (filename, source_gsd)
+        ----
+        Gets historical data dictionary available to download
+        Returns dict[color_not_irc][gsd][year] = (filename, source_gsd)
+        """
     def add_data(data_dict, color_not_irc, gsd, year, filename, source_gsd):
         if color_not_irc not in data_dict:
             data_dict[color_not_irc] = {}
@@ -318,27 +337,26 @@ def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-t
         source_gsd = data_dict[color_not_irc][gsd][year][1] # Tuple (filename, source_gsd)
         return source_gsd
 
-    data_dict = {}
-    default_gsd_list = [0.25, 0.5, 2.5]
+    historic_dict = {}
     files_list = get_http_files(urlbase, file_pattern)
     for filename, color_type, gsd_text, gsd_units, name, year_text in files_list:
         color_not_irc = color_type.lower() != "irc"
         gsd = float(gsd_text) if gsd_text.isdigit() else None
         if gsd_units.lower() == "cm":
             gsd /= 100
-        year = int(year_text) if year_text.isdigit else None
+        year = int(year_text) if year_text.isdigit() else None
         url_filename = urlbase + "/" + filename
 
         # Adds current resolution
-        add_data(data_dict, color_not_irc, gsd, year, url_filename, gsd)
+        add_data(historic_dict, color_not_irc, gsd, year, url_filename, gsd)
         # Adds default resolutions if not exist default resolution or previous source gsd is worse
         for default_gsd in default_gsd_list:
             if gsd < default_gsd:
-                source_gsd = get_source_gsd(data_dict, color_not_irc, default_gsd, year)
+                source_gsd = get_source_gsd(historic_dict, color_not_irc, default_gsd, year)
                 if not source_gsd or abs(gsd - default_gsd) < abs(source_gsd - default_gsd):
-                    add_data(data_dict, color_not_irc, default_gsd, year, url_filename, gsd)
+                    add_data(historic_dict, color_not_irc, default_gsd, year, url_filename, gsd)
 
-    return data_dict
+    return historic_dict
 
 def get_historic_ortho_years(rgb_not_irc, gsd):
     """ Obté els anys disponibles per un tipus d'orto (RGB/IRC) i GSD
@@ -385,21 +403,78 @@ def get_historic_ortho_ref(rgb_not_irc, gsd, year):
         """
     return get_historic_ortho_file(rgb_not_irc, gsd, year)
 
-def get_lidar_ortho(rgb_not_irc,
-    urlbase="https://datacloud.icgc.cat/datacloud/lidar-territorial/orto-gpkg_unzip",
-    http_rgb_file_pattern=r'(lidar-territorial-v\d+r\d+-ortofoto-rgb-\d+cm-([\d-]+)\.gpkg)',
-    http_irc_file_pattern=r'(lidar-territorial-v\d+r\d+-ortofoto-irc-\d+cm-([\d-]+)\.gpkg)'):
+historic_local_ortho_dict = None # Result cache
+def get_historic_local_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-local/json_unzip", \
+        file_pattern=r"(orto-local-(rgb|irc)-(\d+)(cm)-()(\d{4})\.json)"):
+    """ Obté un diccionari amb les ortofotos históriques locals disponibles per descarregar:
+        Retorna dict[color_not_irc][gsd][year] = (filename, source_gsd)
+        ----
+        Gets historic local orthophotos dictionary available to download
+        Returns dict[color_not_irc][gsd][year] = (filename, source_gsd)
+        """
+    # If we have a cached result, we return it
+    global historic_local_ortho_dict
+    if not historic_local_ortho_dict:
+        historic_local_ortho_dict = get_historic_dict(urlbase, file_pattern, [])
+    return historic_local_ortho_dict
+
+def get_historic_local_ortho_years(rgb_not_irc, gsd):
+    """ Obté els anys disponibles per un tipus d'orto (RGB/IRC) i GSD
+        ---
+        Gets available years associated to orthophot/color/gsd
+        """
+    gsd_dict = get_historic_local_ortho_dict().get(rgb_not_irc)
+    if not gsd_dict:
+        return []
+    years_dict = gsd_dict.get(gsd, None)
+    if not years_dict:
+        return []
+    return list(years_dict.keys())
+
+def get_historic_local_ortho_ref(rgb_not_irc, gsd, year):
+    """ Obté l'arxiu de referència associat a una ortofoto/color/resolució/any
+        ---
+        Gets referece file associated to orthophoto/color/resolution/year
+        """
+    return get_historic_local_ortho_file(rgb_not_irc, gsd, year)
+
+def get_historic_local_ortho_file(rgb_not_irc, gsd, year):
+    """ Obté el fitxer associat a una ortofoto/color/resolució/any
+        ---
+        Gets file associated to orthophoto/color/resolution/year
+
+        """
+    gsd_dict = get_historic_local_ortho_dict().get(rgb_not_irc, None)
+    if not gsd_dict:
+        return None
+    years_dict = gsd_dict.get(gsd, None)
+    if not years_dict:
+        return None
+    filename_and_source_gsd = years_dict.get(year, None) # Tuple (filename, source_gsd)
+    return filename_and_source_gsd[0] if filename_and_source_gsd else None
+
+def get_historic_local_ortho_code(rgb_not_irc, gsd, year):
+    """ Obté el codi de descàrrega FME associat a una ortofoto/color/resolució/any
+        ---
+        Gest FME download code associated to orthophoto/color/resolution/year
+        """
+    filename = get_historic_local_ortho_file(rgb_not_irc, gsd, year)
+    if filename:
+        filename = os.path.splitext(os.path.basename(filename))[0].replace("orto-local-", "")
+    return filename
+
+def get_lidar_ortho(urlbase="https://datacloud.icgc.cat/datacloud/lidar-territorial/orto-gpkg_unzip",
+    http_file_pattern=r'(lidar-territorial-v\d+r\d+-ortofoto-(rgb|irc)-\d+cm-([\d-]+)\.gpkg)'):
     """ Obté les URLs dels arxius ortofoto LiDAR disponibles de l'ICGC
-        Retorna: [(year, ortho_url)]
+        Retorna: [(year, ortho_url, <rgb|irc>)]
         ---
         Gets ICGC's available orthophoto LiDAR file urls
-        Returns: [(year, ortho_url)]
+        Returns: [(year, ortho_url, <rgb|irc>)]
         """
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
     # Cerquem links a arxius json
-    http_file_pattern = http_rgb_file_pattern if rgb_not_irc else http_irc_file_pattern
     info_list = get_http_files(urlbase, http_file_pattern)
-    file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
+    file_tuple_list = [(year, "%s/%s" % (urlbase, filename), color.lower()) for filename, color, year in info_list]
     file_tuple_list.sort(key=lambda f : f[0]) # Ordenem per any
     return file_tuple_list
 
@@ -415,3 +490,33 @@ def get_census_tracts(urlbase="https://datacloud.icgc.cat/datacloud/bseccen_etrs
         styles_path, # Variable global
         "bseccen.qml")
     return url, style_file
+
+def get_decentralized_municipal_entities(urlbase="https://datacloud.icgc.cat/datacloud/entitats-municipals-descentralitzades/vigent/gpkg_unzip"):
+    """ Obté la URL del producte vigent unitats municipals descentralitzades
+        Retorna: url
+        ---
+        Gets ICGC's available decentralized municipal entities product URL
+        Returns: url
+    """
+    url = urlbase + "/" + "entitats-municipals-descentralitzades.gpkg|layername=entitats-municipals-descentralitzades"
+    return url
+
+def get_bathimetric_elevations(urlbase="https://datacloud.icgc.cat/datacloud/batimetria/vigent/tif_unzip"):
+    """ Obté la URL del producte elevacions batimètriques
+        Retorna: url
+        ---
+        Gets ICGC's available bathimetric elevations product URL
+        Returns: url
+    """
+    url = urlbase + "/" + "batimetria-elevacions.tif"
+    return url
+
+def get_population_zones(urlbase="https://datacloud.icgc.cat/datacloud/arees-poblament/vigent/gpkg_unzip"):
+    """ Obté la URL del producte àrees de població
+        Retorna: url
+        ---
+        Gets ICGC's population zones product URL
+        Returns: url
+    """
+    url = urlbase + "/" + "arees-poblament.gpkg|layername=arees-poblament"
+    return url

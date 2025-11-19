@@ -43,12 +43,12 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
             - parent: Especifica la finestra pare del diàleg
             ---
             Initialization of the "about" dialog, you need to report:
-             - title: Title of the dialog
-             - layer: layer to modify
-             - time_series_list: List of available dates
-             Optionally:
-             - autoshow: Show the dialog automatically when you create it
-             - parent: Specifies the parent window of the dialog
+             - title: Title of the dialog
+             - layer: layer to modify
+             - time_series_list: List of available dates
+            Optionally:
+             - autoshow: Show the dialog automatically when you create it
+             - parent: Specifies the parent window of the dialog
             """
         super().__init__(parent)
         self.setupUi(self)

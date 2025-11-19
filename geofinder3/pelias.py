@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import requests
+from urllib.request import urlopen, Request
+import json
 
 
 class PeliasClient:
@@ -49,9 +50,12 @@ class PeliasClient:
         # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
             "&".join([f"{key}={value}" for key, value in params_dict.items() if value is not None])
-        response = requests.get(self.last_request, verify=False, timeout=self.timeout) # Segons
-        json = response.json()
-        return json
+        try:
+            response = urlopen(self.last_request, timeout=self.timeout)
+            response_json = json.loads(response.read())
+        except Exception as e:
+            response_json = None
+        return response_json
 
     # def validate_location(self, json):
     #     """ Validate existence of location data in json """

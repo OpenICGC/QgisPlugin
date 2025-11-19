@@ -3,7 +3,7 @@
 *******************************************************************************
 Mòdul amb funcions i classes fer gestionar diàlegs amb progress o working bars
 ---
-Module with functions and classes to manage dialogs with progress or working 
+Module with functions and classes to manage dialogs with progress or working
 bars
                              -------------------
         begin                : 2019-01-18
@@ -31,9 +31,9 @@ class DownloadManager(object):
         """
 
     def __init__(self):
-        """ Inicialització del gestor de descàrregues i diccionari de peticions 
+        """ Inicialització del gestor de descàrregues i diccionari de peticions
             ---
-            Initializatoin of download manager and request dictionary 
+            Initialization of download manager and request dictionary
             """
         self.manager = QtNetwork.QNetworkAccessManager()
         self.manager.finished.connect(self.__download_finished__)
@@ -63,12 +63,12 @@ class DownloadManager(object):
         local_file = open(local_pathname, "wb+")
         progress = ProgressDialog(os.path.basename(local_pathname), 0, title=title, cancel_button_text=cancel_button_text, time_info=time_info)
         self.queries_dict[remote_file] = [None, progress, local_file, callback, True, None, None] # 4:running, 5:status_ok, 6:error_msg
-        
+
         # Realitzem la petició de descàrraga al servidor
         reply = self.manager.get(QtNetwork.QNetworkRequest(QUrl(remote_file)))
         reply.readyRead.connect(lambda:self.__download_ready__(reply, local_file))
         reply.downloadProgress.connect(lambda read, total, progress=progress: self.__download_progress__(read, total, progress))
-        
+
         # Guardem la petició de descàrrega al diccionari de gestió de descàrregues
         self.queries_dict[remote_file][0] = reply
         # Inicialitzem el refresc del temps de les progressbar
@@ -88,7 +88,7 @@ class DownloadManager(object):
                 raise Exception(error_msg)
 
     def __download_ready__(self, reply, local_file):
-        """ Event de dades disponibles que llegeix i escriu les dades en el fitxer de sortida             
+        """ Event de dades disponibles que llegeix i escriu les dades en el fitxer de sortida
             ---
             Data ready event that read and write data in output file
             """
@@ -101,12 +101,12 @@ class DownloadManager(object):
             ---
             Read event that update progress bar
             """
-        ##print("%s / %s" % (read, total))
-        progress.set_steps(max(0, total))
-        progress.set_value(max(0, read))
+        #print("%s / %s" % (read, total))
+        progress.set_steps(total)
+        progress.set_value(read)
 
     def __download_finished__(self, reply, debug=True):
-        """ Event de descàrrega finalitzada, que allibera recursos 
+        """ Event de descàrrega finalitzada, que allibera recursos
             ---
             Download finished event that free resources
             """
@@ -115,8 +115,8 @@ class DownloadManager(object):
         _reply, progress, local_file, callback, running, status_ok, error_msg = self.queries_dict[download_key]
         filename = local_file.name
         status_ok = (reply.error() == QtNetwork.QNetworkReply.NoError)
-        
-        # Alliberem recursos        
+
+        # Alliberem recursos
         local_file.close()
         progress.close()
         self.check_stop_timer()
@@ -174,7 +174,7 @@ class DownloadManager(object):
         self.queries_dict.pop(remote_file)
 
     def clean_history(self):
-        """ Esborra els fitxers descarregats del diccionari intern 
+        """ Esborra els fitxers descarregats del diccionari intern
             ---
             Remove finished downloads from internal dictionary
             """
