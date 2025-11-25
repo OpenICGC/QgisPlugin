@@ -3900,7 +3900,7 @@ class LayersBase(object):
         collapsed_parent_group = parent_group and not parent_group.isExpanded()
 
         # Detectem arxius zip per tractar-los con la càrrega de N arxius
-        filename, ext = os.path.splitext(os.path.basename(pathname.lower()))
+        filename, ext = os.path.splitext(os.path.basename(pathname))
         is_zipped_file = ext == ".zip"
         is_geopackage_file = ext == ".gpkg"
         is_flatgeobuf_file = ext == ".fgb"

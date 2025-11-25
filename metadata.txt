@@ -32,6 +32,7 @@ version=1.1.28
 changelog=v1.1.28 (2025-11-25)
 	- Modified grouping of products in the menus
 	- Fixed issue searching place names and addresses
+	- Fixed issue downloading products with filenames in uppercase
 
 	v1.1.27 (2025-11-19)
 	- Added new products: territorial geology 50,000, local orthophoto, local topography, populated areas and decentralized municipal entities

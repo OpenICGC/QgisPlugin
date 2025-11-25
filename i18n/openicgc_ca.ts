@@ -6,7 +6,7 @@
     <message>
         <location filename="../../../lib/qlib3/downloaddialog/downloaddialog.py" line="54"/>
         <source>Select the type of download and then use the download tool to mark a point or area of interest, enter a rectangle coordinates or select a polygons layer</source>
-        <translation>Selecciona el tipus de descàrrega i a continuació utilitza l&apos;eina de descàrrega per marcar un punt o àrea d&apos;interès, indrodueix les coordenades d&apos;un rectàngle o selecciona una capa de polígons</translation>
+        <translation>Selecciona el tipus de descàrrega i a continuació utilitza l'eina de descàrrega per marcar un punt o àrea d'interès, indrodueix les coordenades d'un rectàngle o selecciona una capa de polígons</translation>
     </message>
     <message>
         <location filename="../../../lib/qlib3/downloaddialog/downloaddialog.py" line="56"/>
@@ -194,7 +194,7 @@
     <message>
         <location filename="../openicgc.py" line="2448"/>
         <source>Error downloading file or selection is out of reference area</source>
-        <translation>Error descarregant el fitxer o la selecció està fora de l&apos;àrea de referència</translation>
+        <translation>Error descarregant el fitxer o la selecció està fora de l'àrea de referència</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="1988"/>
@@ -222,7 +222,7 @@ Rectangle:
 
 Carpeta de descàrregues:
    %s
-Nom d&apos;arxiu (%s):</translation>
+Nom d'arxiu (%s):</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2328"/>
@@ -245,7 +245,7 @@ Municipi:
 
 Carpeta de descàrregues:
    %s
-Nom d&apos;arxiu (%s):</translation>
+Nom d'arxiu (%s):</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2330"/>
@@ -268,7 +268,7 @@ Comarca:
 
 Carpeta de descàrregues:
    %s
-Nom d&apos;arxiu (%s):</translation>
+Nom d'arxiu (%s):</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="621"/>
@@ -370,12 +370,12 @@ Productes descarregables:
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Open ICGC Toolbar</source>
-        <translation>Barra d&apos;eines d&apos;Open ICGC</translation>
+        <translation>Barra d'eines d'Open ICGC</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2773"/>
         <source>Height highlighting</source>
-        <translation>Ressaltat d&apos;alçades</translation>
+        <translation>Ressaltat d'alçades</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -402,7 +402,7 @@ Productes descarregables:
     <message>
         <location filename="../openicgc.py" line="2773"/>
         <source>You can modify the brightness of the &quot;Height hightlghting&quot; layer to adjust the display to your background layer</source>
-        <translation>Pots modificar la brillantor de la capa &quot;Ressaltat d&apos;alçades&quot; per ajustar la visualització a la teva capa de fons</translation>
+        <translation>Pots modificar la brillantor de la capa &quot;Ressaltat d'alçades&quot; per ajustar la visualització a la teva capa de fons</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -427,7 +427,7 @@ Productes descarregables:
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Send us an email</source>
-        <translation>Envia&apos;ns un email</translation>
+        <translation>Envia'ns un email</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2129"/>
@@ -446,7 +446,7 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Cartographic and Geological Institute of Catalonia web</source>
-        <translation>Web de l&apos;Institut Cartogràfic i Geològic de Catalunya</translation>
+        <translation>Web de l'Institut Cartogràfic i Geològic de Catalunya</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="421"/>
@@ -506,12 +506,12 @@ Vols canviar el sistema de coordenades del projecte a EPSG 25831?</translation>
     <message>
         <location filename="../openicgc.py" line="482"/>
         <source>Digital terrain model 2m 2008-2011</source>
-        <translation>Model d&apos;elevacions del terreny 2m 2008-2011</translation>
+        <translation>Model d'elevacions del terreny 2m 2008-2011</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="483"/>
         <source>Digital terrain model 5m 2020</source>
-        <translation>Model d&apos;elevacions del terreny 5m 2020</translation>
+        <translation>Model d'elevacions del terreny 5m 2020</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -618,17 +618,17 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
     <message>
         <location filename="../openicgc.py" line="2666"/>
         <source>The selected area is outside Catalonia</source>
-        <translation>L&apos;àrea seleccionada és fora de Catalunya</translation>
+        <translation>L'àrea seleccionada és fora de Catalunya</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2963"/>
         <source>You must select a DTM layer</source>
-        <translation>S&apos;ha de seleccionar una capa de MET</translation>
+        <translation>S'ha de seleccionar una capa de MET</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2969"/>
         <source>You can modify the angle of the sun in the layer simbology</source>
-        <translation>Es pot modificar l&apos;angle del sol en la simbologia de la capa</translation>
+        <translation>Es pot modificar l'angle del sol en la simbologia de la capa</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -688,7 +688,7 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
     <message>
         <location filename="../openicgc.py" line="2514"/>
         <source>The download file could not be opened</source>
-        <translation>No s&apos;ha pogut obrir l&apos;arxiu descarregat</translation>
+        <translation>No s'ha pogut obrir l'arxiu descarregat</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2317"/>
@@ -775,27 +775,27 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
     <message>
         <location filename="../openicgc.py" line="3112"/>
         <source>Image filename</source>
-        <translation>Arxiu d&apos;imatge</translation>
+        <translation>Arxiu d'imatge</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3112"/>
         <source>Image width</source>
-        <translation>Amplada d&apos;imatge</translation>
+        <translation>Amplada d'imatge</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3112"/>
         <source>Image height</source>
-        <translation>Alçada d&apos;imatge</translation>
+        <translation>Alçada d'imatge</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3112"/>
         <source>Image channels</source>
-        <translation>Canals d&apos;imatge</translation>
+        <translation>Canals d'imatge</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3112"/>
         <source>Image bits PPC</source>
-        <translation>Bits PPC d&apos;imatge</translation>
+        <translation>Bits PPC d'imatge</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3112"/>
@@ -920,7 +920,7 @@ Vols intentar obrir el fitxer descarregat amb un visor extern?</translation>
     <message>
         <location filename="../openicgc.py" line="622"/>
         <source>Area coordinates</source>
-        <translation>Coordenades de l&apos;àrea</translation>
+        <translation>Coordenades de l'àrea</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2525"/>
@@ -965,7 +965,7 @@ Filename (%s):</source>
 
 Carpeta de descàrregues:
    %s
-Nom d&apos;arxiu (%s):</translation>
+Nom d'arxiu (%s):</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2569"/>
@@ -985,7 +985,7 @@ Nom d&apos;arxiu (%s):</translation>
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Digital Terrain Model %s</source>
-        <translation>Model d&apos;elevacions del terreny %s</translation>
+        <translation>Model d'elevacions del terreny %s</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="2535"/>
@@ -1023,7 +1023,7 @@ Nom d&apos;arxiu (%s):</translation>
 %s
 
 We try to fix it as soon as possible</source>
-        <translation>Gràcies per informar d&apos;un error en el fotograma:
+        <translation>Gràcies per informar d'un error en el fotograma:
 %s
 
 Intentarem corregir-ho el més aviat possible</translation>
@@ -1094,7 +1094,7 @@ Vols continuar?</translation>
     <message>
         <location filename="../openicgc.py" line="1971"/>
         <source>This layer renders only the most centered photogram in the map view, you can zoom in for continuous navigation. Please note that current year may not have full photogram coverage</source>
-        <translation>Mostra només el fotograma més centrat en la vista mapa, pots apropar-te per obtenir una navegació contínua. L&apos;any actual pot no tenir una cobertura completa</translation>
+        <translation>Mostra només el fotograma més centrat en la vista mapa, pots apropar-te per obtenir una navegació contínua. L'any actual pot no tenir una cobertura completa</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3298"/>
@@ -1216,7 +1216,7 @@ Data de generació: %s</translation>
     <message>
         <location filename="../openicgc.py" line="3367"/>
         <source>Error saving PDF file</source>
-        <translation>Error guardant l&apos;arxiu PDF</translation>
+        <translation>Error guardant l'arxiu PDF</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="3356"/>
@@ -1246,7 +1246,7 @@ Data de generació: %s</translation>
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Enable debug log info</source>
-        <translation>Activar registre d&apos;informació de depuració</translation>
+        <translation>Activar registre d'informació de depuració</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -1291,7 +1291,7 @@ Data de generació: %s</translation>
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Open plugin installation folder</source>
-        <translation>Obrir carpeta d&apos;instal·lació del connector</translation>
+        <translation>Obrir carpeta d'instal·lació del connector</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="1689"/>
@@ -1302,7 +1302,7 @@ Data de generació: %s</translation>
         <location filename="../openicgc.py" line="3171"/>
         <source>The maximum number of results (%d) has been reached.
 The query may have more results than are displayed.</source>
-        <translation>S&apos;ha arribat al nombre màxim de resultats (%d).
+        <translation>S'ha arribat al nombre màxim de resultats (%d).
 La consulta podria tenir més resultats dels mostrats.</translation>
     </message>
     <message>
@@ -1318,7 +1318,7 @@ La consulta podria tenir més resultats dels mostrats.</translation>
     <message>
         <location filename="../openicgc.py" line="937"/>
         <source>Send us an email with debug information</source>
-        <translation>Envia&apos;ns un email amb informació de depuració</translation>
+        <translation>Envia'ns un email amb informació de depuració</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="408"/>
@@ -1393,7 +1393,7 @@ La consulta podria tenir més resultats dels mostrats.</translation>
     <message>
         <location filename="../openicgc.py" line="3427"/>
         <source>Please, update %s to version %s before report an issue</source>
-        <translation>Si us plau, actualitzeu %s a la versió %s abans d&apos;informar d&apos;un problema</translation>
+        <translation>Si us plau, actualitzeu %s a la versió %s abans d'informar d'un problema</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="937"/>
@@ -1568,7 +1568,7 @@ Es descarregarà però no es visualitzarà</translation>
     <message>
         <location filename="../openicgc.py" line="2627"/>
         <source>Maximum aspect ration exceeded (1:%d)</source>
-        <translation>Màxima relació d&apos;aspecte sobrepassada (1:%d)</translation>
+        <translation>Màxima relació d'aspecte sobrepassada (1:%d)</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="354"/>
@@ -1854,7 +1854,7 @@ Actualitza la teva versió de QGIS si és possible.</translation>
     <message>
         <location filename="../../../lib/qlib3/photosearchselectiondialog/photosearchselectiondialog.py" line="122"/>
         <source>Years range</source>
-        <translation>Rang d&apos;anys</translation>
+        <translation>Rang d'anys</translation>
     </message>
     <message>
         <location filename="../../../lib/qlib3/photosearchselectiondialog/photosearchselectiondialog.py" line="123"/>
@@ -2000,7 +2000,7 @@ left and right keys to select current year and
 enter key to visualize a photo</source>
         <translation>Quan la llista de fotogrames està activa es poden utilitzar
 les tecles amunt i avall per seleccionar el fotograma actiu,
-les tecles esquerra i dreta per seleccionar l&apos;any actiu i la
+les tecles esquerra i dreta per seleccionar l'any actiu i la
 tecla intro per visualitzar la foto</translation>
     </message>
     <message>

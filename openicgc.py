@@ -1745,7 +1745,7 @@ class OpenICGC(PluginBase):
                         common_name = None
                     else:
                         previous_name1 = self.FME_NAMES_DICT.get(previous_id, previous_name)
-                        previous_name2 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-2][0], fme_extra_services_list[i-2][1])
+                        previous_name2 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-2][0].split("/")[-1], fme_extra_services_list[i-2][1])
                         diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2))) \
                             if previous_name1[pos] != previous_name2[pos]]
                         pos = diff_list[0] if diff_list else min(len(previous_name1), len(previous_name2))
@@ -1844,7 +1844,7 @@ class OpenICGC(PluginBase):
             for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
                 filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_services_list):
                 prefix_id = id[:2] if id else None
-                previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
+                previous_id = fme_extra_services_list[i-1][0].split("/")[-1] if i > 0 else id
                 previous_prefix_id = previous_id[:2] if previous_id else None
                 first_part_id = id.split()[0]
                 last_part_id = id.split()[-1]

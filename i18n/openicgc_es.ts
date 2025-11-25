@@ -1786,7 +1786,7 @@ Actualitza tu versión de QGIS si es posible.</translation>
     <message>
         <location filename="../openicgc.py" line="458"/>
         <source>Territorial topographic referential 3D object-data</source>
-        <translation></translation>
+        <translation>Referencial topográfico territorial 3D object-data</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="453"/>
