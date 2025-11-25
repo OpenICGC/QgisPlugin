@@ -415,6 +415,9 @@ class OpenICGC(PluginBase):
 
         # Initialize download names (with translation)
         self.FME_NAMES_DICT = {
+            "Loading ...": self.tr("Loading ..."),
+
+            "orto-color": self.tr("Color orthophoto"),
             "of25c": self.tr("Current color orthophoto 25cm 1:2,500"),
             "of5m": self.tr("Current color orthophoto 50cm 1:5,000"),
             "of25m": self.tr("Current color orthophoto 2.5m 1:25,000"),
@@ -427,6 +430,7 @@ class OpenICGC(PluginBase):
             "olc10cm": self.tr("Current local color orthophoto"),
             "hlc10cm": self.tr("Local color orthophoto"),
 
+            "orto-irc": self.tr("Infrared orthophoto"),
             "oi25c": self.tr("Current infrared orthophoto 25cm 1:2,500"),
             "oi5m": self.tr("Current infrared orthophoto 50cm 1:5,000"),
             "oi25m": self.tr("Current infrared orthophoto 2.5m 1:25,000"),
@@ -438,13 +442,11 @@ class OpenICGC(PluginBase):
             "oli10cm": self.tr("Current local infrared orthophoto"),
             "hli10cm": self.tr("Local infrared orthophoto"),
 
-            #"bt5m": self.tr("Topographic base 1:5,000"),
+            "mapa-topo": self.tr("Topographic map"),
             "topografia-territorial": self.tr("Territorial topographic referential"),
             "topografia-250000": self.tr("Topographic map 1:250,000"),
-            #"mtc500m": self.tr("Topographic map 1:500,000"),
             "topografia-1000000": self.tr("Topographic map 1:1,000,000"),
             "ct1m": self.tr("Topographic cartography 1:1,000"),
-            #"bm5m": self.tr("Municipal base 1:5,000"),
             "topografia-territorial-gpkg": self.tr("Territorial topographic referential"),
             "topografia-territorial-dgn": self.tr("Territorial topographic referential"),
             "topografia-territorial-dwg": self.tr("Territorial topographic referential"),
@@ -466,6 +468,7 @@ class OpenICGC(PluginBase):
             "referencial-topografic-local-3d-dwg": self.tr("Local topographic referential 3D"),
             "referencial-topografic-local-3d-dwg-object-data": self.tr("Local topographic referential 3D object-data"),
 
+            "divisions-administratives": self.tr("Administrative divisions"),
             "divisions-administratives-shp": self.tr("Administrative divisions"),
             "divisions-administratives-gpkg": self.tr("Administrative divisions"),
             "divisions-administratives-dwg": self.tr("Administrative divisions"),
@@ -478,9 +481,10 @@ class OpenICGC(PluginBase):
 
             "met2": self.tr("Digital terrain model 2m 2008-2011"),
             "met5": self.tr("Digital terrain model 5m 2020"),
+
+            "costa": self.tr("Coast"),
             "elevacions-franja-litoral": self.tr("Topobathymetric elevation model"),
             "batimetria": self.tr("Bathymetric chart"),
-
             "lcosta": self.tr("Coastline"),
             "ocosta": self.tr("Coast orthophoto"),
 
@@ -825,7 +829,9 @@ class OpenICGC(PluginBase):
             self.photolib_current_time = None
 
             # Gets available download source data
-            self.fme_services_list = []
+            self.fme_services_list = [
+                (None, "Loading ...", None, None, None, None, None, None, None, None, None, None, None, None)
+            ]
 
             # Check plugin update
             self.new_icgc_plugin_version =  None
@@ -1166,189 +1172,193 @@ class OpenICGC(PluginBase):
                         ]),
                     ]),
                 "---",
-                (self.tr("NDVI color (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI color"),
-                    "https://geoserveis.icgc.cat/servei/catalunya/ndvi/wms",
-                    "ndvi_serie_anual_color", None, "default", "image/png", None, None, 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_landcover.png",
-                    self.manage_metadata_button("NDVI (temporal serie)"), True),
-                (self.tr("NDVI (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"),
-                    None, self.ndvi_current_time, None, "default", "image/png", self.ndvi_time_series_list, None, 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_shadows.png", self.enable_http_files and len(self.ndvi_time_series_list) > 0,
-                    self.manage_metadata_button("NDVI (temporal serie)"), True),
+                (self.tr("NDVI"), None, "cat_shadows.png", [
+                    (self.tr("NDVI color (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI color"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/ndvi/wms",
+                            "ndvi_serie_anual_color", None, "default", "image/png", None, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_landcover.png",
+                        self.manage_metadata_button("NDVI (temporal serie)"), True),
+                    (self.tr("NDVI (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"),
+                            None, self.ndvi_current_time, None, "default", "image/png", self.ndvi_time_series_list, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_shadows.png", self.enable_http_files and len(self.ndvi_time_series_list) > 0,
+                        self.manage_metadata_button("NDVI (temporal serie)"), True),
+                ]),
                 "---",
-                # Ortofoto color
-                (self.tr("Current color orthophoto") + " (%s)" % self.ortho_color_year,
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Current color orthophoto"),
-                    "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
-                    ["ortofoto_color_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5k.png",
-                    self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
                 (self.tr("Color orthophoto"), None, "cat_ortho5k.png", [
-                    ] + ([(self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
-                        lambda _checked:self.layers.add_wms_layer(
-                        self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
-                        self.ortho_wms_url, [self.ortoxpres_color_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5k.png",
-                        self.manage_metadata_button("Color orthophoto %s (provisional)" % self.ortoxpres_color_year), True
-                        )] if self.ortoxpres_color_list else []) + [
-                    ] + ([(self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
-                        lambda _checked:self.layers.add_wms_layer(
-                        self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
-                        self.ortho_wms_url, [self.ortosuperexp_color_layer_id], [""], "image/png", 25831,
-                        self.request_referrer_param + "&bgcolor=0x000000",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5k.png",
-                        self.manage_metadata_button("Color orthophoto %s (rectification without corrections)" % self.ortosuperexp_color_year), True
-                        )] if self.ortosuperexp_color_list else []) + [
-                    "---",
-                    ] + [
-                    (self.tr("Color orthophoto %s (temporal serie)") % ortho_year,
-                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Color orthophoto"),
-                        self.ortho_wms_url, layer_id, None, "default", "image/png",
-                        self.ortho_color_time_series_list, None, 25831,
-                        self.request_referrer_param + "&bgcolor=0x000000",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5k.png",
-                        self.manage_metadata_button("Color orthophoto (temporal serie)"), True
-                        ) for ortho_year, layer_id in reversed(self.ortho_color_time_series_list)
-                    ] + [
-                    "---",
-                    (self.tr("Color orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"),
-                        "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
-                        "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831,
-                        self.request_referrer_param + "&bgcolor=0x000000",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                        use_qgis_time_controller=False),
+                    # Ortofoto color
+                    (self.tr("Current color orthophoto") + " (%s)" % self.ortho_color_year,
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Current color orthophoto"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+                            ["ortofoto_color_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                         "cat_ortho5k.png",
                         self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
-                    ]),
-                # Ortofoto color local
-                (self.tr("Current color local orthophoto"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Current color local orthophoto"),
-                    "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
-                    ["orto-local-rgb-vigents"], ["default"], "image/png", 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5k.png",
-                    self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
-                (self.tr("Color local orthophoto (annual serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color local orthophoto"),
-                    self.ortho_local_wms_url, self.ortho_color_local_current_layer, self.ortho_color_local_year, "", "image/png",
-                    self.ortho_color_local_time_series_list, None, 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                    use_qgis_time_controller=False),
-                    "cat_ortho5k.png", len(self.ortho_color_local_time_series_list) > 0,
-                    self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
-                # Ortofoto color satèl·lit
-                (self.tr("Satellite color orthophoto (monthly serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"),
-                    "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
-                    "sen2rgb", None, "", "image/png", None, None, 25831,
-                    self.request_referrer_param,
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5k.png",
-                    self.manage_metadata_button("Satellite color orthophoto (monthly serie)"), True),
-                # Ortofoto color LiDAR
-                (self.tr("LiDAR color orthophoto (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR color orthophoto"),
-                    None, None, None, "", "image/png", self.lidar_ortho_color_time_series_list, self.lidar_ortho_color_year,
-                    25831, self.request_referrer_param,
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5k.png", len(self.lidar_ortho_color_time_series_list) > 0,
-                    self.manage_metadata_button("Territorial Lidar Color Orthophoto"), True),
-                "---",
-                # Ortofoto infraroja
-                (self.tr("Current infrared orthophoto") + " (%s)" % self.ortho_infrared_year,
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared orthophoto"),
-                    "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
-                    ["ortofoto_infraroig_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5ki.png",
-                    self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
-                (self.tr("Infrared orthophoto"), None, "cat_ortho5ki.png", [
-                    ] + ([(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
-                        self.ortho_wms_url, [self.ortoxpres_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5ki.png",
-                        self.manage_metadata_button("Infrared orthophoto %s (provisional)" % self.ortoxpres_infrared_year), True)
-                        ] if self.ortoxpres_infrared_list else []) + [
-                    ] + ([(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
-                        self.ortho_wms_url, [self.ortosuperexp_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5ki.png",
-                        self.manage_metadata_button("Infrared orthophoto %s (rectification without corrections)" % self.ortosuperexp_infrared_year), True)
-                        ] if self.ortosuperexp_infrared_list else []) + [
-                    "---",
-                    ] + [
-                    (self.tr("Infrared orthophoto %s (temporal serie)") % ortho_year,
-                        lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"),
-                        self.ortho_wms_url, layer_id, None, "default", "image/png", self.ortho_infrared_time_series_list, None, 25831,
+                    (self.tr("Color orthophoto"), None, "cat_ortho5k.png", [
+                        ] + ([(self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
+                            lambda _checked:self.layers.add_wms_layer(
+                            self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
+                            self.ortho_wms_url, [self.ortoxpres_color_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5k.png",
+                            self.manage_metadata_button("Color orthophoto %s (provisional)" % self.ortoxpres_color_year), True
+                            )] if self.ortoxpres_color_list else []) + [
+                        ] + ([(self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
+                            lambda _checked:self.layers.add_wms_layer(
+                            self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
+                            self.ortho_wms_url, [self.ortosuperexp_color_layer_id], [""], "image/png", 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5k.png",
+                            self.manage_metadata_button("Color orthophoto %s (rectification without corrections)" % self.ortosuperexp_color_year), True
+                            )] if self.ortosuperexp_color_list else []) + [
+                        "---",
+                        ] + [
+                        (self.tr("Color orthophoto %s (temporal serie)") % ortho_year,
+                            lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Color orthophoto"),
+                            self.ortho_wms_url, layer_id, None, "default", "image/png",
+                            self.ortho_color_time_series_list, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5k.png",
+                            self.manage_metadata_button("Color orthophoto (temporal serie)"), True
+                            ) for ortho_year, layer_id in reversed(self.ortho_color_time_series_list)
+                        ] + [
+                        "---",
+                        (self.tr("Color orthophoto (annual serie)"),
+                            lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+                            "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
+                            use_qgis_time_controller=False),
+                            "cat_ortho5k.png",
+                            self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
+                        ]),
+                    # Ortofoto color local
+                    (self.tr("Current color local orthophoto"),
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Current color local orthophoto"),
+                        "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
+                        ["orto-local-rgb-vigents"], ["default"], "image/png", 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                        "cat_ortho5ki.png",
-                        self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True
-                        ) for ortho_year, layer_id in reversed(self.ortho_infrared_time_series_list)
-                    ] + [
-                    "---",
-                    (self.tr("Infrared orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"),
-                        "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
-                        "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831,
+                        "cat_ortho5k.png",
+                        self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
+                    (self.tr("Color local orthophoto (annual serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color local orthophoto"),
+                        self.ortho_local_wms_url, self.ortho_color_local_current_layer, self.ortho_color_local_year, "", "image/png",
+                        self.ortho_color_local_time_series_list, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
                         use_qgis_time_controller=False),
+                        "cat_ortho5k.png", len(self.ortho_color_local_time_series_list) > 0,
+                        self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
+                    # Ortofoto color satèl·lit
+                    (self.tr("Satellite color orthophoto (monthly serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"),
+                        "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
+                        "sen2rgb", None, "", "image/png", None, None, 25831,
+                        self.request_referrer_param,
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_ortho5k.png",
+                        self.manage_metadata_button("Satellite color orthophoto (monthly serie)"), True),
+                    # Ortofoto color LiDAR
+                    (self.tr("LiDAR color orthophoto (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR color orthophoto"),
+                        None, None, None, "", "image/png", self.lidar_ortho_color_time_series_list, self.lidar_ortho_color_year,
+                        25831, self.request_referrer_param,
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_ortho5k.png", len(self.lidar_ortho_color_time_series_list) > 0,
+                        self.manage_metadata_button("Territorial Lidar Color Orthophoto"), True),
+                ]),
+                (self.tr("Infrared orthophoto"), None, "cat_ortho5ki.png", [
+                    # Ortofoto infraroja
+                    (self.tr("Current infrared orthophoto") + " (%s)" % self.ortho_infrared_year,
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared orthophoto"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+                            ["ortofoto_infraroig_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                         "cat_ortho5ki.png",
                         self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
-                    ]),
-                # Orfofoto infraroja local
-                (self.tr("Current infrared local orthophoto"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared local orthophoto"),
-                    "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
-                    ["orto-local-irc-vigents"], ["default"], "image/png", 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5k.png",
-                    self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
-                (self.tr("Infrared local orthophoto (annual serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared local orthophoto"),
-                    self.ortho_local_wms_url, self.ortho_infrared_local_current_layer, self.ortho_infrared_local_year, "", "image/png",
-                    self.ortho_infrared_local_time_series_list, None, 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                    use_qgis_time_controller=False),
-                    "cat_ortho5ki.png", len(self.ortho_infrared_local_time_series_list) > 0,
-                    self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
-                # Ortofoto infraroja satèl·lit
-                (self.tr("Satellite infrared orthophoto (monthly serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"),
-                    "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
-                    "sen2irc", None, "default", "image/png", None, None, 25831,
-                    self.request_referrer_param + "&bgcolor=0x000000",
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5ki.png",
-                    self.manage_metadata_button("Satellite infrared orthophoto (monthly serie)"), True),
-                # Ortofoto infraroja LiDAR
-                (self.tr("LiDAR infrared orthophoto (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR infrared orthophoto"),
-                    None, None, None, "", "image/png",
-                    self.lidar_ortho_infrared_time_series_list, self.lidar_ortho_infrared_year,
-                    25831, self.request_referrer_param,
-                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_ortho5ki.png", len(self.lidar_ortho_infrared_time_series_list) > 0,
-                    self.manage_metadata_button("Territorial Lidar Infrared Orthophoto"), True),
-                "---",
+                    (self.tr("Infrared orthophoto"), None, "cat_ortho5ki.png", [
+                        ] + ([(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
+                            lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
+                            self.ortho_wms_url, [self.ortoxpres_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5ki.png",
+                            self.manage_metadata_button("Infrared orthophoto %s (provisional)" % self.ortoxpres_infrared_year), True)
+                            ] if self.ortoxpres_infrared_list else []) + [
+                        ] + ([(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
+                            lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
+                            self.ortho_wms_url, [self.ortosuperexp_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5ki.png",
+                            self.manage_metadata_button("Infrared orthophoto %s (rectification without corrections)" % self.ortosuperexp_infrared_year), True)
+                            ] if self.ortosuperexp_infrared_list else []) + [
+                        "---",
+                        ] + [
+                        (self.tr("Infrared orthophoto %s (temporal serie)") % ortho_year,
+                            lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"),
+                            self.ortho_wms_url, layer_id, None, "default", "image/png", self.ortho_infrared_time_series_list, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            "cat_ortho5ki.png",
+                            self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True
+                            ) for ortho_year, layer_id in reversed(self.ortho_infrared_time_series_list)
+                        ] + [
+                        "---",
+                        (self.tr("Infrared orthophoto (annual serie)"),
+                            lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
+                            "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831,
+                            self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
+                            use_qgis_time_controller=False),
+                            "cat_ortho5ki.png",
+                            self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
+                        ]),
+                    # Orfofoto infraroja local
+                    (self.tr("Current infrared local orthophoto"),
+                        lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared local orthophoto"),
+                        "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
+                        ["orto-local-irc-vigents"], ["default"], "image/png", 25831,
+                        self.request_referrer_param + "&bgcolor=0x000000",
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_ortho5k.png",
+                        self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
+                    (self.tr("Infrared local orthophoto (annual serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared local orthophoto"),
+                        self.ortho_local_wms_url, self.ortho_infrared_local_current_layer, self.ortho_infrared_local_year, "", "image/png",
+                        self.ortho_infrared_local_time_series_list, None, 25831,
+                        self.request_referrer_param + "&bgcolor=0x000000",
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
+                        use_qgis_time_controller=False),
+                        "cat_ortho5ki.png", len(self.ortho_infrared_local_time_series_list) > 0,
+                        self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
+                    # Ortofoto infraroja satèl·lit
+                    (self.tr("Satellite infrared orthophoto (monthly serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"),
+                        "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
+                        "sen2irc", None, "default", "image/png", None, None, 25831,
+                        self.request_referrer_param + "&bgcolor=0x000000",
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_ortho5ki.png",
+                        self.manage_metadata_button("Satellite infrared orthophoto (monthly serie)"), True),
+                    # Ortofoto infraroja LiDAR
+                    (self.tr("LiDAR infrared orthophoto (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR infrared orthophoto"),
+                        None, None, None, "", "image/png",
+                        self.lidar_ortho_infrared_time_series_list, self.lidar_ortho_infrared_year,
+                        25831, self.request_referrer_param,
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_ortho5ki.png", len(self.lidar_ortho_infrared_time_series_list) > 0,
+                        self.manage_metadata_button("Territorial Lidar Infrared Orthophoto"), True),
+                ]),
                 (self.tr("Current gray orthophoto") + " (%s)" % self.ortho_color_year,
                     lambda _checked:self.layers.add_wms_layer(self.tr("Current gray orthophoto"),
                     "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
@@ -1694,6 +1704,7 @@ class OpenICGC(PluginBase):
         # Define text labels
         vector_label = self.tr(" vectorial data")
         raster_label = self.tr(" raster data")
+        points_label = self.tr(" points cloud")
         product_label_pattern = "%s" + ("" if raster_not_vector is None else raster_label if raster_not_vector else vector_label)
         product_file_label_pattern = "%s%s (%s)"
 
@@ -1704,18 +1715,29 @@ class OpenICGC(PluginBase):
                 (None, None, None, None, None, None, None, None, None, None, None, None, None, None)
                 ] if fme_services_list else []
             download_submenu = []
+            group_submenu = []
             product_submenu = []
             gsd_info_dict = {}
             # Create menu with a submenu for every product prefix
-            for i, (id, _name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
                 filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_extra_services_list):
+                # Get current product info
+                id_part_list = id.split("/") if id else []
+                group = id_part_list[0] if len(id_part_list) > 1 else None
+                id = id_part_list[-1] if id_part_list else None
                 prefix_id = id[:2] if id else None
+                # Get previous product info
                 previous_id = fme_extra_services_list[i-1][0] if i > 0 else id
+                previous_id_part_list = previous_id.split("/") if previous_id else []
+                previous_group = previous_id_part_list[0] if len(previous_id_part_list) > 1 else None
+                previous_id = previous_id_part_list[-1] if previous_id_part_list else None
                 previous_prefix_id = previous_id[:2] if previous_id else previous_id
                 previous_name = fme_extra_services_list[i-1][1]
 
                 # If break group prefix, create a grouped menu entry
                 if previous_prefix_id != prefix_id:
+                    submenu = group_submenu if previous_group else download_submenu
+
                     # Find group product common prefix
                     if len(gsd_info_dict) == 1:
                         common_name = self.FME_NAMES_DICT.get(previous_id, previous_name)
@@ -1733,9 +1755,12 @@ class OpenICGC(PluginBase):
                         # Add single ménu entry with GDS info dict
                         previous_time_list = list(gsd_info_dict.values())[0][6]
                         previous_enabled = any([info[-1] for info in gsd_info_dict.values()])
-                        download_submenu.append((
+                        submenu.append((
                             product_file_label_pattern % (common_name,
-                                raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "",
+                                raster_label if self.is_raster_file(filename)
+                                    else vector_label if self.is_vector_file(filename)
+                                    else points_label if self.is_points_file(filename)
+                                    else "",
                                 os.path.splitext(filename)[1][1:]),
                             (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
                                 self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, None, gsd_info_dict), self.pair_download_checks),
@@ -1749,15 +1774,26 @@ class OpenICGC(PluginBase):
                     elif product_submenu:
                         if len(product_submenu) == 1:
                             # Add single menu entry with one product
-                            download_submenu.append(product_submenu[0])
+                            submenu.append(product_submenu[0])
                         else:
                             # Add submenu entry
-                            download_submenu.append(
+                            submenu.append(
                                 (product_label_pattern % common_name,
                                 None,
                                 self.FME_ICON_DICT.get(previous_id, None) or self.FME_ICON_DICT.get(previous_prefix_id, None),
                                 product_submenu))
                         product_submenu = []
+
+                # If changes group, create a grouped menu entry
+                if previous_group != group and group_submenu:
+                    # Add submenu entry
+                    group_name = self.FME_NAMES_DICT.get(previous_group, previous_group)
+                    download_submenu.append(
+                        (product_label_pattern % group_name,
+                        None,
+                        self.FME_ICON_DICT.get(previous_id, None) or self.FME_ICON_DICT.get(previous_prefix_id, None),
+                        group_submenu))
+                    group_submenu = []
 
                 # Store info in group (submenu or gsd group)
                 if id:
@@ -1767,7 +1803,10 @@ class OpenICGC(PluginBase):
                         or ((self.FME_NAMES_DICT[first_part_id] + " " + last_part_id) \
                             if self.FME_NAMES_DICT.get(first_part_id, None) else id)
                     file_label = product_file_label_pattern % (product_name, \
-                        raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "", \
+                        raster_label if self.is_raster_file(filename)
+                            else vector_label if self.is_vector_file(filename)
+                            else points_label if self.is_points_file(filename)
+                            else "", \
                         os.path.splitext(filename)[1][1:])
                     if gsd:
                         # Store product info in GSD dict
@@ -1790,6 +1829,13 @@ class OpenICGC(PluginBase):
                                 ),
                             True
                             ))
+                elif name:
+                    download_submenu.append((
+                        self.FME_NAMES_DICT.get(name, name),
+                        None, # callback
+                        None, # icon
+                        False # enabled
+                        ))
 
         # Prepare "all in one" download submenu
         else:
@@ -1815,7 +1861,10 @@ class OpenICGC(PluginBase):
             last_part_id = id.split()[-1]
             download_submenu = [
                 (product_file_label_pattern % (name,
-                    raster_label if self.is_raster_file(filename) else vector_label if self.is_vector_file(filename) else "",
+                    raster_label if self.is_raster_file(filename)
+                        else vector_label if self.is_vector_file(filename)
+                        else points_label if self.is_points_file(filename)
+                        else "",
                     os.path.splitext(filename)[1][1:]),
                     (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
                         self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
@@ -2036,7 +2085,7 @@ class OpenICGC(PluginBase):
         return self.is_extension(ext, ["laz", "las"])
 
     def is_file_type(self, pathname, ext_list):
-        _filename, ext = os.path.splitext(pathname)
+        _filename, ext = os.path.splitext(pathname) if pathname else (None, "")
         return self.is_extension(ext, ext_list)
     def is_extension(self, ext, ext_list):
         return ext[1:].lower() in ext_list

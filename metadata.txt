@@ -28,8 +28,12 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.27
-changelog=v1.1.27 (2025-11-19)
+version=1.1.28
+changelog=v1.1.28 (2025-11-25)
+	- Modified grouping of products in the menus
+	- Fixed issue searching place names and adresses
+
+	v1.1.27 (2025-11-19)
 	- Added new products: territorial geology 50,000, local orthophoto, local topography, populated areas and decentralized municipal entities
 	- Optimized plugin loading time through multi-thread resources loading
 	- Fixed duplicated resources loading

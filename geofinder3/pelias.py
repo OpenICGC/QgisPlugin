@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from urllib.request import urlopen, Request
+from urllib.parse import quote_plus
 import json
 
 
@@ -40,21 +41,22 @@ class PeliasClient:
             size=n """
         params_dict = {"lon": lon, "lat": lat}
         params_dict.update(extra_params_dict)
-        json = self.call(self.reverse_call, **params_dict)
+        json = self.call(self.reverse_call, value_encode=False, **params_dict)
         return json
 
-    def call(self, call_name, **params_dict):
+    def call(self, call_name, value_encode=True, **params_dict):
         """ Execute any Pelias's function with specified parameters """
         # Fem la petició al servidor amb tots els paràmetres indicats
         # Atenció en alguns equips dóna error de certificat al fer la consulta!!
         # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
-            "&".join([f"{key}={value}" for key, value in params_dict.items() if value is not None])
+            "&".join([f"{key}={quote_plus(value) if value_encode else value}" for key, value in params_dict.items() if value is not None])
         try:
             response = urlopen(self.last_request, timeout=self.timeout)
             response_json = json.loads(response.read())
         except Exception as e:
             response_json = None
+            raise e
         return response_json
 
     # def validate_location(self, json):

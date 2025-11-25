@@ -150,6 +150,8 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         try:
             self.geofinder_dict_list = self.geofinder.find(text, default_epsg)
+        except Exception as e:
+            raise e
         finally:
             QApplication.restoreOverrideCursor()
 
