@@ -1,0 +1,138 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geofinder"
+dynamic = ["version"]
+description = "Geocodificador para Cataluña usando el servicio ICGC"
+readme = "README.md"
+license = {text = "GPL-2.0-or-later"}
+authors = [
+    {name = "ICGC", email = "qgis.openicgc@icgc.cat"},
+    {name = "Goalnefesh", email = "goalnefesh@protonmail.com"}
+]
+keywords = ["geocoding", "catalonia", "icgc", "gis", "coordinates"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GPL-2.0-or-later",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+requires-python = ">=3.12"
+
+# Sin dependencias obligatorias para funcionalidad básica
+dependencies = [
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+# Para transformaciones de coordenadas (elige uno)
+gdal = ["GDAL>=3.0"]
+pyproj = ["pyproj>=3.0"]
+# Todas las dependencias opcionales
+all = ["pyproj>=3.0"]
+
+# Servidor MCP
+mcp = [
+    "fastmcp>=2.13.0",
+]
+
+# Dependencias de desarrollo
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-mock>=3.11",
+    "ruff>=0.1.0",
+    "mypy>=1.5",
+    "fastmcp>=2.13.0",  # Para desarrollo del servidor MCP
+]
+
+# Dependencias para mejorar el cliente HTTP
+http = [
+    "requests>=2.31",
+    "requests-cache>=1.1",
+]
+
+# Dependencias para documentación
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=1.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/jccamel/geocoder-mcp"
+Documentation = "https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC"
+Repository = "https://github.com/jccamel/geocoder-mcp"
+"Original Project" = "https://github.com/OpenICGC/QgisPlugin"
+Issues = "https://github.com/jccamel/geocoder-mcp/issues"
+
+[project.scripts]
+geofinder-mcp = "geofinder.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["geofinder*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "geofinder.__version__"}
+
+# Configuración de Ruff (linter y formatter)
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__.py
+
+# Configuración de mypy (type checker)
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Cambiar a true cuando se añadan type hints
+ignore_missing_imports = true
+
+# Configuración de pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=geofinder",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+# Configuración de coverage
+[tool.coverage.run]
+source = ["geofinder"]
+omit = ["tests/*", ".venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
