@@ -1,55 +1,49 @@
 """
 Cliente para servidores Pelias (API de geocodificación)
-
-Copyright (C) 2019-2025 Institut Cartogràfic i Geològic de Catalunya (ICGC)
-Copyright (C) 2025 Goalnefesh
-
-This file is part of geocoder-mcp, a fork of the Open ICGC QGIS Plugin.
-Original project: https://github.com/OpenICGC/QgisPlugin
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
 """
 
-import requests
-from requests.adapters import HTTPAdapter
-from requests.exceptions import ConnectionError, RequestException, Timeout
-from urllib3.util.retry import Retry
+import asyncio
+import logging
+import random
+from typing import Optional
+import time
 
+import httpx
 
-class PeliasError(Exception):
-    """Excepción base para errores del cliente Pelias."""
+from .exceptions import (
+    ConfigurationError,
+    ServiceError,
+    ServiceConnectionError,
+    ServiceTimeoutError,
+    ServiceHTTPError,
+)
 
-    pass
-
-
-class PeliasConnectionError(PeliasError):
-    """Error de conexión con el servidor Pelias."""
-
-    pass
-
-
-class PeliasTimeoutError(PeliasError):
-    """Timeout en la petición al servidor Pelias."""
-
-    pass
+# Aliases para compatibilidad hacia atrás (deprecated)
+PeliasError = ServiceError
+PeliasConnectionError = ServiceConnectionError
+PeliasTimeoutError = ServiceTimeoutError
 
 
 class PeliasClient:
     """Cliente genérico para servidores Pelias de geocodificación.
 
-    Utiliza requests con retry logic automático para mayor robustez.
+    Utiliza httpx para peticiones asíncronas con reintentos exponenciales.
 
     Attributes:
         url: URL base del servidor Pelias
         timeout: Timeout en segundos para las peticiones
-        session: Sesión de requests con retry logic configurado
+        client: Cliente httpx.AsyncClient (owned o injected)
+        max_retries: Número máximo de reintentos en errores 5xx o conexión
+        retry_base_delay: Delay inicial en segundos para backoff exponencial
+        retry_max_delay: Delay máximo en segundos para reintentos
+
+    Note:
+        Si se proporciona un `http_client` externo, PeliasClient NO lo cerrará
+        al llamar a `close()`. El usuario es responsable de cerrar el cliente.
 
     Example:
-        client = PeliasClient("https://eines.icgc.cat/geocodificador")
-        results = client.geocode("Barcelona")
+        async with PeliasClient("https://eines.icgc.cat/geocodificador") as client:
+            results = await client.geocode("Barcelona")
     """
 
     def __init__(
@@ -60,6 +54,11 @@ class PeliasClient:
         default_reverse_call="/v1/reverse",
         default_autocomplete_call="/v1/autocomplete",
         max_retries=3,
+        retry_base_delay=0.5,
+        retry_max_delay=10.0,
+        retry_on_5xx=True,
+        verify_ssl=True,
+        http_client: Optional[httpx.AsyncClient] = None,
     ):
         """Configura la conexión al servidor.
 
@@ -70,27 +69,68 @@ class PeliasClient:
             default_reverse_call: Endpoint de geocodificación inversa
             default_autocomplete_call: Endpoint de autocompletado
             max_retries: Número máximo de reintentos (default: 3)
+            retry_base_delay: Delay inicial del backoff exponencial (default: 0.5s)
+            retry_max_delay: Delay máximo entre reintentos (default: 10s)
+            retry_on_5xx: Reintentar automáticamente en errores 5xx (default: True)
+            verify_ssl: Verificar certificados SSL (default: True).
+            http_client: Cliente httpx.AsyncClient externo opcional. Si se proporciona,
+                        PeliasClient NO lo cerrará al llamar a close().
         """
+        if not url:
+            raise ConfigurationError("La URL del servidor Pelias no puede estar vacía")
+        
+        # Asegurar que la URL tiene protocolo
+        if not url.startswith(("http://", "https://")):
+            # Si parece un dominio pero no tiene protocolo, añadir https
+            if "." in url:
+                url = "https://" + url
+            else:
+                raise ConfigurationError(
+                    f"URL inválida: '{url}'. Debe incluir el protocolo (http/https)",
+                    details={"url": url}
+                )
+
         self.url = url + ("" if url.endswith("/") else "/")
         self.timeout = default_timeout
         self.search_call = default_search_call
         self.reverse_call = default_reverse_call
         self.autocomplete_call = default_autocomplete_call
+        self.verify_ssl = verify_ssl
         self.last_request = None
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
+        self.retry_max_delay = retry_max_delay
+        self.retry_on_5xx = retry_on_5xx
 
-        # Configurar sesión con retry logic
-        self.session = requests.Session()
-        retry_strategy = Retry(
-            total=max_retries,
-            backoff_factor=0.3,  # 0.3s, 0.6s, 1.2s entre reintentos
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "POST"],
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
+        # Configurar logger PRIMERO
+        self.log = logging.getLogger("geofinder.pelias")
 
-    def geocode(self, query_string, **extra_params_dict):
+        if not verify_ssl:
+            self.log.warning("SSL verification is disabled for PeliasClient.")
+
+        # Determinar ownership del cliente
+        self._owns_client = http_client is None
+
+        # Configurar cliente httpx
+        if http_client is not None:
+            # Usar cliente externo proporcionado
+            self.client = http_client
+            # Advertir si hay conflicto de configuración
+            if not verify_ssl:
+                self.log.warning(
+                    "verify_ssl=False ignorado: usando cliente httpx externo proporcionado"
+                )
+        else:
+            # Crear cliente propio
+            # Los reintentos se manejan a nivel de aplicación en call() con backoff exponencial
+            self.client = httpx.AsyncClient(
+                verify=self.verify_ssl,
+                follow_redirects=True
+            )
+        
+        self._closed = False
+
+    async def geocode(self, query_string, **extra_params_dict):
         """Geocodifica un texto de búsqueda.
 
         Args:
@@ -105,9 +145,9 @@ class PeliasClient:
         """
         params_dict = {"text": query_string}
         params_dict.update(extra_params_dict)
-        return self.call(self.search_call, **params_dict)
+        return await self.call(self.search_call, **params_dict)
 
-    def autocomplete(self, query_string, **extra_params_dict):
+    async def autocomplete(self, query_string, **extra_params_dict):
         """Obtiene sugerencias de autocompletado.
 
         Args:
@@ -122,9 +162,9 @@ class PeliasClient:
         """
         params_dict = {"text": query_string}
         params_dict.update(extra_params_dict)
-        return self.call(self.autocomplete_call, **params_dict)
+        return await self.call(self.autocomplete_call, **params_dict)
 
-    def reverse(self, lat, lon, **extra_params_dict):
+    async def reverse(self, lat, lon, **extra_params_dict):
         """Geocodificación inversa: obtiene lugares en unas coordenadas.
 
         Args:
@@ -140,10 +180,15 @@ class PeliasClient:
         """
         params_dict = {"lon": lon, "lat": lat}
         params_dict.update(extra_params_dict)
-        return self.call(self.reverse_call, **params_dict)
+        return await self.call(self.reverse_call, **params_dict)
 
-    def call(self, call_name, **params_dict):
-        """Ejecuta una llamada al servidor Pelias.
+    async def call(self, call_name, **params_dict):
+        """Ejecuta una llamada al servidor Pelias con reintentos exponenciales.
+
+        Implementa exponential backoff para errores transitorios:
+        - Errores 5xx: reintenta si retry_on_5xx está habilitado
+        - Timeout/Conexión: siempre reintenta
+        - Errores 4xx: NO reintenta (errores del cliente)
 
         Args:
             call_name: Nombre del endpoint
@@ -153,8 +198,8 @@ class PeliasClient:
             dict: Respuesta JSON parseada
 
         Raises:
-            PeliasTimeoutError: Si la petición excede el timeout
-            PeliasConnectionError: Si hay error de conexión
+            PeliasTimeoutError: Si la petición excede el timeout tras reintentos
+            PeliasConnectionError: Si hay error de conexión tras reintentos
             PeliasError: Si hay otro error en la petición
         """
         # Filtrar parámetros None
@@ -164,26 +209,121 @@ class PeliasClient:
         url = self.url + call_name.lstrip("/")
         self.last_request = url
 
-        try:
-            response = self.session.get(url, params=params, timeout=self.timeout)
+        last_exception = None
+        
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = await self.client.get(
+                    url,
+                    params=params,
+                    timeout=self.timeout
+                )
 
-            # Guardar URL completa con parámetros para debug
-            self.last_request = response.url
+                # Guardar URL completa con parámetros para debug
+                self.last_request = str(response.url)
 
-            # Verificar status code
-            response.raise_for_status()
+                # Verificar status code
+                response.raise_for_status()
 
-            # Parsear JSON
-            return response.json()
+                # Parsear JSON
+                return response.json()
 
-        except Timeout as e:
-            raise PeliasTimeoutError(f"Timeout después de {self.timeout}s: {url}") from e
-        except ConnectionError as e:
-            raise PeliasConnectionError(f"Error de conexión con el servidor: {url}") from e
-        except RequestException as e:
-            raise PeliasError(f"Error en la petición Pelias: {e}") from e
-        except ValueError as e:
-            raise PeliasError(f"Error parseando respuesta JSON: {e}") from e
+            except (httpx.ConnectError, httpx.NetworkError, httpx.TimeoutException) as e:
+                # Errores de red y timeout siempre se reintentan
+                last_exception = e
+                error_type = type(e).__name__
+                if attempt < self.max_retries:
+                    delay = self._calculate_backoff_delay(attempt)
+                    self.log.warning(
+                        "[RETRY] %s en %s (intento %d/%d). Reintentando en %.2fs...",
+                        error_type, url, attempt + 1, self.max_retries + 1, delay
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                
+                if isinstance(e, httpx.TimeoutException):
+                    raise ServiceTimeoutError(
+                        f"Timeout después de {self.timeout}s ({self.max_retries + 1} intentos)",
+                        url=url,
+                        details={"timeout": self.timeout, "attempts": self.max_retries + 1}
+                    ) from e
+                raise ServiceConnectionError(
+                    f"Error de conexión ({error_type}) tras {self.max_retries + 1} intentos",
+                    url=url,
+                    details={"error_type": error_type, "attempts": self.max_retries + 1}
+                ) from e
+
+            except httpx.HTTPStatusError as e:
+                # Errores HTTP (4xx, 5xx)
+                last_exception = e
+                status_code = e.response.status_code
+                
+                # Errores 5xx: reintentar si está habilitado
+                if status_code >= 500 and self.retry_on_5xx:
+                    if attempt < self.max_retries:
+                        delay = self._calculate_backoff_delay(attempt)
+                        self.log.error(
+                            "[RETRY] Servidor Pelias Error %d en %s (intento %d/%d). Reintentando en %.2fs...",
+                            status_code, url, attempt + 1, self.max_retries + 1, delay
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    raise ServiceHTTPError(
+                        f"Error HTTP {status_code} tras {self.max_retries + 1} intentos",
+                        url=url,
+                        details={"attempts": self.max_retries + 1},
+                        status_code=status_code,
+                        response_text=e.response.text,
+                    ) from e
+                
+                # Errores 4xx o 5xx sin reintentos: NO reintentar
+                self.log.error("Error HTTP %d en %s: %s", status_code, url, e.response.text)
+                raise ServiceHTTPError(
+                    f"Error HTTP {status_code}",
+                    url=url,
+                    details=None,
+                    status_code=status_code,
+                    response_text=e.response.text
+                ) from e
+
+            except httpx.RequestError as e:
+                # Otros errores de httpx que no son de red/timeout específicos
+                raise ServiceError(
+                    f"Error en la petición: {e}",
+                    url=url,
+                    details={"error_type": type(e).__name__}
+                ) from e
+
+            except ValueError as e:
+                # Error parseando JSON
+                raise ServiceError(
+                    f"Error parseando JSON de la respuesta: {e}",
+                    url=url,
+                    details={"error": str(e)}
+                ) from e
+
+        # Fallback (no debería llegar aquí si las excepciones se lanzan correctamente)
+        if last_exception:
+            raise ServiceError(
+                f"Error fatal tras {self.max_retries + 1} intentos",
+                url=url,
+                details={"attempts": self.max_retries + 1}
+            ) from last_exception
+
+    def _calculate_backoff_delay(self, attempt: int) -> float:
+        """Calcula el delay de backoff exponencial con jitter.
+
+        Args:
+            attempt: Número de intento (0-indexed)
+
+        Returns:
+            float: Delay en segundos (limitado por retry_max_delay)
+        """
+        base_delay = self.retry_base_delay * (2 ** attempt)
+        # Añadir jitter aleatorio (+/- 10%) para evitar thundering herd
+        jitter = base_delay * 0.1 * (2 * random.random() - 1)
+        delay = base_delay + jitter
+        return max(0, min(delay, self.retry_max_delay))
 
     def last_sent(self):
         """Retorna la última petición ejecutada (útil para debug).
@@ -193,18 +333,20 @@ class PeliasClient:
         """
         return self.last_request
 
-    def close(self):
-        """Cierra la sesión de requests.
-
-        Útil para liberar recursos cuando se termina de usar el cliente.
+    async def close(self):
+        """Cierra el cliente httpx de forma idempotente.
+        
+        Solo cierra el cliente si fue creado internamente (owned).
+        Si el cliente fue proporcionado externamente, NO lo cierra.
         """
-        self.session.close()
+        if self._owns_client and not self._closed:
+            await self.client.aclose()
+            self._closed = True
 
-    def __enter__(self):
-        """Soporte para context manager."""
+    async def __aenter__(self):
+        """Soporte para async context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Cierra la sesión al salir del context manager."""
-        self.close()
-        return False
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Cierra el cliente al salir del async context manager."""
+        await self.close()

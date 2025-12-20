@@ -9,9 +9,9 @@
 | Sección                                                     | Descripción                |
 | ----------------------------------------------------------- | -------------------------- |
 | [🚀 Ejemplos Básicos](#-ejemplos-básicos)                   | Primeros pasos y uso común |
-| [🌐 Integración Web](#-integración-web)                     | Flask, FastAPI, Django     |
+| [🌐 Integración Web](#-integración-web)                     | FastAPI (Recomendado)      |
 | [📊 Análisis de Datos](#-análisis-de-datos)                 | Pandas, GeoPandas          |
-| [⚡ Geocodificación por Lotes](#-geocodificación-por-lotes) | Procesamiento masivo       |
+| [⚡ Geocodificación por Lote](#-geocodificación-por-lote) | Procesamiento masivo       |
 | [🛡️ Manejo de Errores](#️-manejo-de-errores)                | Patrones robustos          |
 | [💾 Caché y Rendimiento](#-caché-y-rendimiento)             | Optimización               |
 | [🏢 Casos de Uso Reales](#-casos-de-uso-reales)             | Aplicaciones prácticas     |
@@ -33,19 +33,36 @@ pip install -e ".[pyproj]"
 pip install -e ".[mcp,pyproj]"
 ```
 
-### Búsqueda Simple
+### Búsqueda Simple (Async)
+
+```python
+import asyncio
+from geofinder import GeoFinder
+
+async def main():
+    # Inicializar con context manager
+    async with GeoFinder() as gf:
+        # Buscar un municipio
+        results = await gf.find("Barcelona")
+        for r in results:
+            print(f"{r.nom} ({r.nomTipus}) - {r.x}, {r.y}")
+            # También funciona el acceso tipo dict por compatibilidad:
+            # print(r['nom'])
+
+if __name__ == "__main__":
+    asyncio.run(main())
+# Output: Barcelona (Cap de municipi) - 2.177, 41.382
+```
+
+### Búsqueda Síncrona (Scripts)
 
 ```python
 from geofinder import GeoFinder
 
-# Inicializar
 gf = GeoFinder()
-
-# Buscar un municipio
-results = gf.find("Barcelona")
+results = gf.find_sync("Montserrat")
 for r in results:
-    print(f"{r['nom']} ({r['nomTipus']}) - {r['x']}, {r['y']}")
-# Output: Barcelona (Municipi) - 2.1734, 41.3851
+    print(r.nom)
 ```
 
 ### Búsqueda con Diferentes Formatos
@@ -54,6 +71,9 @@ for r in results:
 from geofinder import GeoFinder
 
 gf = GeoFinder()
+
+# Desactivar verificación SSL para servidores con certificados autofirmados
+gf = GeoFinder(verify_ssl=False)
 
 # 1. Topónimo
 results = gf.find("Montserrat")
@@ -74,232 +94,299 @@ results = gf.find("2.1734 41.3851 EPSG:4326")
 ### Geocodificación Inversa
 
 ```python
-from geofinder import GeoFinder
+async with GeoFinder() as gf:
+    # Desde coordenadas GPS → información del lugar
+    results = await gf.find_reverse(2.1734, 41.3851, epsg=4326)
 
-gf = GeoFinder()
-
-# Desde coordenadas GPS → información del lugar
-results = gf.find_reverse(2.1734, 41.3851, epsg=4326)
-
-for r in results:
-    print(f"📍 {r['nom']}")
-    print(f"   Municipio: {r.get('nomMunicipi', 'N/A')}")
-    print(f"   Comarca: {r.get('nomComarca', 'N/A')}")
+    for r in results:
+        print(f"📍 {r.nom}")
+        print(f"   Municipio: {r.nomMunicipi}")
+        print(f"   Comarca: {r.nomComarca}")
+        # Metadata extra ahora disponible
+        print(f"   ID Municipio: {r.idMunicipi}")
 ```
 
 ### Autocompletado
 
 ```python
-from geofinder import GeoFinder
+async with GeoFinder() as gf:
+    # Sugerencias mientras el usuario escribe
+    suggestions = await gf.autocomplete("Barcel", size=5)
 
-gf = GeoFinder()
-
-# Sugerencias mientras el usuario escribe
-suggestions = gf.autocomplete("Barcel", size=5)
-
-for s in suggestions:
-    print(f"💡 {s['nom']} - {s['nomTipus']}")
-# Output:
-# 💡 Barcelona - Municipi
-# 💡 Barcelonès - Comarca
-# 💡 Barcelona (Pl.) - Plaça
+    for s in suggestions:
+        print(f"💡 {s.nom} - {s.nomTipus}")
 ```
 
 ---
 
 ## 🌐 Integración Web
 
-### Flask - API REST de Geocodificación
+### FastAPI - Pool de Conexiones Compartido (Recomendado)
+
+**¿Por qué compartir el pool de conexiones?**
+
+Cuando tienes una aplicación web con múltiples endpoints que usan GeoFinder, crear un nuevo cliente HTTP para cada petición es ineficiente:
+
+- ❌ **Sin compartir**: Cada petición crea/cierra conexiones → overhead de red
+- ✅ **Con pool compartido**: Reutiliza conexiones → menor latencia, mejor rendimiento
+
+#### Ejemplo Completo con Pool Compartido
 
 ```python
 """
-Servidor Flask para geocodificación.
-Ejecutar: python app.py
-Probar: curl http://localhost:5000/search?q=Barcelona
-"""
-from flask import Flask, request, jsonify
-from geofinder import GeoFinder
-
-app = Flask(__name__)
-gf = GeoFinder()
-
-@app.route('/search')
-def search():
-    """Búsqueda general de lugares."""
-    query = request.args.get('q', '')
-    if not query:
-        return jsonify({"error": "Parámetro 'q' requerido"}), 400
-
-    try:
-        results = gf.find(query)
-        return jsonify({
-            "query": query,
-            "count": len(results),
-            "results": results
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/reverse')
-def reverse():
-    """Geocodificación inversa."""
-    try:
-        x = float(request.args.get('x', 0))
-        y = float(request.args.get('y', 0))
-        epsg = int(request.args.get('epsg', 4326))
-    except ValueError:
-        return jsonify({"error": "Parámetros inválidos"}), 400
-
-    results = gf.find_reverse(x, y, epsg=epsg)
-    return jsonify({
-        "coordinates": {"x": x, "y": y, "epsg": epsg},
-        "results": results
-    })
-
-
-@app.route('/autocomplete')
-def autocomplete():
-    """Sugerencias de autocompletado."""
-    text = request.args.get('text', '')
-    size = min(int(request.args.get('size', 10)), 20)  # Máx 20
-
-    results = gf.autocomplete(text, size=size)
-    return jsonify({
-        "query": text,
-        "suggestions": [r['nom'] for r in results]
-    })
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
-```
-
-### FastAPI - API Asíncrona
-
-```python
-"""
-Servidor FastAPI para geocodificación.
+API FastAPI con pool de conexiones compartido.
 Ejecutar: uvicorn app:app --reload
-Docs automáticas: http://localhost:8000/docs
 """
-from fastapi import FastAPI, Query, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, Query, HTTPException, Depends
+from contextlib import asynccontextmanager
+import httpx
 from geofinder import GeoFinder
-from typing import Optional
+from geofinder.models import GeoResponse, GeoResult
+
+# ============================================================================
+# 1. CONFIGURACIÓN DEL POOL DE CONEXIONES
+# ============================================================================
+
+# Cliente HTTP compartido con configuración optimizada
+shared_http_client: httpx.AsyncClient | None = None
+
+def get_shared_client() -> httpx.AsyncClient:
+    """Obtiene el cliente HTTP compartido."""
+    if shared_http_client is None:
+        raise RuntimeError("Cliente HTTP no inicializado")
+    return shared_http_client
+
+
+# ============================================================================
+# 2. LIFECYCLE DE LA APLICACIÓN
+# ============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gestiona el ciclo de vida de la aplicación."""
+    global shared_http_client
+    
+    # STARTUP: Crear cliente compartido
+    print("🚀 Iniciando pool de conexiones...")
+    shared_http_client = httpx.AsyncClient(
+        timeout=10.0,
+        limits=httpx.Limits(
+            max_connections=100,        # Máximo de conexiones totales
+            max_keepalive_connections=20  # Conexiones keep-alive
+        ),
+        follow_redirects=True
+    )
+    print(f"✅ Pool creado: {shared_http_client.limits}")
+    
+    yield  # La aplicación está corriendo
+    
+    # SHUTDOWN: Cerrar cliente compartido
+    print("⏳ Cerrando pool de conexiones...")
+    await shared_http_client.aclose()
+    print("✅ Pool cerrado correctamente")
+
+
+# ============================================================================
+# 3. APLICACIÓN FASTAPI
+# ============================================================================
 
 app = FastAPI(
     title="GeoFinder API",
-    description="API de geocodificación para Cataluña",
-    version="1.0.0"
+    description="API de geocodificación para Cataluña con pool compartido",
+    version="2.1.0",
+    lifespan=lifespan  # ← Importante: gestión del lifecycle
 )
 
-# Instancia compartida
-gf = GeoFinder()
+
+# ============================================================================
+# 4. DEPENDENCY INJECTION
+# ============================================================================
+
+def get_geofinder(
+    client: httpx.AsyncClient = Depends(get_shared_client)
+) -> GeoFinder:
+    """
+    Crea una instancia de GeoFinder con el cliente compartido.
+    
+    IMPORTANTE: GeoFinder NO cerrará este cliente porque fue inyectado.
+    """
+    return GeoFinder(http_client=client)
 
 
-class GeoResult(BaseModel):
-    nom: str
-    nomTipus: str
-    nomMunicipi: Optional[str] = None
-    nomComarca: Optional[str] = None
-    x: float
-    y: float
-    epsg: int
+# ============================================================================
+# 5. ENDPOINTS
+# ============================================================================
 
-
-class SearchResponse(BaseModel):
-    query: str
-    count: int
-    results: list[dict]
-
-
-@app.get("/search", response_model=SearchResponse, tags=["Geocoding"])
-def search(
-    q: str = Query(..., description="Texto de búsqueda"),
-    epsg: int = Query(25831, description="Sistema de referencia por defecto")
+@app.get("/search", response_model=GeoResponse)
+async def search(
+    q: str = Query(..., description="Texto a buscar"),
+    size: int = Query(10, ge=1, le=100, description="Número de resultados"),
+    gf: GeoFinder = Depends(get_geofinder)
 ):
     """
-    Busca lugares, direcciones y coordenadas.
-
-    Formatos soportados:
-    - Topónimos: "Barcelona", "Montserrat"
-    - Direcciones: "Barcelona, Diagonal 100"
-    - Coordenadas: "430000 4580000 EPSG:25831"
-    - Carreteras: "C-32 km 10"
+    Busca un lugar por nombre o dirección.
+    
+    Ejemplos:
+    - /search?q=Barcelona
+    - /search?q=Diagonal 100, Barcelona&size=5
     """
     try:
-        results = gf.find(q, default_epsg=epsg)
-        return {"query": q, "count": len(results), "results": results}
+        return await gf.find_response(q, size=size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/reverse", tags=["Geocoding"])
-def reverse(
-    x: float = Query(..., description="Coordenada X (longitud si EPSG:4326)"),
-    y: float = Query(..., description="Coordenada Y (latitud si EPSG:4326)"),
-    epsg: int = Query(4326, description="Sistema de referencia de entrada"),
-    layers: str = Query("address,tops", description="Capas a buscar"),
-    size: int = Query(5, ge=1, le=20, description="Máx resultados")
+@app.get("/reverse", response_model=list[GeoResult])
+async def reverse(
+    x: float = Query(..., description="Coordenada X / Longitud"),
+    y: float = Query(..., description="Coordenada Y / Latitud"),
+    epsg: int = Query(4326, description="Sistema de coordenadas"),
+    gf: GeoFinder = Depends(get_geofinder)
 ):
-    """Geocodificación inversa: coordenadas → información del lugar."""
-    results = gf.find_reverse(x, y, epsg=epsg, layers=layers, size=size)
+    """
+    Geocodificación inversa: coordenadas → lugar.
+    
+    Ejemplos:
+    - /reverse?x=2.1734&y=41.3851&epsg=4326
+    - /reverse?x=430000&y=4580000&epsg=25831
+    """
+    try:
+        return await gf.find_reverse(x, y, epsg=epsg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/autocomplete")
+async def autocomplete(
+    q: str = Query(..., min_length=2, description="Texto parcial"),
+    size: int = Query(10, ge=1, le=50),
+    gf: GeoFinder = Depends(get_geofinder)
+):
+    """
+    Sugerencias de autocompletado.
+    
+    Ejemplo: /autocomplete?q=Barcel
+    """
+    try:
+        suggestions = await gf.autocomplete(q, size=size)
+        return {"suggestions": [s.nom for s in suggestions]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+async def health(client: httpx.AsyncClient = Depends(get_shared_client)):
+    """Endpoint de salud que muestra el estado del pool."""
     return {
-        "input": {"x": x, "y": y, "epsg": epsg},
-        "results": results
+        "status": "healthy",
+        "pool": {
+            "max_connections": client.limits.max_connections,
+            "max_keepalive": client.limits.max_keepalive_connections,
+            "is_closed": client.is_closed
+        }
     }
 
 
-@app.get("/autocomplete", tags=["Suggestions"])
-def autocomplete(
-    text: str = Query(..., min_length=2, description="Texto parcial"),
-    size: int = Query(10, ge=1, le=20, description="Máx sugerencias")
-):
-    """Sugerencias de autocompletado para búsquedas."""
-    results = gf.autocomplete(text, size=size)
-    return {
-        "query": text,
-        "suggestions": [{"name": r['nom'], "type": r['nomTipus']} for r in results]
-    }
+# ============================================================================
+# 6. EJECUCIÓN
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-### Django - Vista de Geocodificación
+#### ¿Cómo Funciona el Pool Compartido?
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  FastAPI Application                                    │
+│                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │ Request 1    │  │ Request 2    │  │ Request 3    │  │
+│  │ /search      │  │ /reverse     │  │ /autocomplete│  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
+│         │                  │                  │          │
+│         └──────────────────┼──────────────────┘          │
+│                            │                             │
+│                    ┌───────▼────────┐                    │
+│                    │  Dependency    │                    │
+│                    │  get_geofinder │                    │
+│                    └───────┬────────┘                    │
+│                            │                             │
+│                    ┌───────▼────────┐                    │
+│                    │  GeoFinder     │                    │
+│                    │  (http_client) │                    │
+│                    └───────┬────────┘                    │
+│                            │                             │
+│         ┌──────────────────┴──────────────────┐          │
+│         │                                     │          │
+│  ┌──────▼──────────────────────────────────┐  │          │
+│  │  shared_http_client (httpx.AsyncClient) │  │          │
+│  │  ┌────────────────────────────────────┐ │  │          │
+│  │  │  Connection Pool                   │ │  │          │
+│  │  │  ┌──────┐ ┌──────┐ ┌──────┐       │ │  │          │
+│  │  │  │ Conn │ │ Conn │ │ Conn │  ...  │ │  │          │
+│  │  │  └──────┘ └──────┘ └──────┘       │ │  │          │
+│  │  │  (Reutilizadas entre peticiones)  │ │  │          │
+│  │  └────────────────────────────────────┘ │  │          │
+│  └──────────────────────────────────────────┘  │          │
+│                                                 │          │
+└─────────────────────────────────────────────────┘
+                         │
+                         ▼
+              Servidor ICGC Pelias
+```
+
+#### Ventajas del Pool Compartido
+
+| Aspecto | Sin Pool | Con Pool Compartido |
+|---------|----------|---------------------|
+| **Conexiones** | Nueva por petición | Reutilizadas |
+| **Latencia** | ~100-200ms | ~20-50ms |
+| **Overhead** | Alto (TCP handshake) | Bajo (keep-alive) |
+| **Recursos** | Muchos sockets | Controlado |
+| **Escalabilidad** | Limitada | Alta |
+
+#### Configuración del Pool
 
 ```python
-# views.py
-from django.http import JsonResponse
-from django.views import View
+# Ajustar según tus necesidades
+httpx.AsyncClient(
+    timeout=10.0,  # Timeout global
+    limits=httpx.Limits(
+        max_connections=100,        # Total de conexiones simultáneas
+        max_keepalive_connections=20,  # Conexiones keep-alive
+        keepalive_expiry=30.0       # Tiempo de vida de keep-alive
+    )
+)
+```
+
+**Recomendaciones**:
+- **API de bajo tráfico**: `max_connections=20`, `max_keepalive=5`
+- **API de tráfico medio**: `max_connections=50`, `max_keepalive=10`
+- **API de alto tráfico**: `max_connections=100`, `max_keepalive=20`
+
+---
+
+### FastAPI - Versión Simple (Sin Pool Compartido)
+
+Si no necesitas optimización extrema, puedes usar la versión simple:
+
+```python
+from fastapi import FastAPI, Query
 from geofinder import GeoFinder
 
+app = FastAPI()
+gf = GeoFinder()  # Cliente propio, se gestiona internamente
 
-class GeocoderView(View):
-    """Vista Django para geocodificación."""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.gf = GeoFinder()
-
-    def get(self, request, *args, **kwargs):
-        query = request.GET.get('q', '')
-        if not query:
-            return JsonResponse({'error': 'Parámetro q requerido'}, status=400)
-
-        results = self.gf.find(query)
-        return JsonResponse({
-            'query': query,
-            'results': results
-        })
-
-
-# urls.py
-from django.urls import path
-from .views import GeocoderView
-
-urlpatterns = [
-    path('api/geocode/', GeocoderView.as_view(), name='geocode'),
-]
+@app.get("/search")
+async def search(q: str = Query(...)):
+    return await gf.find_response(q)
 ```
+
+> [!NOTE]
+> Esta versión es más simple pero menos eficiente. Cada instancia de `GeoFinder` tiene su propio cliente HTTP.
 
 ---
 
@@ -330,18 +417,18 @@ df = pd.DataFrame(data)
 gf = GeoFinder()
 
 
-def geocode_address(address: str) -> dict:
+async def geocode_address(gf, address: str) -> dict:
     """Geocodifica una dirección y devuelve coordenadas."""
     try:
-        results = gf.find(address)
+        results = await gf.find(address)
         if results:
             r = results[0]
             return {
-                'lat': r['y'],
-                'lon': r['x'],
-                'municipio': r.get('nomMunicipi', ''),
-                'comarca': r.get('nomComarca', ''),
-                'tipo': r.get('nomTipus', '')
+                'lat': r.y,
+                'lon': r.x,
+                'municipio': r.nomMunicipi,
+                'comarca': r.nomComarca,
+                'tipo': r.nomTipus
             }
     except Exception as e:
         print(f"Error geocodificando '{address}': {e}")
@@ -377,16 +464,17 @@ gf = GeoFinder()
 
 # Geocodificar
 data = []
-for lugar in lugares:
-    results = gf.find(lugar)
-    if results:
-        r = results[0]
-        data.append({
-            'nombre': r['nom'],
-            'tipo': r['nomTipus'],
-            'comarca': r.get('nomComarca', ''),
-            'geometry': Point(r['x'], r['y'])
-        })
+async with GeoFinder() as gf:
+    for lugar in lugares:
+        results = await gf.find(lugar)
+        if results:
+            r = results[0]
+            data.append({
+                'nombre': r.nom,
+                'tipo': r.nomTipus,
+                'comarca': r.nomComarca,
+                'geometry': Point(r.x, r.y)
+            })
 
 # Crear GeoDataFrame
 gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
@@ -426,13 +514,13 @@ lugares = [
 mapa = folium.Map(location=[41.5, 1.5], zoom_start=8)
 
 for lugar in lugares:
-    results = gf.find(lugar)
+    results = gf.find_sync(lugar)
     if results:
         r = results[0]
         folium.Marker(
-            location=[r['y'], r['x']],  # Folium usa lat, lon
-            popup=f"<b>{r['nom']}</b><br>{r['nomTipus']}",
-            tooltip=r['nom'],
+            location=[r.y, r.x],  # Folium usa lat, lon
+            popup=f"<b>{r.nom}</b><br>{r.nomTipus}",
+            tooltip=r.nom,
             icon=folium.Icon(color='blue', icon='info-sign')
         ).add_to(mapa)
 
@@ -445,105 +533,78 @@ print("Mapa guardado en mapa_cataluña.html")
 
 ## ⚡ Geocodificación por Lotes
 
-### Procesamiento con Progreso
+### Uso de `find_batch` (Recomendado)
+
+`find_batch` es la forma más eficiente y sencilla de procesar múltiples direcciones. Gestiona automáticamente la concurrencia para no saturar el servidor.
 
 ```python
-"""
-Geocodificar lista grande de direcciones con barra de progreso.
-"""
+import asyncio
 from geofinder import GeoFinder
-from tqdm import tqdm
-import time
+
+async def main():
+    async with GeoFinder() as gf:
+        direcciones = [
+            "Barcelona",
+            "Girona",
+            "Lleida",
+            "Tarragona",
+            "Montserrat"
+        ]
+        
+        # max_concurrency limita las peticiones simultáneas (default: 5)
+        results = await gf.find_batch(direcciones, max_concurrency=10)
+        
+        for query, response in zip(direcciones, results):
+            if response.results:
+                top = response.results[0]
+                print(f"✅ {query} -> {top.nom} ({top.x}, {top.y})")
+            else:
+                print(f"❌ {query} no encontrado")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Geocodificación Inversa por Lotes
+
+También puedes procesar múltiples coordenadas de forma eficiente.
+
+```python
+async with GeoFinder() as gf:
+    coords = [
+        (2.1734, 41.3851),
+        (2.8249, 41.9794),
+        (0.6231, 41.6176)
+    ]
+    
+    # Procesa en paralelo con concurrencia controlada
+    results = await gf.find_reverse_batch(coords, epsg=4326, max_concurrency=3)
+    
+    for c, res_list in zip(coords, results):
+        if res_list:
+            print(f"📍 {c} -> {res_list[0].nom}")
+```
+
+### Versión Síncrona (Scripts Simples)
+
+Si no estás usando `async/await`, puedes usar las versiones `_sync`.
+
+```python
+from geofinder import GeoFinder
 
 gf = GeoFinder()
+direcciones = ["Barcelona", "Girona"]
 
-direcciones = [
-    'Barcelona, Passeig de Gràcia 43',
-    'Girona, Rambla de la Llibertat 1',
-    'Lleida, Avinguda Catalunya 12',
-    # ... cientos de direcciones
-]
+# Bloquea hasta que todo el lote se procesa
+results = gf.find_batch_sync(direcciones)
 
-resultados = []
-
-for direccion in tqdm(direcciones, desc="Geocodificando"):
-    try:
-        results = gf.find(direccion)
-        if results:
-            resultados.append({
-                'input': direccion,
-                'output': results[0],
-                'status': 'success'
-            })
-        else:
-            resultados.append({
-                'input': direccion,
-                'output': None,
-                'status': 'not_found'
-            })
-    except Exception as e:
-        resultados.append({
-            'input': direccion,
-            'output': None,
-            'status': 'error',
-            'error': str(e)
-        })
-
-    # Respetar límites del servicio
-    time.sleep(0.1)  # 100ms entre peticiones
-
-# Estadísticas
-success = sum(1 for r in resultados if r['status'] == 'success')
-print(f"✅ Éxito: {success}/{len(direcciones)}")
+for resp in results:
+    if resp.results:
+        print(resp.results[0].nom)
 ```
 
-### Procesamiento Paralelo (con cuidado)
-
-```python
-"""
-Geocodificación paralela limitada para respetar el servicio.
-"""
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from geofinder import GeoFinder
-import time
-
-# Crear múltiples instancias con timeouts
-def create_geocoder():
-    return GeoFinder(timeout=10)
-
-
-def geocode_with_retry(direccion: str, max_retries: int = 3):
-    """Geocodificar con reintentos."""
-    gf = create_geocoder()
-    for attempt in range(max_retries):
-        try:
-            results = gf.find(direccion)
-            return {'input': direccion, 'result': results[0] if results else None}
-        except Exception as e:
-            if attempt == max_retries - 1:
-                return {'input': direccion, 'result': None, 'error': str(e)}
-            time.sleep(0.5 * (attempt + 1))  # Backoff
-
-
-direcciones = [
-    'Barcelona, Diagonal 1',
-    'Barcelona, Diagonal 10',
-    'Barcelona, Diagonal 100',
-    # ... más direcciones
-]
-
-# Limitar a 3 workers para no sobrecargar el servicio
-resultados = []
-with ThreadPoolExecutor(max_workers=3) as executor:
-    futures = {
-        executor.submit(geocode_with_retry, d): d
-        for d in direcciones
-    }
-
-    for future in as_completed(futures):
-        resultado = future.result()
-        resultados.append(resultado)
-```
+> [!TIP]
+> **Gestión de Sesiones Síncronas**: Las llamadas `_sync` gestionan internamente el ciclo de vida del cliente. Puedes realizar múltiples llamadas secuenciales sobre la misma instancia de `GeoFinder` sin problemas.
 
 ---
 
@@ -568,18 +629,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def geocode_safely(query: str, gf: GeoFinder = None) -> dict:
-    """
-    Geocodificar de forma segura con manejo completo de errores.
-
-    Returns:
-        dict con 'success', 'data' o 'error'
-    """
-    if gf is None:
-        gf = GeoFinder()
-
+async def geocode_safely(query: str, gf: GeoFinder) -> dict:
+    """Geocodificar de forma segura con modelos Pydantic."""
     try:
-        results = gf.find(query)
+        results = await gf.find(query)
 
         if not results:
             return {
@@ -588,59 +641,17 @@ def geocode_safely(query: str, gf: GeoFinder = None) -> dict:
                 'message': f"No se encontraron resultados para '{query}'"
             }
 
+        best = results[0]
         return {
             'success': True,
-            'data': results[0],
-            'total_results': len(results)
+            'data': best,
+            'name': best.nom,
+            'coords': (best.y, best.x)
         }
-
-    except PeliasTimeoutError as e:
-        logger.warning(f"Timeout geocodificando '{query}': {e}")
-        return {
-            'success': False,
-            'error': 'TIMEOUT',
-            'message': 'El servicio tardó demasiado en responder',
-            'retry': True
-        }
-
-    except PeliasConnectionError as e:
-        logger.error(f"Error de conexión: {e}")
-        return {
-            'success': False,
-            'error': 'CONNECTION_ERROR',
-            'message': 'No se pudo conectar con el servicio ICGC',
-            'retry': True
-        }
-
-    except PeliasError as e:
-        logger.error(f"Error del servicio Pelias: {e}")
-        return {
-            'success': False,
-            'error': 'SERVICE_ERROR',
-            'message': str(e),
-            'retry': False
-        }
-
+    except PeliasTimeoutError:
+        return {'success': False, 'error': 'TIMEOUT', 'retry': True}
     except Exception as e:
-        logger.exception(f"Error inesperado geocodificando '{query}'")
-        return {
-            'success': False,
-            'error': 'UNEXPECTED_ERROR',
-            'message': str(e),
-            'retry': False
-        }
-
-
-# Uso
-gf = GeoFinder(timeout=5)
-
-result = geocode_safely("Barcelona", gf)
-if result['success']:
-    print(f"✅ {result['data']['nom']}: {result['data']['x']}, {result['data']['y']}")
-else:
-    print(f"❌ {result['error']}: {result['message']}")
-    if result.get('retry'):
-        print("   → Puedes reintentar esta operación")
+        return {'success': False, 'error': 'ERROR', 'message': str(e)}
 ```
 
 ### Validación de Entrada
@@ -720,45 +731,34 @@ else:
 
 ## 💾 Caché y Rendimiento
 
-### Caché en Memoria con functools
+### Caché Nativa Integrada
+
+GeoFinder incluye un sistema de caché asíncrono LRU con TTL. No necesitas implementar nada externo a menos que requieras persistencia en base de datos.
 
 ```python
 """
-Caché simple en memoria para búsquedas frecuentes.
+Configuración y uso de la caché nativa.
 """
-from functools import lru_cache
 from geofinder import GeoFinder
-import json
 
-# Instancia global
-_gf = GeoFinder()
+# 1. Configurar al inicializar
+gf = GeoFinder(
+    cache_size=200,    # Capacidad para 200 resultados
+    cache_ttl=3600     # 1 hora de vida
+)
 
-
-@lru_cache(maxsize=1000)
-def geocode_cached(query: str) -> str:
-    """
-    Geocodificar con caché LRU.
-
-    Nota: lru_cache requiere retorno hashable,
-    por eso convertimos a JSON string.
-    """
-    results = _gf.find(query)
-    return json.dumps(results) if results else "[]"
-
-
-def geocode(query: str) -> list:
-    """Interfaz pública que deserializa el resultado."""
-    return json.loads(geocode_cached(query.lower().strip()))
-
-
-# Uso
-result1 = geocode("Barcelona")  # llama al servicio
-result2 = geocode("Barcelona")  # usa caché
-result3 = geocode("BARCELONA")  # usa caché (normalizado)
-
-# Ver estadísticas de caché
-print(geocode_cached.cache_info())
-# CacheInfo(hits=2, misses=1, maxsize=1000, currsize=1)
+async def demo_cache():
+    # Primera vez: MISS (petición a red)
+    res1 = await gf.find("Barcelona")
+    
+    # Segunda vez: HIT (instantáneo desde memoria)
+    res2 = await gf.find("Barcelona")
+    
+    # Forzar actualización (saltar caché)
+    res3 = await gf.find("Barcelona", use_cache=False)
+    
+    # Limpiar caché
+    gf.clear_cache()
 ```
 
 ### Caché Persistente con SQLite
@@ -941,17 +941,17 @@ class AddressValidator:
             best = results[0]
 
             # Determinar confianza según tipo
-            confidence = 1.0 if best['nomTipus'] == 'Adreça' else 0.7
+            confidence = 1.0 if best.nomTipus == 'Adreça' else 0.7
 
             return ValidatedAddress(
                 original=address,
                 is_valid=True,
-                normalized=best['nom'],
-                street=best.get('nomCarrer'),
-                municipality=best.get('nomMunicipi'),
-                comarca=best.get('nomComarca'),
-                latitude=best['y'],
-                longitude=best['x'],
+                normalized=best.nom,
+                street=best.nomTipus,
+                municipality=best.nomMunicipi,
+                comarca=best.nomComarca,
+                latitude=best.y,
+                longitude=best.x,
                 confidence=confidence
             )
 
@@ -1012,7 +1012,7 @@ class NearbySearch:
     def __init__(self):
         self.gf = GeoFinder()
 
-    def search_near_place(
+    async def search_near_place(
         self,
         place_name: str,
         radius_km: float = 1.0,
@@ -1026,16 +1026,28 @@ class NearbySearch:
             radius_km: Radio de búsqueda en km
             max_results: Máximo de resultados
         """
-        # Primero geocodificar el lugar de referencia
-        ref_results = self.gf.find(place_name)
-        if not ref_results:
-            raise ValueError(f"No se encontró: {place_name}")
+        # Usar el método integrado del core para mayor eficiencia
+        results = await self.gf.search_nearby(place_name, radius_km=radius_km, max_results=max_results)
+        
+        if not results:
+            return []
+            
+        ref = results[0]
+        return [
+            NearbyResult(
+                name=r.nom,
+                type=r.nomTipus,
+                distance_km=0.0, # El core no calcula distancias exactas aún
+                latitude=r.y,
+                longitude=r.x
+            ) for r in results
+        ]
 
         ref = ref_results[0]
-        ref_x, ref_y = ref['x'], ref['y']
+        ref_x, ref_y = ref.x, ref.y
 
         # Buscar lugares cercanos
-        nearby = self.gf.find_reverse(
+        nearby = await self.gf.find_reverse(
             ref_x, ref_y,
             epsg=4326,
             layers="address,tops,pk",
@@ -1045,15 +1057,15 @@ class NearbySearch:
         results = []
         for place in nearby:
             # Calcular distancia
-            dist = self._haversine(ref_y, ref_x, place['y'], place['x'])
+            dist = self._haversine(ref_y, ref_x, place.y, place.x)
 
             if dist <= radius_km:
                 results.append(NearbyResult(
-                    name=place['nom'],
-                    type=place['nomTipus'],
+                    name=place.nom,
+                    type=place.nomTipus,
                     distance_km=round(dist, 2),
-                    latitude=place['y'],
-                    longitude=place['x']
+                    latitude=place.y,
+                    longitude=place.x
                 ))
 
         # Ordenar por distancia
@@ -1198,7 +1210,7 @@ for r in converter.convert_to_all(430000, 4580000, 25831):
 
 ### Enlaces Útiles
 
-- [Repositorio GitLab](https://gitlab.com/pg005991/geofinder-icgc)
+- [Repositorio GitLab](https://github.com/jccamel/geocoder-mcp)
 - [Geocodificador ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
 - [Pelias Documentation](https://github.com/pelias/documentation)
 - [EPSG Registry](https://epsg.io/)

@@ -1,7 +1,7 @@
 # Arquitectura de GeoFinder ICGC
 
 > **Documentación técnica del funcionamiento interno del proyecto GeoFinder**  
-> Última actualización: 2025-12-11
+> Última actualización: 2025-12-19 (v2.1.0)
 
 ---
 
@@ -19,142 +19,141 @@
 
 ## 🎯 Visión General
 
-GeoFinder es un **geocodificador para Cataluña** que utiliza los servicios del ICGC (Institut Cartogràfic i Geològic de Catalunya). El proyecto está estructurado en **3 capas principales**:
+1. **Capa de Presentación** - Servidor MCP (async) y API pública (async + wrappers sync)
+2. **Capa de Lógica de Negocio** - GeoFinder (async, parsing, detección, transformaciones)
+3. **Capa de Caché** - AsyncLRUCache (en memoria, LRU + TTL)
+4. **Capa de Comunicación** - PeliasClient (httpx.AsyncClient, reintentos, errores)
 
-1. **Capa de Presentación** - Servidor MCP y API pública
-2. **Capa de Lógica de Negocio** - GeoFinder (parsing, detección, transformaciones)
-3. **Capa de Comunicación** - PeliasClient (HTTP, reintentos, errores)
+> **Modelos de Datos**: La comunicación entre capas se realiza mediante objetos **Pydantic** (`GeoResult`, `GeoResponse`), asegurando integridad y tipado fuerte.
+
+> **API Dual**: El core es async para máximo rendimiento, pero ofrece wrappers sync (`find_sync()`, etc.) para scripts simples.
 
 ---
 
 ## 🏗️ Arquitectura en Capas
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                   CAPA DE PRESENTACIÓN                    │
-│  ┌──────────────────────┐  ┌──────────────────────────┐   │
-│  │   Servidor MCP       │  │   API Pública Python     │   │
-│  │  (mcp_server.py)     │  │   (geofinder.py)         │   │
-│  │                      │  │                          │   │
-│  │  - find_place()      │  │  - find()                │   │
-│  │  - autocomplete()    │  │  - find_reverse()        │   │
-│  │  - find_reverse()    │  │  - autocomplete()        │   │
-│  │  - find_address()    │  │                          │   │
-│  │  - find_road_km()    │  │                          │   │
-│  │  - search_nearby()   │  │                          │   │
-│  │  - etc...            │  │                          │   │
-│  └──────────┬───────────┘  └───────┬──────────────────┘   │
-└─────────────┼──────────────────────┼──────────────────────┘
-              │                      │
-              └──────────┬───────────┘
-                         ↓
-┌────────────────────────────────────────────────────────────┐
-│                 CAPA DE LÓGICA DE NEGOCIO                  │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              GeoFinder (geofinder.py)                │  │
-│  │                                                      │  │
-│  │  Métodos Públicos:                                   │  │
-│  │  - find(text, epsg)                                  │  │
-│  │  - find_reverse(x, y, epsg, layers, size)            │  │
-│  │  - autocomplete(text, size)                          │  │
-│  │                                                      │  │
-│  │  Métodos Internos:                                   │  │
-│  │  - _find_data()           → Detecta tipo búsqueda    │  │
-│  │  - _parse_point()         → Parsea coordenadas       │  │
-│  │  - _parse_rectangle()     → Parsea rectángulos       │  │
-│  │  - _parse_road()          → Parsea carreteras        │  │
-│  │  - _parse_address()       → Parsea direcciones       │  │
-│  │  - _find_placename()      → Busca topónimos          │  │
-│  │  - _find_address()        → Busca direcciones        │  │
-│  │  - _find_road()           → Busca carreteras         │  │
-│  │  - _find_point_coordinate_icgc() → Busca por coords  │  │
-│  │  - _parse_icgc_response() → Parsea respuestas        │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-└─────────────────────────┼──────────────────────────────────┘
-                          ↓
-┌────────────────────────────────────────────────────────────┐
-│                 CAPA DE COMUNICACIÓN HTTP                  │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │            PeliasClient (pelias.py)                  │  │
-│  │                                                      │  │
-│  │  Métodos Principales:                                │  │
-│  │  - geocode(query, **params)    → Búsqueda general    │  │
-│  │  - reverse(lat, lon, **params) → Geocod. inversa     │  │
-│  │  - autocomplete(query, **params) → Autocompletado    │  │
-│  │                                                      │  │
-│  │  Método Interno:                                     │  │
-│  │  - call(endpoint, **params)    → Ejecuta HTTP GET    │  │
-│  │                                                      │  │
-│  │  Características:                                    │  │
-│  │  ✓ Reintentos automáticos (3 intentos)               │  │
-│  │  ✓ Backoff exponencial (0.3s, 0.6s, 1.2s)            │  │
-│  │  ✓ Manejo de errores HTTP (429, 500, 502, 503, 504)  │  │
-│  │  ✓ Gestión de timeouts                               │  │
-│  │  ✓ Reutilización de conexiones (Session)             │  │
-│  └──────────────────────┬───────────────────────────────┘  │
-└─────────────────────────┼──────────────────────────────────┘
-                          ↓
-              ┌───────────────────────┐
-              │   Servidor ICGC       │
-              │   Pelias API          │
-              │                       │
-              │  /cerca               │
-              │  /invers              │
-              │  /autocompletar       │
-              └───────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                   CAPA DE PRESENTACIÓN                            │
+│  ┌────────────────────────┐  ┌──────────────────────────────────┐ │
+│  │   Servidor MCP         │  │   API Pública Python             │ │
+│  │  (mcp_server.py)       │  │   (geofinder.py)                 │ │
+│  │  ══════════════════    │  │   ══════════════════             │ │
+│  │  🔄 ASYNC               │  │   🔄 ASYNC (nativo)              │ │
+│  │                        │  │   🔁 SYNC (wrappers)             │ │
+│  │  - find_place()    ⚡  │  │                                  │ │
+│  │  - autocomplete()  ⚡  │  │  Async:                          │ │
+│  │  - find_reverse()  ⚡  │  │  - await find()                  │ │
+│  │  - find_address()  ⚡  │  │  - await find_reverse()          │ │
+│  │  - find_road_km()  ⚡  │  │  - await autocomplete()          │ │
+│  │  - search_nearby() ⚡  │  │                                  │ │
+│  │                        │  │  Sync (wrappers):                │ │
+│  │  Sync (CPU-bound):     │  │  - find_sync()                   │ │
+│  │  - transform_coords()  │  │  - find_reverse_sync()           │ │
+│  │  - parse_query()       │  │  - autocomplete_sync()           │ │
+│  └──────────┬─────────────┘  └───────────┬──────────────────────┘ │
+└─────────────┼────────────────────────────┼────────────────────────┘
+              │                            │
+              └────────────┬───────────────┘
+                           ↓
+┌───────────────────────────────────────────────────────────────────┐
+│                 CAPA DE LÓGICA DE NEGOCIO (ASYNC)                 │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │              GeoFinder (geofinder.py) 🔄 ASYNC              │  │
+│  │                                                             │  │
+│  │  Lógica principal y orquestación                            │  │
+│  └──────────────────────────┬──────────────────────────────────┘  │
+└─────────────────────────────┼─────────────────────────────────────┘
+                              │
+                              ↓
+┌───────────────────────────────────────────────────────────────────┐
+│                 CAPA DE CACHÉ (ASYNC)                             │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │              AsyncLRUCache (utils/cache.py)                 │  │
+│  │                                                             │  │
+│  │  - Almacenamiento en memoria (LRU)                          │  │
+│  │  - Expiración por tiempo (TTL)                              │  │
+│  └──────────────────────────┬──────────────────────────────────┘  │
+└─────────────────────────────┼─────────────────────────────────────┘
+                              │
+                              ↓
+┌───────────────────────────────────────────────────────────────────┐
+│                 CAPA DE COMUNICACIÓN HTTP (ASYNC)                 │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │         PeliasClient (pelias.py) 🔄 httpx.AsyncClient       │  │
+│  └──────────────────────────┬──────────────────────────────────┘  │
+└─────────────────────────────┼─────────────────────────────────────┘
+                              ↓
+              ┌───────────────────────────┐
+              │   Servidor ICGC           │
+              │   Pelias API              │
+              │                           │
+              │  /cerca                   │
+              │  /invers                  │
+              │  /autocompletar           │
+              └───────────────────────────┘
 ```
 
 ---
 
 ## 🔧 Componentes Principales
 
-### 1. `pelias.py` - Cliente HTTP
+### 1. `pelias.py` - Cliente HTTP Async
 
-**Responsabilidad:** Comunicación con el servidor Pelias del ICGC.
+**Responsabilidad:** Comunicación asíncrona con el servidor Pelias del ICGC.
 
 #### Clases:
 
-- **`PeliasClient`** - Cliente principal
+- **`PeliasClient`** - Cliente async principal (httpx.AsyncClient)
 - **`PeliasError`** - Excepción base
 - **`PeliasConnectionError`** - Error de conexión
 - **`PeliasTimeoutError`** - Error de timeout
 
-#### Métodos Públicos:
+#### Métodos Async:
 
 | Método | Descripción | Endpoint |
 |--------|-------------|----------|
-| `geocode(query, **params)` | Búsqueda general (texto → coordenadas) | `/cerca` |
-| `reverse(lat, lon, **params)` | Geocodificación inversa (coords → lugar) | `/invers` |
-| `autocomplete(query, **params)` | Sugerencias de autocompletado | `/autocompletar` |
-| `call(endpoint, **params)` | Ejecuta petición HTTP genérica | Variable |
+| `async geocode(query, **params)` | Búsqueda general (texto → coordenadas) | `/cerca` |
+| `async reverse(lat, lon, **params)` | Geocodificación inversa (coords → lugar) | `/invers` |
+| `async autocomplete(query, **params)` | Sugerencias de autocompletado | `/autocompletar` |
+| `async call(endpoint, **params)` | Ejecuta petición HTTP genérica | Variable |
 | `last_sent()` | Retorna última URL ejecutada (debug) | - |
-| `close()` | Cierra sesión HTTP | - |
+| `async close()` | Cierra cliente httpx | - |
 
 #### Características Técnicas:
 
-- **Retry Strategy:** 3 reintentos con backoff exponencial
+- **Cliente HTTP:** `httpx.AsyncClient` (no bloquea event loop)
+- **Retry Strategy:** 3 reintentos con transporte httpx
 - **Status Codes Retry:** 429, 500, 502, 503, 504
 - **Timeout:** Configurable (default: 5 segundos)
-- **Session Management:** Reutiliza conexiones HTTP
-- **Context Manager:** Soporte para `with` statement
+- **Context Manager:** Soporte para `async with`
 
 ---
 
-### 2. `geofinder.py` - Lógica de Negocio
+### 2. `geofinder.py` - Lógica de Negocio (Async)
 
-**Responsabilidad:** Detección de tipos de búsqueda, parsing, transformaciones y orquestación.
+**Responsabilidad:** Detección de tipos de búsqueda, parsing, transformaciones y orquestación asíncrona.
 
 #### Clase Principal: `GeoFinder`
 
-#### Métodos Públicos (API):
+#### Métodos Públicos Async (API Principal):
 
 | Método | Descripción | Usa PeliasClient |
 |--------|-------------|------------------|
-| `find(text, epsg)` | Búsqueda inteligente con detección automática | ✅ Sí |
-| `find_reverse(x, y, epsg, layers, size)` | Geocodificación inversa | ✅ Sí |
-| `autocomplete(text, size)` | Autocompletado | ✅ Sí |
+| `async find(text, default_epsg, size)` | Búsqueda inteligente con detección automática | ✅ Sí |
+| `async find_reverse(x, y, epsg, layers, size)` | Geocodificación inversa | ✅ Sí |
+| `async autocomplete(text, size)` | Autocompletado | ✅ Sí |
+| `async find_response(text, epsg, size)`| Igual que find pero con metadatos | ✅ Sí |
 
-#### Métodos Internos de Parsing:
+#### Wrappers Sync (para scripts simples):
+
+| Método | Descripción | Implementación |
+|--------|-------------|----------------|
+| `find_sync(text, epsg)` | Versión síncrona de find() | `asyncio.run(find())` |
+| `find_reverse_sync(x, y, ...)` | Versión síncrona de find_reverse() | `asyncio.run(find_reverse())` |
+| `autocomplete_sync(text, size)` | Versión síncrona de autocomplete() | `asyncio.run(autocomplete())` |
+
+#### Métodos Internos de Parsing (Sync - CPU puro):
 
 | Método | Descripción | Formato Detectado |
 |--------|-------------|-------------------|
@@ -163,46 +162,61 @@ GeoFinder es un **geocodificador para Cataluña** que utiliza los servicios del 
 | `_parse_road(text)` | Detecta carretera + km | `"C-32 km 10"`, `"AP7 km 150"` |
 | `_parse_address(text)` | Detecta dirección | `"Barcelona, Diagonal 100"` |
 
-#### Métodos Internos de Búsqueda:
+#### Métodos Internos de Búsqueda (Async):
 
 | Método | Descripción | Llama a PeliasClient |
 |--------|-------------|----------------------|
-| `_find_placename(text)` | Busca topónimos | `geocode(text)` |
-| `_find_address(municipality, street_type, street, number)` | Busca direcciones | `geocode(query, layers="address")` |
-| `_find_road(road, km)` | Busca puntos kilométricos | `geocode(f"{road} {km}", layers="pk")` |
-| `_find_point_coordinate(x, y, epsg)` | Busca en coordenadas | `reverse()` + lógica combinada |
-| `_find_point_coordinate_icgc(x, y, epsg, layers, radius, size)` | Búsqueda avanzada por coords | `reverse(lat, lon, ...)` |
-| `_find_rectangle(west, north, east, south, epsg)` | Busca en rectángulo | Usa `_find_point_coordinate()` |
+| `async _find_placename(text)` | Busca topónimos | `await geocode(text)` |
+| `async _find_address(municipality, street_type, street, number)` | Busca direcciones | `await geocode(query, layers="address")` |
+| `async _find_road(road, km)` | Busca puntos kilométricos | `await geocode(f"{road} {km}", layers="pk")` |
+| `async _find_point_coordinate(x, y, epsg)` | Busca en coordenadas | `await reverse()` + lógica combinada |
+| `async _find_point_coordinate_icgc(...)` | Búsqueda avanzada por coords | `await reverse(lat, lon, ...)` |
+| `async _find_rectangle(west, north, east, south, epsg)` | Busca en rectángulo | Usa `await _find_point_coordinate()` |
 
-#### Métodos de Utilidad:
+| `get_name(results, index)` | Extrae nombre de resultado |
+
+### 3. `utils/cache.py` - Sistema de Caché (Async)
+
+**Responsabilidad:** Almacenamiento temporal de resultados para evitar peticiones redundantes.
+
+#### Clase: `AsyncLRUCache`
 
 | Método | Descripción |
 |--------|-------------|
-| `_parse_icgc_response(res_dict)` | Convierte respuesta ICGC a formato estándar |
-| `is_rectangle(results)` | Verifica si resultado es rectángulo |
-| `get_rectangle(results)` | Extrae coordenadas de rectángulo |
-| `get_point(results, index)` | Extrae coordenadas de punto |
-| `get_name(results, index)` | Extrae nombre de resultado |
+| `get(key)` | Recupera un valor si no ha expirado |
+| `set(key, value)` | Guarda un valor y actualiza timestamp |
+| `pop(key)` | Elimina una entrada específica |
+| `clear()` | Vacía toda la caché |
+
+#### Características:
+- **LRU (Least Recently Used)**: Expulsa el elemento más antiguo cuando se llena.
+- **TTL (Time To Live)**: Los elementos expiren tras N segundos (default 1h).
+- **Standalone**: Sin dependencias externas.
 
 ---
 
-### 3. `mcp_server.py` - Servidor MCP
+### 3. `mcp_server.py` - Servidor MCP (Async)
 
-**Responsabilidad:** Exponer funcionalidades de GeoFinder como herramientas MCP para asistentes de IA.
+**Responsabilidad:** Exponer funcionalidades de GeoFinder como herramientas MCP asíncronas para asistentes de IA.
 
-#### Herramientas MCP Disponibles:
+#### Herramientas MCP Async:
 
-| Herramienta | Descripción | Usa GeoFinder |
-|-------------|-------------|---------------|
-| `find_place(query, epsg)` | Búsqueda general inteligente | `gf.find()` |
-| `autocomplete(text, max)` | Sugerencias de autocompletado | `gf.autocomplete()` |
-| `find_reverse(lon, lat, epsg, layers, max)` | Geocodificación inversa | `gf.find_reverse()` |
-| `find_by_coordinates(x, y, epsg, radius, layers, max)` | Búsqueda avanzada por coords | `gf._find_point_coordinate_icgc()` |
-| `find_address(street, number, municipality, type)` | Búsqueda estructurada de direcciones | `gf._find_address()` |
-| `find_road_km(road, km)` | Búsqueda de punto kilométrico | `gf._find_road()` |
-| `search_nearby(place, radius, layers, max)` | Búsqueda cerca de un lugar | `gf.find()` + `gf._find_point_coordinate_icgc()` |
-| `transform_coordinates(x, y, from_epsg, to_epsg)` | Transformación de coordenadas | `transform_point()` (NO usa Pelias) |
-| `parse_search_query(query)` | Analiza tipo de búsqueda | Métodos `_parse_*()` (NO usa Pelias) |
+| Herramienta | Tipo | Descripción | Usa GeoFinder |
+|-------------|------|-------------|---------------|
+| `async find_place(query, epsg, size)` | ⚡ Async | Búsqueda general inteligente | `await gf.find()` |
+| `async autocomplete(text, max)` | ⚡ Async | Sugerencias de autocompletado | `await gf.autocomplete()` |
+| `async find_reverse(lon, lat, ...)` | ⚡ Async | Geocodificación inversa | `await gf.find_reverse()` |
+| `async find_by_coordinates(...)` | ⚡ Async | Búsqueda avanzada por coords | `await gf.find_by_coordinates()` |
+| `async find_address(...)` | ⚡ Async | Búsqueda estructurada de direcciones | `await gf.find_address()` |
+| `async find_road_km(road, km)` | ⚡ Async | Búsqueda de punto kilométrico | `await gf.find_road_km()` |
+| `async search_nearby(...)` | ⚡ Async | Búsqueda cerca de un lugar | `await gf.search_nearby()` |
+
+#### Herramientas MCP Sync (CPU-bound, no I/O):
+
+| Herramienta | Tipo | Descripción | Usa |
+|-------------|------|-------------|-----|
+| `transform_coordinates(...)` | 🔁 Sync | Transformación de coordenadas | `transform_point()` (pyproj/GDAL) |
+| `parse_search_query(query)` | 🔁 Sync | Analiza tipo de búsqueda | Métodos `_parse_*()` (regex) |
 
 ---
 

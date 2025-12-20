@@ -5,28 +5,42 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "geofinder"
 dynamic = ["version"]
-description = "Geocodificador para Cataluña usando el servicio ICGC"
+description = "Geocodificador asíncrono para Cataluña usando el servicio ICGC"
 readme = "README.md"
 license = {text = "GPL-2.0-or-later"}
 authors = [
     {name = "ICGC", email = "qgis.openicgc@icgc.cat"},
     {name = "Goalnefesh", email = "goalnefesh@protonmail.com"}
 ]
-keywords = ["geocoding", "catalonia", "icgc", "gis", "coordinates"]
+maintainers = [
+    {name = "Goalnefesh", email = "goalnefesh@protonmail.com"}
+]
+keywords = [
+    "geocoding", "catalonia", "icgc", "gis", "coordinates",
+    "pelias", "reverse-geocoding", "async", "fastapi", "mcp"
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GPL-2.0-or-later",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Framework :: AsyncIO",
+    "Framework :: FastAPI",
     "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 
 # Sin dependencias obligatorias para funcionalidad básica
 dependencies = [
     "python-dotenv>=1.0.1",
+    "pydantic>=2.0",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
@@ -49,13 +63,10 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.5",
     "fastmcp>=2.13.0",  # Para desarrollo del servidor MCP
+    "pytest-asyncio>=0.23.0",
 ]
 
-# Dependencias para mejorar el cliente HTTP
-http = [
-    "requests>=2.31",
-    "requests-cache>=1.1",
-]
+
 
 # Dependencias para documentación
 docs = [
@@ -122,6 +133,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
+asyncio_mode = "auto"
 
 # Configuración de coverage
 [tool.coverage.run]

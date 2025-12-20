@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Script de prueba completo para la biblioteca GeoFinder.
+Script de prueba completo para la biblioteca GeoFinder (Versión Async).
 
 Este script prueba todas las funcionalidades de GeoFinder con ejemplos reales
 del servicio de geocodificación del ICGC (Institut Cartogràfic i Geològic de Catalunya).
@@ -8,13 +8,22 @@ del servicio de geocodificación del ICGC (Institut Cartogràfic i Geològic de 
 Requiere conexión a internet para acceder al servicio ICGC.
 """
 
+import asyncio
+import pytest
 import sys
 from pathlib import Path
 
 # Añadir el directorio raíz al path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from geofinder import GeoFinder
+
+@pytest.fixture
+async def gf():
+    """Fixture para GeoFinder."""
+    client = GeoFinder()
+    yield client
+    await client.close()
 
 
 def print_section(title):
@@ -29,11 +38,18 @@ def print_results(description, results, max_results=3):
     if isinstance(results, list):
         print(f"\n✅ {description}: {len(results)} resultados")
         for i, result in enumerate(results[:max_results], 1):
-            name = result.get('nom', 'N/A')
-            tipo = result.get('nomTipus', 'N/A')
+            if hasattr(result, 'nom'):
+                name = result.nom
+                tipo = result.nomTipus
+                lat = result.y
+                lon = result.x
+            else:
+                name = result.get('nom', 'N/A')
+                tipo = result.get('nomTipus', 'N/A')
+                lat = result.get('y', 'N/A')
+                lon = result.get('x', 'N/A')
+            
             # Mostrar coordenadas en formato (lat, lon) para mayor claridad
-            lat = result.get('y', 'N/A')
-            lon = result.get('x', 'N/A')
             print(f"   {i}. {name} ({tipo}) - ({lat}, {lon})")
         if len(results) > max_results:
             print(f"   ... y {len(results) - max_results} más")
@@ -41,7 +57,7 @@ def print_results(description, results, max_results=3):
         print(f"\n✅ {description}: {results}")
 
 
-def test_basic_search(gf):
+async def test_basic_search(gf):
     """Prueba búsquedas básicas con find()"""
     print_section("1. BÚSQUEDAS BÁSICAS - find()")
 
@@ -56,13 +72,13 @@ def test_basic_search(gf):
         print(f"\n📍 {description}")
         print(f"   Query: '{query}'")
         try:
-            results = gf.find(query)
+            results = await gf.find(query)
             print_results(f"find('{query}')", results, max_results=2)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
-def test_coordinate_search(gf):
+async def test_coordinate_search(gf):
     """Prueba búsquedas por coordenadas"""
     print_section("2. BÚSQUEDAS POR COORDENADAS")
 
@@ -76,13 +92,13 @@ def test_coordinate_search(gf):
         print(f"\n📍 {description}")
         print(f"   Query: '{query}'")
         try:
-            results = gf.find(query)
+            results = await gf.find(query)
             print_results(f"find('{query}')", results, max_results=2)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
-def test_address_search(gf):
+async def test_address_search(gf):
     """Prueba búsquedas de direcciones"""
     print_section("3. BÚSQUEDAS DE DIRECCIONES")
 
@@ -96,13 +112,13 @@ def test_address_search(gf):
         print(f"\n🏠 {description}")
         print(f"   Query: '{query}'")
         try:
-            results = gf.find(query)
+            results = await gf.find(query)
             print_results(f"find('{query}')", results, max_results=2)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
-def test_road_search(gf):
+async def test_road_search(gf):
     """Prueba búsquedas de carreteras"""
     print_section("4. BÚSQUEDAS DE CARRETERAS")
 
@@ -116,13 +132,13 @@ def test_road_search(gf):
         print(f"\n🛣️  {description}")
         print(f"   Query: '{query}'")
         try:
-            results = gf.find(query)
+            results = await gf.find(query)
             print_results(f"find('{query}')", results, max_results=2)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
-def test_autocomplete(gf):
+async def test_autocomplete(gf):
     """Prueba autocompletado"""
     print_section("5. AUTOCOMPLETADO")
 
@@ -136,13 +152,13 @@ def test_autocomplete(gf):
     for query in tests:
         print(f"\n💡 Autocompletando: '{query}'")
         try:
-            results = gf.autocomplete(query, size=5)
+            results = await gf.autocomplete(query, size=5)
             print_results(f"autocomplete('{query}')", results, max_results=5)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
-def test_reverse_geocoding(gf):
+async def test_reverse_geocoding(gf):
     """Prueba geocodificación inversa"""
     print_section("6. GEOCODIFICACIÓN INVERSA")
 
@@ -156,14 +172,14 @@ def test_reverse_geocoding(gf):
         print(f"\n🔄 {description}")
         print(f"   Coordenadas: ({x}, {y}) EPSG:{epsg}")
         try:
-            results = gf.find_reverse(x, y, epsg=epsg, size=3)
+            results = await gf.find_reverse(x, y, epsg=epsg, size=3)
             print_results(f"find_reverse({x}, {y}, {epsg})", results, max_results=3)
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
 def test_coordinate_transformation(gf):
-    """Prueba transformación de coordenadas"""
+    """Prueba transformación de coordenadas (Síncrono - utilidad pura)"""
     print_section("7. TRANSFORMACIÓN DE COORDENADAS")
 
     try:
@@ -191,8 +207,9 @@ def test_coordinate_transformation(gf):
         print("   Instala pyproj o GDAL: pip install pyproj")
 
 
-def test_parsing_methods(gf):
-    """Prueba métodos de parsing internos"""
+async def test_parsing_methods(gf):
+    """Prueba métodos de parsing internos (ahora async porque _find_data lo es, pero el parsing es estático)"""
+    # Nota: Los métodos de parsing son estáticos y síncronos, se pueden llamar directamente
     print_section("8. MÉTODOS DE PARSING (Internos)")
 
     # Test _parse_point
@@ -239,14 +256,14 @@ def test_parsing_methods(gf):
             print(f"   ❌ '{query}' → No detectado")
 
 
-def test_advanced_features(gf):
+async def test_advanced_features(gf):
     """Prueba características avanzadas"""
     print_section("9. CARACTERÍSTICAS AVANZADAS")
 
     # Búsqueda con múltiples capas
     print("\n🔍 Búsqueda por coordenadas con capas específicas:")
     try:
-        results = gf._find_point_coordinate_icgc(
+        results = await gf.find_point_coordinate_icgc(
             430000, 4580000, 25831,
             layers="address,tops",
             size=3
@@ -258,24 +275,24 @@ def test_advanced_features(gf):
     # Búsqueda de dirección estructurada
     print("\n🏠 Búsqueda de dirección estructurada:")
     try:
-        results = gf._find_address("Barcelona", "Avinguda", "Diagonal", "100")
-        print_results("_find_address('Barcelona', 'Avinguda', 'Diagonal', '100')", results, max_results=2)
+        results = await gf.find_address("Barcelona", "Avinguda", "Diagonal", "100")
+        print_results("find_address('Barcelona', 'Avinguda', 'Diagonal', '100')", results, max_results=2)
     except Exception as e:
         print(f"   ❌ Error: {e}")
 
     # Búsqueda de carretera
     print("\n🛣️  Búsqueda de carretera:")
     try:
-        results = gf._find_road("N-II", "666")
-        print_results("_find_road('N-II', '666')", results, max_results=2)
+        results = await gf.find_road("N-II", "666")
+        print_results("find_road('N-II', '666')", results, max_results=2)
     except Exception as e:
         print(f"   ❌ Error: {e}")
 
 
-def main():
+async def main():
     """Ejecuta todas las pruebas"""
     print("\n" + "=" * 80)
-    print("  PRUEBAS COMPLETAS DE LA BIBLIOTECA GEOFINDER")
+    print("  PRUEBAS COMPLETAS DE LA BIBLIOTECA GEOFINDER (ASYNC)")
     print("=" * 80)
     print("\nEste script prueba todas las funcionalidades de GeoFinder.")
     print("Requiere conexión a internet para acceder al servicio ICGC.\n")
@@ -286,16 +303,17 @@ def main():
     print("✅ GeoFinder inicializado correctamente\n")
 
     try:
-        # Ejecutar todas las pruebas
-        test_basic_search(gf)
-        test_coordinate_search(gf)
-        test_address_search(gf)
-        test_road_search(gf)
-        test_autocomplete(gf)
-        test_reverse_geocoding(gf)
+        await test_basic_search(gf)
+        await test_coordinate_search(gf)
+        await test_address_search(gf)
+        await test_road_search(gf)
+        await test_autocomplete(gf)
+        await test_reverse_geocoding(gf)
+
+        # Test síncrono
         test_coordinate_transformation(gf)
-        test_parsing_methods(gf)
-        test_advanced_features(gf)
+        await test_parsing_methods(gf)
+        await test_advanced_features(gf)
 
         # Resumen final
         print("\n" + "=" * 80)
@@ -304,15 +322,19 @@ def main():
         print("\nTodas las funcionalidades de GeoFinder han sido probadas.")
         print("Revisa los resultados arriba para verificar el funcionamiento.\n")
 
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Pruebas interrumpidas por el usuario")
-        sys.exit(1)
     except Exception as e:
         print(f"\n\n❌ Error general: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        # Cerrar cliente
+        await gf.close()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Pruebas interrumpidas por el usuario")
+        sys.exit(1)

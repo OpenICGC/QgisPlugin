@@ -4,24 +4,27 @@ Soporta GDAL (osr) y pyproj como backends intercambiables.
 """
 
 import math
+import logging
+from typing import Tuple, Optional, Union
+
+# Configurar logger
+logger = logging.getLogger("geofinder.transformations")
 
 # Detectar backend disponible
 _BACKEND = None
 
 try:
     import osgeo.osr  # noqa: F401
-
     _BACKEND = "gdal"
 except ImportError:
     try:
         import pyproj  # noqa: F401
-
         _BACKEND = "pyproj"
     except ImportError:
         pass
 
 
-def get_backend():
+def get_backend() -> Optional[str]:
     """Retorna el backend de transformación disponible.
 
     Returns:
@@ -30,7 +33,12 @@ def get_backend():
     return _BACKEND
 
 
-def transform_point(x, y, source_epsg, destination_epsg):
+def transform_point(
+    x: float, 
+    y: float, 
+    source_epsg: Union[int, str], 
+    destination_epsg: Union[int, str]
+) -> Tuple[Optional[float], Optional[float]]:
     """Transforma un punto entre sistemas de referencia.
 
     Args:
@@ -45,21 +53,28 @@ def transform_point(x, y, source_epsg, destination_epsg):
     Raises:
         ImportError: Si no hay backend disponible (GDAL o pyproj)
     """
-    if str(source_epsg) == str(destination_epsg) and str(destination_epsg) != "4326":
+    if str(source_epsg) == str(destination_epsg):
         return x, y
 
-    if _BACKEND == "gdal":
-        return _transform_gdal(x, y, source_epsg, destination_epsg)
-    elif _BACKEND == "pyproj":
-        return _transform_pyproj(x, y, source_epsg, destination_epsg)
-    else:
-        raise ImportError(
-            "Se requiere GDAL o pyproj para transformaciones de coordenadas. "
-            "Instala uno de: pip install GDAL  o  pip install pyproj"
-        )
+    try:
+        if _BACKEND == "gdal":
+            return _transform_gdal(x, y, source_epsg, destination_epsg)
+        elif _BACKEND == "pyproj":
+            return _transform_pyproj(x, y, source_epsg, destination_epsg)
+        else:
+            raise ImportError(
+                "Se requiere GDAL o pyproj para transformaciones de coordenadas. "
+                "Instala uno de: pip install GDAL  o  pip install pyproj"
+            )
+    except Exception as e:
+        logger.error(f"Error transformando ({x}, {y}) de EPSG:{source_epsg} a EPSG:{destination_epsg}: {str(e)}")
+        # Volver a lanzar ImportError si es el caso, si no retornar None
+        if _BACKEND is None and isinstance(e, ImportError):
+            raise
+        return None, None
 
 
-def _transform_gdal(x, y, source_epsg, destination_epsg):
+def _transform_gdal(x: float, y: float, source_epsg: Union[int, str], destination_epsg: Union[int, str]) -> Tuple[Optional[float], Optional[float]]:
     """Transformación usando GDAL/OGR."""
     from osgeo import osr
 
@@ -70,7 +85,7 @@ def _transform_gdal(x, y, source_epsg, destination_epsg):
     destination_crs.ImportFromEPSG(int(destination_epsg))
 
     # En GDAL 3+ para WGS84, usar CRS84 para mantener orden lon,lat
-    if destination_epsg == 4326:
+    if int(destination_epsg) == 4326:
         destination_crs.SetWellKnownGeogCS("CRS84")
 
     ct = osr.CoordinateTransformation(source_crs, destination_crs)
@@ -79,12 +94,11 @@ def _transform_gdal(x, y, source_epsg, destination_epsg):
     return (None if math.isinf(dest_x) else dest_x, None if math.isinf(dest_y) else dest_y)
 
 
-def _transform_pyproj(x, y, source_epsg, destination_epsg):
+def _transform_pyproj(x: float, y: float, source_epsg: Union[int, str], destination_epsg: Union[int, str]) -> Tuple[Optional[float], Optional[float]]:
     """Transformación usando pyproj."""
     from pyproj import Transformer
 
     # Usar siempre EPSG codes con always_xy=True para orden lon,lat consistente
-    # Esto evita problemas con CRS84 que no es reconocido por todas las versiones de pyproj
     transformer = Transformer.from_crs(
         f"EPSG:{source_epsg}",
         f"EPSG:{destination_epsg}",

@@ -1,10 +1,11 @@
 # GeoFinder MCP Server
 
-> **Servidor de geocodificación para Cataluña** usando el servicio ICGC a través del Model Context Protocol.
+> **Servidor de geocodificación para Cataluña** usando el servicio ICGC a través del Model Context Protocol.  
+> 🔄 Arquitectura completamente asíncrona con **caché inteligente integrada**.
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13+-green.svg)](https://gofastmcp.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-yellow.svg)](LICENSE)
 
 ---
 
@@ -26,10 +27,10 @@
 
 ```bash
 # Opción 1: PyPI (recomendado para usuarios)
-pip install geofinder[mcp,pyproj]
+pip install geofinder-icgc[mcp,pyproj]
 
 # Opción 2: Desarrollo
-git clone https://gitlab.com/pg005991/geofinder-icgc.git
+git clone https://github.com/jccamel/geocoder-mcp.git
 cd geofinder-icgc
 uv pip install -e ".[mcp,dev,pyproj]"
 ```
@@ -84,6 +85,7 @@ Busca lugares con detección automática del tipo de consulta.
 **Parámetros:**
 - `query` (string): Texto de búsqueda
 - `default_epsg` (int): Sistema de referencia (default: 25831)
+- `size` (int, opcional): Máximo de resultados
 
 **Tipos soportados:**
 - Topónimos: `"Montserrat"`, `"Barcelona"`
@@ -143,6 +145,7 @@ Búsqueda precisa con componentes separados. Usa método interno para mayor prec
 - `street`, `number` (string): **Requeridos**
 - `municipality` (string): Recomendado para precisión
 - `street_type` (string): Tipo de vía (default: "Carrer")
+- `size` (int, opcional): Máximo de resultados
 
 **Ejemplo:**
 ```json
@@ -229,7 +232,7 @@ Transforma entre sistemas de referencia.
 }
 ```
 
-> **⚠️ Requiere:** `pip install geofinder[pyproj]`
+> **⚠️ Requiere:** `pip install geofinder-icgc[pyproj]`
 
 ---
 
@@ -477,12 +480,12 @@ pip install -e ".[mcp,pyproj]"
 
 **Instalar pyproj:**
 ```bash
-pip install geofinder[pyproj]
+pip install geofinder-icgc[pyproj]
 ```
 
 **Alternativa GDAL:**
 ```bash
-pip install geofinder[gdal]
+pip install geofinder-icgc[gdal]
 ```
 
 </details>
@@ -505,8 +508,8 @@ lsof -i :8000                 # Linux/macOS
 - [Documentación FastMCP](https://gofastmcp.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 - [Geocodificador ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
-- [Repositorio GitLab](https://gitlab.com/pg005991/geofinder-icgc)
-- [Issues](https://gitlab.com/pg005991/geofinder-icgc/-/issues)
+- [Repositorio GitLab](https://github.com/jccamel/geocoder-mcp)
+- [Issues](https://github.com/jccamel/geocoder-mcp/-/issues)
 
 ---
 
@@ -519,6 +522,8 @@ El [Model Context Protocol](https://modelcontextprotocol.io) es un estándar abi
 - 📍 Búsqueda inversa de coordenadas
 - 🗺️ Transformación entre sistemas EPSG
 - ⌨️ Autocompletado inteligente
+- 🚀 **Caché en memoria** para respuestas instantáneas
+- 🛡️ **Validación robusta** con Pydantic
 
 ---
 

@@ -227,11 +227,11 @@ fastmcp test geofinder/mcp_server.py:mcp
 
 ```
 geofinder/
-├── __init__.py
-├── geofinder.py          # Clase principal (sin cambios)
-├── pelias.py             # Cliente Pelias (sin cambios)
-├── transformations.py    # Transformaciones (sin cambios)
-└── mcp_server.py         # ⭐ Nuevo: Servidor MCP
+├── __init__.py            # Exports públicos
+├── geofinder.py           # 🔄 Core async + wrappers sync
+├── pelias.py              # 🔄 Cliente HTTP async (httpx)
+├── transformations.py     # Transformaciones (sync, CPU-bound)
+└── mcp_server.py          # ⭐ Servidor MCP (herramientas async)
 ```
 
 ### Verificar Compatibilidad
@@ -240,9 +240,45 @@ geofinder/
 # Las pruebas existentes deben seguir pasando
 uv run pytest
 
-# El uso como biblioteca debe funcionar igual
-python -c "from geofinder import GeoFinder; gf = GeoFinder(); print('OK')"
+# El uso como biblioteca (API sync) debe funcionar
+python -c "from geofinder import GeoFinder; gf = GeoFinder(); print(gf.find_sync('Barcelona')[:1])"
+
+# El uso como biblioteca (API async)
+python -c "import asyncio; from geofinder import GeoFinder; gf = GeoFinder(); print(asyncio.run(gf.find('Barcelona'))[:1])"
 ```
+
+### API Dual: Async vs Sync
+
+```python
+# API Async (recomendada para batch processing)
+import asyncio
+from geofinder import GeoFinder
+
+async def batch_geocode():
+    gf = GeoFinder()
+    # Procesar múltiples queries en paralelo
+    results = await asyncio.gather(
+        gf.find("Barcelona"),
+        gf.find("Girona"),
+        gf.find("Lleida")
+    )
+    await gf.close()
+    return results
+
+# API Sync (para scripts simples)
+from geofinder import GeoFinder
+gf = GeoFinder()
+results = gf.find_sync("Barcelona")  # Usa asyncio.run() internamente
+```
+
+## 🔐 Manejo de SSL
+
+La clase `PeliasClient` y por extensión `GeoFinder` permiten desactivar la verificación SSL mediante el parámetro `verify_ssl=False`.
+
+Implementación técnica:
+- Se pasa el parámetro `verify` al `httpx.AsyncClient`.
+- Si se desactiva, se usa `warnings.filterwarnings('ignore', category=InsecureRequestWarning)` para evitar ruido en los logs.
+- **Importante**: Debido a la naturaleza del módulo `warnings` de Python, esta supresión es **global** para el proceso actual.
 
 ## 📚 Recursos
 
