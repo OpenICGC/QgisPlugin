@@ -171,7 +171,7 @@ results = gf.find_reverse_batch_sync(coords, epsg=4326)
 ```
 
 > [!WARNING]
-> **Wrappers síncronos y múltiples llamadas batch:** Los métodos `_sync` crean y cierran un event loop en cada llamada. Si necesitas ejecutar múltiples operaciones batch en secuencia, usa una **instancia nueva de `GeoFinder`** para cada grupo, o mejor aún, usa la API asíncrona nativa.
+> **Wrappers síncronos y múltiples llamadas batch:** Los métodos `_sync` crean y cierran un event loop en cada llamada. Si necesitas ejecutar múltiples operaciones batch en secuencia, usa una **instancia nueva de `GeoFinder`** para cada grupo.
 
 ---
 
