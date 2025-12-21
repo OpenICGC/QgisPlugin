@@ -1,6 +1,14 @@
-# GeoFinder-ICGC
+# <img src="pics/geofinder-logo 192x192.jpg" alt="GeoFinder Logo" width="50" height="50"> GeoFinder-ICGC
 
-**GeoFinder-ICGC** es un geocodificador avanzado para Cataluña que utiliza los servicios oficiales del **Institut Cartogràfic i Geològic de Catalunya (ICGC)**. Diseñado para ser robusto, rápido y fácil de usar, soporta tanto operaciones síncronas como asíncronas.
+> **Geocodificador para Cataluña** usando el servicio del ICGC (Institut Cartogràfic i Geològic de Catalunya).
+> 🔄 API dual: Async nativo + wrappers sync para scripts simples.
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-yellow.svg)](LICENSE)
+
+---
+
+**GeoFinder-ICGC** es un geocodificador avanzado para Cataluña diseñado para ser robusto, rápido y fácil de usar.
 
 ## 🚀 Instalación
 
