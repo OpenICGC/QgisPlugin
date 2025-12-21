@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/geofinder-icgc
+      url: https://pypi.org/project/geofinder-icgc
     permissions:
       id-token: write # REQUIRED for trusted publishing
     steps:
