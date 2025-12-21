@@ -93,20 +93,20 @@ class TestMCPEntryPoint:
     def test_entry_point_exists(self):
         """Verifica que el entry point existe."""
         result = subprocess.run(
-            ['which', 'geofinder-mcp'],
+            ['which', 'geofinder-icgc'],
             capture_output=True,
             text=True
         )
         
         # Si el paquete está instalado en modo editable, debe existir
         if result.returncode == 0:
-            assert 'geofinder-mcp' in result.stdout
+            assert 'geofinder-icgc' in result.stdout
 
     def test_entry_point_help(self):
         """Verifica que el entry point muestra ayuda."""
         try:
             result = subprocess.run(
-                ['geofinder-mcp', '--help'],
+                ['geofinder-icgc', '--help'],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -116,7 +116,7 @@ class TestMCPEntryPoint:
             if result.returncode == 0:
                 assert 'geofinder' in result.stdout.lower() or 'mcp' in result.stdout.lower()
         except (FileNotFoundError, subprocess.TimeoutExpired):
-            pytest.skip("geofinder-mcp not in PATH or timed out")
+            pytest.skip("geofinder-icgc not in PATH or timed out")
 
 
 class TestMCPServerFunctionality:

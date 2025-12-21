@@ -321,13 +321,13 @@ Analiza consultas y detecta su tipo automáticamente.
 <details>
 <summary><strong>Otras opciones de configuración</strong></summary>
 
-### Con `geofinder-mcp` (si está en PATH)
+### Con `geofinder-icgc` (si está en PATH)
 
 ```json
 {
   "mcpServers": {
     "geofinder": {
-      "command": "geofinder-mcp"
+      "command": "geofinder-icgc"
     }
   }
 }
@@ -404,7 +404,7 @@ python -m geofinder.mcp_server --transport http --host 0.0.0.0
 ### Problemas Comunes
 
 <details>
-<summary><strong>❌ Comando no encontrado: `geofinder-mcp`</strong></summary>
+<summary><strong>❌ Comando no encontrado: `geofinder-icgc`</strong></summary>
 
 **Solución:**
 ```bash

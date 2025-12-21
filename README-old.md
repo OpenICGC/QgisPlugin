@@ -27,7 +27,7 @@
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/jccamel/geocoder-mcp.git
+git clone https://github.com/jccamel/geofinder-icgc.git
 cd geofinder-icgc
 
 # Instalación básica
@@ -474,7 +474,7 @@ pip install -e ".[dev,mcp,pyproj]"
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/jccamel/geocoder-mcp.git
+git clone https://github.com/jccamel/geofinder-icgc.git
 cd geofinder-icgc
 
 # Instalar con uv
@@ -499,8 +499,8 @@ uv run ruff format .
 ## 📚 Recursos
 
 - [Documentación ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
-- [Repositorio GitLab](https://github.com/jccamel/geocoder-mcp)
-- [Issues](https://github.com/jccamel/geocoder-mcp/-/issues)
+- [Repositorio GitHub](https://github.com/jccamel/geofinder-icgc)
+- [Issues](https://github.com/jccamel/geofinder-icgc/issues)
 - [Model Context Protocol](https://modelcontextprotocol.io) (para MCP)
 
 ---

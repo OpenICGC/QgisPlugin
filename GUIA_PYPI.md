@@ -107,4 +107,4 @@ jobs:
 Después de publicar, verifica que:
 1.  La página en PyPI se ve correctamente.
 2.  La instalación funciona: `pip install geofinder-icgc`.
-3.  El comando MCP funciona: `geofinder-mcp --help`.
+3.  El comando MCP funciona: `geofinder-icgc --help`.

@@ -82,7 +82,7 @@ Repository = "https://github.com/jccamel/geofinder-icgc"
 Issues = "https://github.com/jccamel/geofinder-icgc/issues"
 
 [project.scripts]
-geofinder-mcp = "geofinder.mcp_server:main"
+geofinder-icgc = "geofinder.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

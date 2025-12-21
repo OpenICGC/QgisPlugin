@@ -75,6 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[2.2.0]: https://github.com/jccamel/geocoder-mcp/compare/v2.0.0...v2.2.0
-[2.0.0]: https://github.com/jccamel/geocoder-mcp/compare/v1.4.0...v2.0.0
-[1.4.0]: https://github.com/jccamel/geocoder-mcp/releases/tag/v1.4.0
+[2.2.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.0.0...v2.2.0
+[2.0.0]: https://github.com/jccamel/geofinder-icgc/compare/v1.4.0...v2.0.0
+[1.4.0]: https://github.com/jccamel/geofinder-icgc/releases/tag/v1.4.0

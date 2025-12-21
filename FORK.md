@@ -67,7 +67,7 @@
 
 **Goalnefesh**  
 Email: goalnefesh@protonmail.com  
-Repository: https://github.com/jccamel/geocoder-mcp
+Repository: https://github.com/jccamel/geofinder-icgc
 
 ## Acknowledgments
 
