@@ -11,7 +11,7 @@ Uso:
     python -m geofinder.mcp_server
 
     # O usando el comando instalado
-    geofinder-mcp
+    geofinder-icgc
 
     # Ejecutar con HTTP
     python -m geofinder.mcp_server --transport http --port 8000

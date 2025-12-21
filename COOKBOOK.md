@@ -1210,7 +1210,7 @@ for r in converter.convert_to_all(430000, 4580000, 25831):
 
 ### Enlaces Útiles
 
-- [Repositorio GitLab](https://github.com/jccamel/geocoder-mcp)
+- [Repositorio GitHub](https://github.com/jccamel/geofinder-icgc)
 - [Geocodificador ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
 - [Pelias Documentation](https://github.com/pelias/documentation)
 - [EPSG Registry](https://epsg.io/)

@@ -179,7 +179,7 @@ Crear `.vscode/settings.json`:
 uv pip install -e ".[mcp,dev,pyproj]"
 
 # Verificar instalación
-geofinder-mcp --help
+geofinder-icgc --help
 ```
 
 ### Configuración del Servidor

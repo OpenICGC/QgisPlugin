@@ -75,11 +75,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jccamel/geocoder-mcp"
+Homepage = "https://github.com/jccamel/geofinder-icgc"
 Documentation = "https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC"
-Repository = "https://github.com/jccamel/geocoder-mcp"
+Repository = "https://github.com/jccamel/geofinder-icgc"
 "Original Project" = "https://github.com/OpenICGC/QgisPlugin"
-Issues = "https://github.com/jccamel/geocoder-mcp/issues"
+Issues = "https://github.com/jccamel/geofinder-icgc/issues"
 
 [project.scripts]
 geofinder-mcp = "geofinder.mcp_server:main"

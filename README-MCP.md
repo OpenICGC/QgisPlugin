@@ -30,7 +30,7 @@
 pip install geofinder-icgc[mcp,pyproj]
 
 # Opción 2: Desarrollo
-git clone https://github.com/jccamel/geocoder-mcp.git
+git clone https://github.com/jccamel/geofinder-icgc.git
 cd geofinder-icgc
 uv pip install -e ".[mcp,dev,pyproj]"
 ```
@@ -508,8 +508,8 @@ lsof -i :8000                 # Linux/macOS
 - [Documentación FastMCP](https://gofastmcp.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 - [Geocodificador ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
-- [Repositorio GitLab](https://github.com/jccamel/geocoder-mcp)
-- [Issues](https://github.com/jccamel/geocoder-mcp/-/issues)
+- [Repositorio GitHub](https://github.com/jccamel/geofinder-icgc)
+- [Issues](https://github.com/jccamel/geofinder-icgc/issues)
 
 ---
 
