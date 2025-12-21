@@ -48,7 +48,7 @@ from .exceptions import (
     ServiceHTTPError,
 )
 
-__version__ = "2.2.4"
+__version__ = "2.2.5"
 __author__ = "ICGC / Adapted for standalone use by Goalnefesh"
 __all__ = [
     "GeoFinder",
