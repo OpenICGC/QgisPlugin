@@ -1,4 +1,4 @@
-# <img src="pics/geofinder-logo 192x192.jpg" alt="GeoFinder Logo" width="50" height="50"> GeoFinder-ICGC
+# <img src="assets/pics/geofinder-logo 192x192.jpg" alt="GeoFinder Logo" width="50" height="50"> GeoFinder-ICGC
 
 > **Geocodificador para Cataluña** usando el servicio del ICGC (Institut Cartogràfic i Geològic de Catalunya).
 > 🔄 API dual: Async nativo + wrappers sync para scripts simples.
