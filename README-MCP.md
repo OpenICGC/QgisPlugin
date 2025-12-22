@@ -537,3 +537,4 @@ El [Model Context Protocol](https://modelcontextprotocol.io) es un estándar abi
 MIT License - Ver [LICENSE](LICENSE) para más detalles.
 
 Basado en el plugin OpenICGC del ICGC.
+<!-- YOLO Badge Retry: Small change for badge obtainment 🤘 -->
