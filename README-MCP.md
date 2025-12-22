@@ -110,6 +110,11 @@ Busca lugares con detección automática del tipo de consulta.
 
 Encuentra lugares en coordenadas dadas.
 
+#### 📺 Demostración: Coordenadas a DMS
+Ejemplo de cómo obtener coordenadas en grados minutos y segundos a partir de unas decimales utilizando el MCP:
+
+![Ejemplo de coordenadas DMS con MCP](assets/media/reverse.mp4)
+
 **Parámetros:**
 - `longitude`, `latitude` (float): Coordenadas
 - `epsg` (int): Sistema de referencia (4326, 25831, 3857)
