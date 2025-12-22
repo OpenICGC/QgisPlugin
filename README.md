@@ -108,3 +108,5 @@ Distribuido bajo la licencia **GPL-2.0-or-later**. Basado en el trabajo original
 
 ---
 © 2025 ICGC / Adaptado por Goalnefesh
+
+Els petits canvis son poderosos 🤘 
