@@ -102,6 +102,28 @@ El constructor de `GeoFinder` permite ajustar el comportamiento de la librería:
 | `max_retries` | `int` | Número de reintentos en caso de fallo (defecto: 3). |
 | `verify_ssl` | `bool` | Verificar certificados SSL (defecto: True). |
 
+
+---
+
+## 📚 Documentación
+
+- [COOKBOOK.md](COOKBOOK.md) - Tutoriales y ejemplos prácticos
+- [README-DEV.md](README-DEV.md) - Guía de desarrollo
+- [README-MCP.md](README-MCP.md) - Servidor MCP
+- [README-ARQ.md](README-ARQ.md) - Arquitectura técnica
+
+---
+
+## 📚 Recursos
+
+- [Documentación ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
+- [Repositorio GitHub](https://github.com/jccamel/geofinder-icgc)
+- [Issues](https://github.com/jccamel/geofinder-icgc/issues)
+- [Model Context Protocol](https://modelcontextprotocol.io) (para MCP)
+
+---
+
+
 ## ⚖️ Licencia
 
 Distribuido bajo la licencia **GPL-2.0-or-later**. Basado en el trabajo original del ICGC adaptado para uso standalone.
