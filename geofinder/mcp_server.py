@@ -25,7 +25,6 @@ import logging
 import os
 import sys
 
-from dotenv import load_dotenv
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field, field_validator, ValidationError
 
@@ -42,11 +41,8 @@ from .exceptions import (
 )
 
 # ============================================================================
-# Configuración de Entorno y Logging
+# Configuración de Logging
 # ============================================================================
-
-# Cargar variables de entorno desde .env
-load_dotenv()
 
 # Configurar logging
 log_level = os.getenv("FASTMCP_LOG_LEVEL", "INFO")
@@ -70,18 +66,18 @@ def get_geofinder() -> GeoFinder:
     global _geofinder_instance
 
     if _geofinder_instance is None:
-        icgc_url = os.getenv("ICGC_URL", "")
+        icgc_url = "https://eines.icgc.cat/geocodificador"
         timeout = int(os.getenv("GEOFINDER_TIMEOUT", "5"))
 
         logger.info(
             "Inicializando GeoFinder (ICGC URL: %s, timeout: %s)",
-            icgc_url or "default",
+            icgc_url,
             timeout
         )
 
         _geofinder_instance = GeoFinder(
             logger=logger,
-            icgc_url=icgc_url if icgc_url else None,
+            icgc_url=icgc_url,
             timeout=timeout,
         )
 

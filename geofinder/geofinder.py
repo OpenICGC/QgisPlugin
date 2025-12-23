@@ -10,21 +10,15 @@ import hashlib
 import httpx
 import json
 import logging
-import os
 import re
 import time
 from typing import List, Optional, Tuple, Any
-
-from dotenv import load_dotenv
 
 from .utils.cache import AsyncLRUCache
 from .models import GeoResponse, GeoResult
 from .pelias import PeliasClient
 from .transformations import transform_point
 from .exceptions import ParsingError, CoordinateError, ServiceError
-
-# Cargar variables de entorno
-load_dotenv()
 
 
 class GeoFinder:
@@ -61,7 +55,7 @@ class GeoFinder:
     def __init__(
         self,
         logger=None,
-        icgc_url=None,
+        icgc_url="https://eines.icgc.cat/geocodificador",
         timeout=5,
         verify_ssl=True,
         cache_size=128,
@@ -93,7 +87,7 @@ class GeoFinder:
         """
         self.timeout = timeout
         self.verify_ssl = verify_ssl
-        self._icgc_url = icgc_url if icgc_url is not None else os.getenv("ICGC_URL", "")
+        self._icgc_url = icgc_url
         self._icgc_client = None
         self._external_http_client = http_client  # Almacenar cliente externo
         
