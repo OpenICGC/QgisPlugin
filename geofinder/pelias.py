@@ -59,6 +59,7 @@ class PeliasClient:
         retry_on_5xx=True,
         verify_ssl=True,
         http_client: Optional[httpx.AsyncClient] = None,
+        timeout: Optional[float] = None, # Add timeout for compatibility
     ):
         """Configura la conexión al servidor.
 
@@ -91,7 +92,7 @@ class PeliasClient:
                 )
 
         self.url = url + ("" if url.endswith("/") else "/")
-        self.timeout = default_timeout
+        self.timeout = timeout if timeout is not None else default_timeout
         self.search_call = default_search_call
         self.reverse_call = default_reverse_call
         self.autocomplete_call = default_autocomplete_call
@@ -226,7 +227,18 @@ class PeliasClient:
                 response.raise_for_status()
 
                 # Parsear JSON
-                return response.json()
+                data = response.json()
+                
+                # Validar que tiene la estructura mínima esperada (features)
+                # Esto evita KeyErrors en el llamador y nos permite lanzar ServiceError
+                if not isinstance(data, dict) or "features" not in data:
+                    raise ServiceError(
+                        "Respuesta malformada: falta la clave 'features'",
+                        url=str(response.url),
+                        details={"response": data}
+                    )
+                
+                return data
 
             except (httpx.ConnectError, httpx.NetworkError, httpx.TimeoutException) as e:
                 # Errores de red y timeout siempre se reintentan

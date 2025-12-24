@@ -133,6 +133,9 @@ addopts = [
     "--cov-report=html",
 ]
 asyncio_mode = "auto"
+markers = [
+    "integration: tests that require real connectivity to ICGC services",
+]
 
 # Configuración de coverage
 [tool.coverage.run]
