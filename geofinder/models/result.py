@@ -118,7 +118,7 @@ class GeoResult(BaseModel):
 
     def __getitem__(self, item):
         """Permite acceso tipo diccionario solo para campos de datos."""
-        if item in self.model_fields:
+        if item in self.__class__.model_fields:
             return getattr(self, item)
         raise KeyError(f"'{item}' no es un campo válido del modelo")
 
