@@ -761,24 +761,49 @@ async def demo_cache():
     gf.clear_cache()
 ```
 
-### Caché Persistente con SQLite
+### Caché Persistente DIY (Implementación por Usuario)
+
+> [!IMPORTANT]
+> **Filosofía Standalone:** GeoFinder mantiene solo caché en memoria por defecto para ser completamente standalone sin dependencias externas. Sin embargo, para aplicaciones long-running o casos de uso específicos, puedes implementar fácilmente tu propia capa de caché persistente.
+
+#### ¿Cuándo Necesitas Caché Persistente?
+
+| Escenario | Caché en Memoria | Caché Persistente |
+|-----------|------------------|-------------------|
+| **Scripts ocasionales** | ✅ Perfecto | ❌ Innecesario |
+| **Notebooks interactivos** | ✅ Suficiente | ❌ Overhead |
+| **Servidor 24/7** | ⚠️ Se pierde al reiniciar | ✅ Recomendado |
+| **CLI repetitiva** | ⚠️ Cada ejecución = nueva caché | ✅ Útil |
+| **Datos muy estáticos** | ✅ Funciona | ✅ Optimiza latencia |
+
+#### Implementación Síncrona (SQLite)
+
+Ideal para scripts y CLIs simples:
 
 ```python
 """
-Caché persistente usando SQLite para geocodificación.
+Caché persistente usando SQLite para geocodificación (versión sync).
+Guardado en: examples/persistent_cache_sync.py
 """
 import sqlite3
 import json
 import hashlib
 from datetime import datetime, timedelta
+from typing import Optional, List
 from geofinder import GeoFinder
-from typing import Optional
 
 
-class GeoCache:
-    """Caché de geocodificación con SQLite."""
+class GeoCacheSQLite:
+    """Caché de geocodificación con SQLite (sync)."""
 
     def __init__(self, db_path: str = "geocache.db", ttl_days: int = 30):
+        """
+        Inicializa la caché SQLite.
+        
+        Args:
+            db_path: Ruta al archivo de base de datos
+            ttl_days: Días de validez de la caché (30 por defecto)
+        """
         self.db_path = db_path
         self.ttl_days = ttl_days
         self.gf = GeoFinder()
@@ -790,8 +815,8 @@ class GeoCache:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS geocache (
                     query_hash TEXT PRIMARY KEY,
-                    query TEXT,
-                    result TEXT,
+                    query TEXT NOT NULL,
+                    result TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -800,14 +825,18 @@ class GeoCache:
                 ON geocache(created_at)
             """)
 
-    def _hash_query(self, query: str) -> str:
-        """Genera hash único para la query."""
+    def _hash_query(self, query: str, **kwargs) -> str:
+        """Genera hash único para la query incluyendo parámetros."""
+        # Normalizar query
         normalized = query.lower().strip()
-        return hashlib.md5(normalized.encode()).hexdigest()
+        
+        # Incluir parámetros importantes en el hash
+        cache_key = f"{normalized}:{kwargs.get('epsg', 25831)}:{kwargs.get('size', 10)}"
+        return hashlib.md5(cache_key.encode()).hexdigest()
 
-    def get(self, query: str) -> Optional[list]:
+    def get(self, query: str, **kwargs) -> Optional[List]:
         """Obtiene resultado de caché si existe y es válido."""
-        query_hash = self._hash_query(query)
+        query_hash = self._hash_query(query, **kwargs)
         min_date = datetime.now() - timedelta(days=self.ttl_days)
 
         with sqlite3.connect(self.db_path) as conn:
@@ -820,12 +849,29 @@ class GeoCache:
             )
             row = cursor.fetchone()
             if row:
-                return json.loads(row[0])
+                # Reconstruir GeoResult objects desde JSON
+                results_json = json.loads(row[0])
+                # Por simplicidad, retornamos el JSON directamente
+                # En producción, podrías reconstruir objetos GeoResult
+                return results_json
         return None
 
-    def set(self, query: str, result: list):
+    def set(self, query: str, results: List, **kwargs):
         """Guarda resultado en caché."""
-        query_hash = self._hash_query(query)
+        query_hash = self._hash_query(query, **kwargs)
+        
+        # Serializar resultados (convertir GeoResult a dict)
+        results_json = [
+            {
+                'nom': r.nom,
+                'nomTipus': r.nomTipus,
+                'nomMunicipi': r.nomMunicipi,
+                'nomComarca': r.nomComarca,
+                'x': r.x,
+                'y': r.y,
+                'epsg': r.epsg
+            } for r in results
+        ]
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
@@ -833,21 +879,296 @@ class GeoCache:
                 INSERT OR REPLACE INTO geocache (query_hash, query, result)
                 VALUES (?, ?, ?)
                 """,
-                (query_hash, query, json.dumps(result))
+                (query_hash, query, json.dumps(results_json))
             )
 
-    def geocode(self, query: str) -> list:
-        """Geocodifica con caché."""
+    def find(self, query: str, **kwargs) -> List:
+        """Geocodifica con caché (wrapper sincrónico)."""
         # Intentar caché primero
-        cached = self.get(query)
+        cached = self.get(query, **kwargs)
+        if cached is not None:
+            print(f"✅ CACHE HIT: {query}")
+            return cached
+
+        # Cache miss - llamar al servicio
+        print(f"🌐 CACHE MISS: {query} (consultando ICGC...)")
+        results = self.gf.find_sync(query, **kwargs)
+
+        # Guardar en caché
+        if results:
+            self.set(query, results, **kwargs)
+
+        return results
+    
+    def clear_expired(self):
+        """Elimina entradas expiradas de la caché."""
+        min_date = datetime.now() - timedelta(days=self.ttl_days)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            deleted = conn.execute(
+                "DELETE FROM geocache WHERE created_at < ?",
+                (min_date.isoformat(),)
+            ).rowcount
+            
+        print(f"🧹 Eliminadas {deleted} entradas expiradas")
+        return deleted
+    
+    def stats(self):
+        """Muestra estadísticas de la caché."""
+        with sqlite3.connect(self.db_path) as conn:
+            total = conn.execute("SELECT COUNT(*) FROM geocache").fetchone()[0]
+            
+            min_date = datetime.now() - timedelta(days=self.ttl_days)
+            valid = conn.execute(
+                "SELECT COUNT(*) FROM geocache WHERE created_at > ?",
+                (min_date.isoformat(),)
+            ).fetchone()[0]
+            
+        return {
+            'total_entries': total,
+            'valid_entries': valid,
+            'expired_entries': total - valid,
+            'db_path': self.db_path,
+            'ttl_days': self.ttl_days
+        }
+
+
+# ============================================================================
+# USO DE LA CACHÉ PERSISTENTE
+# ============================================================================
+
+if __name__ == "__main__":
+    # Crear instancia con caché
+    cache = GeoCacheSQLite(db_path="mi_cache.db", ttl_days=7)
+
+    # Primera búsqueda (cache miss)
+    results1 = cache.find("Barcelona")
+    print(f"Encontrados: {len(results1)} resultados")
+
+    # Segunda búsqueda (cache hit - instantáneo)
+    results2 = cache.find("Barcelona")
+    print(f"Encontrados: {len(results2)} resultados")
+
+    # Mostrar estadísticas
+    stats = cache.stats()
+    print(f"\n📊 Estadísticas de caché:")
+    print(f"  - Entradas válidas: {stats['valid_entries']}")
+    print(f"  - Entradas totales: {stats['total_entries']}")
+    print(f"  - Archivo: {stats['db_path']}")
+
+    # Limpiar expiradas
+    cache.clear_expired()
+```
+
+#### Implementación Asíncrona (SQLite con aiosqlite)
+
+Para aplicaciones async modernas (FastAPI, etc.):
+
+```python
+"""
+Caché persistente asíncrona usando aiosqlite.
+Instalación: pip install aiosqlite
+"""
+import aiosqlite
+import json
+import hashlib
+from datetime import datetime, timedelta
+from typing import Optional, List
+from geofinder import GeoFinder
+
+
+class AsyncGeoCacheSQLite:
+    """Caché de geocodificación asíncrona con SQLite."""
+
+    def __init__(self, db_path: str = "geocache_async.db", ttl_days: int = 30):
+        self.db_path = db_path
+        self.ttl_days = ttl_days
+        self.gf = GeoFinder()
+        self._initialized = False
+
+    async def _ensure_init(self):
+        """Inicializa la DB de forma lazy."""
+        if not self._initialized:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("""
+                    CREATE TABLE IF NOT EXISTS geocache (
+                        query_hash TEXT PRIMARY KEY,
+                        query TEXT NOT NULL,
+                        result TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                await db.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_created
+                    ON geocache(created_at)
+                """)
+                await db.commit()
+            self._initialized = True
+
+    def _hash_query(self, query: str, **kwargs) -> str:
+        """Genera hash único para la query."""
+        normalized = query.lower().strip()
+        cache_key = f"{normalized}:{kwargs.get('epsg', 25831)}:{kwargs.get('size', 10)}"
+        return hashlib.md5(cache_key.encode()).hexdigest()
+
+    async def get(self, query: str, **kwargs) -> Optional[List]:
+        """Obtiene resultado de caché si existe y es válido."""
+        await self._ensure_init()
+        
+        query_hash = self._hash_query(query, **kwargs)
+        min_date = datetime.now() - timedelta(days=self.ttl_days)
+
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT result FROM geocache WHERE query_hash = ? AND created_at > ?",
+                (query_hash, min_date.isoformat())
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return json.loads(row[0])
+        return None
+
+    async def set(self, query: str, results: List, **kwargs):
+        """Guarda resultado en caché."""
+        await self._ensure_init()
+        
+        query_hash = self._hash_query(query, **kwargs)
+        
+        # Serializar
+        results_json = [
+            {
+                'nom': r.nom,
+                'nomTipus': r.nomTipus,
+                'x': r.x,
+                'y': r.y,
+                'epsg': r.epsg
+            } for r in results
+        ]
+
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO geocache (query_hash, query, result) VALUES (?, ?, ?)",
+                (query_hash, query, json.dumps(results_json))
+            )
+            await db.commit()
+
+    async def find(self, query: str, **kwargs) -> List:
+        """Geocodifica con caché (wrapper asíncrono)."""
+        # Intentar caché
+        cached = await self.get(query, **kwargs)
         if cached is not None:
             return cached
 
-        # Llamar al servicio
-        result = self.gf.find(query)
+        # Cache miss
+        results = await self.gf.find(query, **kwargs)
 
-        # Guardar en caché
-        if result:
+        # Guardar
+        if results:
+            await self.set(query, results, **kwargs)
+
+        return results
+
+
+# USO ASYNC
+async def ejemplo_async():
+    cache = AsyncGeoCacheSQLite()
+    
+    # Primera vez: consulta ICGC
+    results = await cache.find("Girona")
+    
+    # Segunda vez: desde SQLite
+    results = await cache.find("Girona")
+    
+    await cache.gf.close()
+```
+
+#### Caché con Redis (Producción)
+
+Para aplicaciones distribuidas con múltiples instancias:
+
+```python
+"""
+Caché distribuida con Redis.
+Instalación: pip install redis
+"""
+import redis
+import json
+from typing import Optional, List
+from geofinder import GeoFinder
+
+
+class GeoCacheRedis:
+    """Caché de geocodificación con Redis."""
+
+    def __init__(
+        self,
+        redis_url: str = "redis://localhost:6379/0",
+        ttl_seconds: int = 86400  # 24 horas
+    ):
+        self.client = redis.from_url(redis_url)
+        self.ttl = ttl_seconds
+        self.gf = GeoFinder()
+
+    def _cache_key(self, query: str, **kwargs) -> str:
+        """Genera clave de Redis."""
+        epsg = kwargs.get('epsg', 25831)
+        size = kwargs.get('size', 10)
+        return f"geo:{query.lower()}:{epsg}:{size}"
+
+    def find(self, query: str, **kwargs) -> List:
+        """Geocodifica con caché Redis."""
+        key = self._cache_key(query, **kwargs)
+        
+        # Intentar caché
+        cached = self.client.get(key)
+        if cached:
+            print(f"✅ REDIS HIT: {query}")
+            return json.loads(cached)
+
+        # Cache miss
+        print(f"🌐 REDIS MISS: {query}")
+        results = self.gf.find_sync(query, **kwargs)
+
+        # Guardar con TTL
+        if results:
+            results_json = [
+                {'nom': r.nom, 'x': r.x, 'y': r.y, 'epsg': r.epsg}
+                for r in results
+            ]
+            self.client.setex(
+                key,
+                self.ttl,
+                json.dumps(results_json)
+            )
+
+        return results
+
+
+# USO
+cache_redis = GeoCacheRedis(redis_url="redis://localhost:6379/0")
+results = cache_redis.find("Lleida")
+```
+
+#### Comparación de Implementaciones
+
+| Solución | Ventajas | Desventajas | Casos de Uso |
+|----------|----------|-------------|--------------|
+| **En memoria (default)** | ✅ Sin setup<br>✅ Rápido<br>✅ Standalone | ❌ No persistente | Scripts, notebooks, pruebas |
+| **SQLite sync** | ✅ Persistente<br>✅ Sin deps extra<br>✅ Simple | ❌ No paralelo | CLIs, scripts repetitivos |
+| **SQLite async** | ✅ Persistente<br>✅ Async-friendly | ⚠️ Dep: aiosqlite | FastAPI, aplicaciones async |
+| **Redis** | ✅ Distribuido<br>✅ Muy rápido<br>✅ TTL automático | ❌ Requiere servidor Redis | Microservicios, escalado horizontal |
+
+#### Mejores Prácticas
+
+1. **Usa caché en memoria por defecto** - Es suficiente para el 90% de casos
+2. **SQLite para persistencia local** - Scripts que se ejecutan regularmente
+3. **Redis para producción distribuida** - Múltiples workers/pods
+4. **Incluye parámetros en el hash** - EPSG y size afectan los resultados
+5. **Establece TTL razonable** - Municipios no cambian, pero direcciones nuevas sí
+6. **Limpia cachés expiradas** - Evita crecimiento infinito de la DB
+
+---
+
             self.set(query, result)
 
         return result
