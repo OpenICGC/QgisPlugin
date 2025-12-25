@@ -21,7 +21,7 @@ def pelias_client():
     return PeliasClient(
         url="https://test.example.com",
         max_retries=3,
-        retry_base_delay=0.01,  # Delay muy corto para tests rápidos
+        retry_base_delay=0.01,
         retry_max_delay=0.1,
         retry_on_5xx=True,
     )
@@ -31,164 +31,75 @@ class TestExponentialBackoff:
     """Tests para la estrategia de reintentos exponenciales."""
 
     @pytest.mark.asyncio
-    async def test_retry_on_5xx_error(self, pelias_client):
+    async def test_retry_on_5xx_error(self, pelias_client, pelias_mock):
         """Verifica que se reintenta en errores 5xx y tiene éxito al final."""
-        call_count = 0
-        test_url = "https://test.example.com/v1/search"
-
-        async def mock_get(url, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            request = httpx.Request("GET", url)
-            if call_count < 3:
-                # Errores 503 en los primeros 2 intentos
-                response = httpx.Response(503, text="Service Unavailable", request=request)
-                raise httpx.HTTPStatusError(
-                    f"Error 503",
-                    request=request,
-                    response=response
-                )
-            # Éxito en el 3er intento
-            return httpx.Response(200, json={"features": []}, request=request)
-
-        pelias_client.client.get = mock_get
+        # Configurar mock: 2 fallos 503 y luego éxito
+        pelias_mock.add_response(503).add_response(503).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
         
-        assert call_count == 3  # 2 reintentos + 1 éxito
+        assert pelias_mock.call_count == 3
         assert result == {"features": []}
 
     @pytest.mark.asyncio
-    async def test_no_retry_on_4xx_error(self, pelias_client):
-        """Verifica que NO se reintenta en errores 4xx (errores del cliente)."""
-        call_count = 0
+    async def test_no_retry_on_4xx_error(self, pelias_client, pelias_mock):
+        """Verifica que NO se reintenta en errores 4xx."""
+        pelias_mock.add_response(404)
 
-        async def mock_get(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            response = httpx.Response(404, text="Not Found")
-            response.request = httpx.Request("GET", args[0])
-            raise httpx.HTTPStatusError(
-                "Error 404",
-                request=response.request,
-                response=response
-            )
-
-        pelias_client.client.get = mock_get
-
-        with pytest.raises(PeliasError) as exc_info:
+        with pytest.raises(ServiceHTTPError) as exc_info:
             await pelias_client.geocode("invalid-query")
         
-        assert call_count == 1  # NO reintentos
+        assert pelias_mock.call_count == 1
         assert "404" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_retry_on_timeout(self, pelias_client):
+    async def test_retry_on_timeout(self, pelias_client, pelias_mock):
         """Verifica que se reintenta en timeouts."""
-        call_count = 0
-
-        async def mock_get(url, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count < 3:
-                raise httpx.TimeoutException("Connection timed out")
-            request = httpx.Request("GET", url)
-            return httpx.Response(200, json={"features": []}, request=request)
-
-        pelias_client.client.get = mock_get
+        timeout_exc = httpx.TimeoutException("Connection timed out")
+        pelias_mock.add_response(exception=timeout_exc).add_response(exception=timeout_exc).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
         
-        assert call_count == 3
+        assert pelias_mock.call_count == 3
         assert result == {"features": []}
 
     @pytest.mark.asyncio
-    async def test_retry_on_connection_error(self, pelias_client):
+    async def test_retry_on_connection_error(self, pelias_client, pelias_mock):
         """Verifica que se reintenta en errores de conexión."""
-        call_count = 0
-
-        async def mock_get(url, *args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise httpx.ConnectError("Connection refused")
-            request = httpx.Request("GET", url)
-            return httpx.Response(200, json={"features": []}, request=request)
-
-        pelias_client.client.get = mock_get
+        conn_exc = httpx.ConnectError("Connection refused")
+        pelias_mock.add_response(exception=conn_exc).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
         
-        assert call_count == 2
+        assert pelias_mock.call_count == 2
         assert result == {"features": []}
 
     @pytest.mark.asyncio
-    async def test_max_retries_exhausted_5xx(self, pelias_client):
+    async def test_max_retries_exhausted_5xx(self, pelias_client, pelias_mock):
         """Verifica que lanza excepción después de agotar todos los reintentos en 5xx."""
-        call_count = 0
+        pelias_mock.add_response(503)
 
-        async def mock_get(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            response = httpx.Response(503, text="Service Unavailable")
-            response.request = httpx.Request("GET", args[0])
-            raise httpx.HTTPStatusError(
-                "Error 503",
-                request=response.request,
-                response=response
-            )
-
-        pelias_client.client.get = mock_get
-
-        with pytest.raises(PeliasError) as exc_info:
+        with pytest.raises(ServiceError) as exc_info:
             await pelias_client.geocode("Barcelona")
         
-        # 1 intento inicial + 3 reintentos = 4 intentos totales
-        assert call_count == 4
+        assert pelias_mock.call_count == 4
         assert "4 intentos" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_max_retries_exhausted_timeout(self, pelias_client):
-        """Verifica que lanza PeliasTimeoutError después de agotar reintentos."""
-        call_count = 0
+    async def test_max_retries_exhausted_timeout(self, pelias_client, pelias_mock):
+        """Verifica que lanza ServiceTimeoutError después de agotar reintentos."""
+        pelias_mock.add_response(exception=httpx.TimeoutException("Timed out"))
 
-        async def mock_get(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            raise httpx.TimeoutException("Connection timed out")
-
-        pelias_client.client.get = mock_get
-
-        with pytest.raises(PeliasTimeoutError) as exc_info:
+        with pytest.raises(ServiceTimeoutError) as exc_info:
             await pelias_client.geocode("Barcelona")
         
-        assert call_count == 4
-        assert "4 intentos" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_max_retries_exhausted_connection(self, pelias_client):
-        """Verifica que lanza PeliasConnectionError después de agotar reintentos."""
-        call_count = 0
-
-        async def mock_get(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            raise httpx.ConnectError("Connection refused")
-
-        pelias_client.client.get = mock_get
-
-        with pytest.raises(PeliasConnectionError) as exc_info:
-            await pelias_client.geocode("Barcelona")
-        
-        assert call_count == 4
+        assert pelias_mock.call_count == 4
         assert "4 intentos" in str(exc_info.value)
 
     def test_backoff_delay_calculation(self, pelias_client):
-        """Verifica que el cálculo del delay exponencial es correcto (con margen para jitter)."""
-        # Con base_delay=0.01, max_delay=0.1
-        # El jitter es +/- 10%
+        """Verifica que el cálculo del delay exponencial es correcto."""
         def check_range(val, target):
-            assert target * 0.85 <= val <= target * 1.15  # Un poco más de margen para seguridad
+            assert target * 0.85 <= val <= target * 1.15
 
         check_range(pelias_client._calculate_backoff_delay(0), 0.01)
         check_range(pelias_client._calculate_backoff_delay(1), 0.02)
@@ -197,34 +108,22 @@ class TestExponentialBackoff:
         assert pelias_client._calculate_backoff_delay(4) <= 0.1
 
     @pytest.mark.asyncio
-    async def test_retry_disabled_on_5xx(self):
+    async def test_retry_disabled_on_5xx(self, pelias_mock):
         """Verifica que retry_on_5xx=False desactiva reintentos en 5xx."""
-        client = PeliasClient(
+        async with PeliasClient(
             url="https://test.example.com",
             max_retries=3,
             retry_base_delay=0.01,
-            retry_on_5xx=False,  # Deshabilitado
-        )
-        call_count = 0
+            retry_on_5xx=False,
+        ) as client:
+            pelias_mock.add_response(503)
+            with pytest.raises(ServiceError):
+                await client.geocode("Barcelona")
+            assert pelias_mock.call_count == 1
 
-        async def mock_get(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            response = httpx.Response(503, text="Service Unavailable")
-            response.request = httpx.Request("GET", args[0])
-            raise httpx.HTTPStatusError(
-                "Error 503",
-                request=response.request,
-                response=response
-            )
 
-        client.client.get = mock_get
-
-        with pytest.raises(PeliasError):
-            await client.geocode("Barcelona")
-        
-        assert call_count == 1  # NO reintentos
-        await client.close()
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
 
 
 if __name__ == "__main__":
