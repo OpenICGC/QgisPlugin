@@ -3,7 +3,34 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [2.3.0] - 2025-12-25
+
+### Added
+- **Extensive Documentation**: DIY persistent cache implementation guide
+  - SQLite synchronous implementation with full example
+  - SQLite asynchronous implementation with aiosqlite
+  - Redis distributed cache implementation
+  - Comparison table of cache solutions
+  - Best practices guide for cache implementation
+- **Project Roadmap**: MEJORAS.MD now tracked in git with prioritized improvements
+  - High priority: Test coverage 70%+, E2E tests for MCP server
+  - Medium priority: Strict static typing, structured JSON logging
+  - Low priority: GIS glossary, deployment examples, benchmarks
+
+### Changed
+- **COOKBOOK.md**: Added 300+ lines of persistent cache documentation
+  - When to use persistent cache vs in-memory
+  - 3 complete reference implementations
+  - Usage examples and best practices
+- **MEJORAS.MD**: Updated with refined priorities (standalone philosophy preserved)
+  - Removed internal persistent cache feature to maintain simplicity
+  - Focus on code quality improvements (tests, typing)
+  - Clear roadmap with Q1-Q3 2026 milestones
+
+### Documentation
+- Enhanced cache section with decision matrix for cache solutions
+- Added architectural considerations for production deployments
+- Improved examples for FastAPI integration with shared connection pools
 
 ## [2.2.0] - 2024-12-20
 
@@ -75,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[2.3.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.0.0...v2.2.0
 [2.0.0]: https://github.com/jccamel/geofinder-icgc/compare/v1.4.0...v2.0.0
 [1.4.0]: https://github.com/jccamel/geofinder-icgc/releases/tag/v1.4.0
