@@ -864,10 +864,14 @@ class GeoFinder:
                     resp = await self.find_response(query, default_epsg, use_cache)
                     query_to_response[query] = resp
                 except Exception as e:
-                    if ignore_errors:
-                        self.log.error("Batch query failed for '%s': %s", query, e)
-                        query_to_response[query] = GeoResponse(query=query, results=[], count=0)
-                    else:
+                    self.log.error("Batch query failed for '%s': %s", query, e)
+                    query_to_response[query] = GeoResponse(
+                        query=query, 
+                        results=[], 
+                        count=0, 
+                        error=str(e)
+                    )
+                    if not ignore_errors:
                         raise
 
         tasks = [_bounded_find(q) for q in unique_queries]
@@ -913,11 +917,15 @@ class GeoFinder:
                     resp = await self.find_reverse_response(x, y, epsg, layers, size, use_cache)
                     coords_to_response[coords] = resp
                 except Exception as e:
-                    if ignore_errors:
-                        query_text = f"{x} {y} EPSG:{epsg}"
-                        self.log.error("Batch reverse query failed for '%s': %s", query_text, e)
-                        coords_to_response[coords] = GeoResponse(query=query_text, results=[], count=0)
-                    else:
+                    query_text = f"{x} {y} EPSG:{epsg}"
+                    self.log.error("Batch reverse query failed for '%s': %s", query_text, e)
+                    coords_to_response[coords] = GeoResponse(
+                        query=query_text, 
+                        results=[], 
+                        count=0, 
+                        error=str(e)
+                    )
+                    if not ignore_errors:
                         raise
 
         tasks = [_bounded_find_reverse(c) for c in unique_coords]
