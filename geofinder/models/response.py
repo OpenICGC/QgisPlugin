@@ -7,6 +7,7 @@ class GeoResponse(BaseModel):
     query: str
     results: list[GeoResult]
     count: int
+    error: Optional[str] = None
     time_ms: Optional[float] = None
 
     @classmethod
