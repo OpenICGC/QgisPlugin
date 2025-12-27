@@ -1,5 +1,7 @@
 import pytest
+
 from geofinder import GeoFinder
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio

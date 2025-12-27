@@ -6,22 +6,23 @@ Verifica que todas las excepciones heredan correctamente, incluyen contexto
 apropiado y formatean los mensajes correctamente.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Añadir el directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from geofinder.exceptions import (
-    GeoFinderError,
     ConfigurationError,
-    ParsingError,
     CoordinateError,
-    ServiceError,
+    GeoFinderError,
+    ParsingError,
     ServiceConnectionError,
-    ServiceTimeoutError,
+    ServiceError,
     ServiceHTTPError,
+    ServiceTimeoutError,
 )
 
 
@@ -55,7 +56,7 @@ class TestExceptionHierarchy:
             ServiceTimeoutError("test"),
             ServiceHTTPError("test"),
         ]
-        
+
         for exc in exceptions:
             with pytest.raises(GeoFinderError):
                 raise exc
@@ -166,7 +167,7 @@ class TestNewFeatures:
         """Verifica que to_dict() funciona correctamente."""
         exc = ConfigurationError("URL inválida", details={"url": "test"})
         result = exc.to_dict()
-        
+
         assert result["type"] == "ConfigurationError"
         assert result["message"] == "URL inválida"
         assert result["details"]["url"] == "test"
@@ -179,7 +180,7 @@ class TestNewFeatures:
             details={"extra": "info"}
         )
         result = exc.to_dict()
-        
+
         assert result["url"] == "https://example.com"
         assert result["details"]["url"] == "https://example.com"
         assert result["details"]["extra"] == "info"
@@ -194,7 +195,7 @@ class TestNewFeatures:
             response_text="Not Found"
         )
         result = exc.to_dict()
-        
+
         assert result["status_code"] == 404
         assert result["response_text"] == "Not Found"
         assert result["url"] == "https://example.com/api"
@@ -209,7 +210,7 @@ class TestNewFeatures:
             response_text="Connection reset"
         )
         result = exc.to_dict()
-        
+
         # status_code=0 debe incluirse (es un valor válido)
         assert result["status_code"] == 0
 
@@ -220,7 +221,7 @@ class TestExceptionChaining:
     def test_exception_chaining_preserves_cause(self):
         """Verifica que el encadenamiento de excepciones preserva la causa."""
         original = ValueError("Error original")
-        
+
         try:
             try:
                 raise original
@@ -233,9 +234,9 @@ class TestExceptionChaining:
     def test_service_error_from_httpx_error(self):
         """Verifica que ServiceError puede encadenar errores de httpx."""
         import httpx
-        
+
         original = httpx.ConnectError("Connection failed")
-        
+
         try:
             try:
                 raise original
@@ -270,12 +271,12 @@ class TestBackwardCompatibility:
 
     def test_can_catch_with_old_names(self):
         """Verifica que se pueden capturar excepciones con nombres antiguos."""
-        from geofinder import PeliasError, PeliasConnectionError
-        
+        from geofinder import PeliasConnectionError, PeliasError
+
         # Lanzar con nuevo nombre, capturar con nombre antiguo
         with pytest.raises(PeliasError):
             raise ServiceError("test")
-        
+
         with pytest.raises(PeliasConnectionError):
             raise ServiceConnectionError("test")
 

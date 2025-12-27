@@ -24,21 +24,22 @@ import argparse
 import logging
 import os
 import sys
+from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
-from pydantic import BaseModel, Field, field_validator, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from .geofinder import GeoFinder
 from .exceptions import (
-    GeoFinderError,
     ConfigurationError,
-    ParsingError,
     CoordinateError,
-    ServiceError,
+    GeoFinderError,
+    ParsingError,
     ServiceConnectionError,
-    ServiceTimeoutError,
+    ServiceError,
     ServiceHTTPError,
+    ServiceTimeoutError,
 )
+from .geofinder import GeoFinder
 
 # ============================================================================
 # Configuración de Logging
@@ -90,11 +91,11 @@ def get_geofinder() -> GeoFinder:
 
 class FindPlaceParams(BaseModel):
     """Parámetros validados para find_place."""
-    
+
     query: str = Field(..., min_length=1, max_length=500, description="Texto de búsqueda")
     default_epsg: int = Field(25831, ge=1000, le=99999, description="Código EPSG")
     size: int = Field(5, ge=1, le=100, description="Número máximo de resultados")
-    
+
     @field_validator("query")
     @classmethod
     def validate_query(cls, v: str) -> str:
@@ -106,10 +107,10 @@ class FindPlaceParams(BaseModel):
 
 class AutocompleteParams(BaseModel):
     """Parámetros validados para autocomplete."""
-    
+
     partial_text: str = Field(..., min_length=1, max_length=200, description="Texto parcial")
     max_suggestions: int = Field(10, ge=1, le=50, description="Número máximo de sugerencias")
-    
+
     @field_validator("partial_text")
     @classmethod
     def validate_text(cls, v: str) -> str:
@@ -121,7 +122,7 @@ class AutocompleteParams(BaseModel):
 
 class FindReverseParams(BaseModel):
     """Parámetros validados para find_reverse."""
-    
+
     longitude: float = Field(..., description="Coordenada X / Longitud")
     latitude: float = Field(..., description="Coordenada Y / Latitud")
     epsg: int = Field(25831, ge=1000, le=99999, description="Código EPSG")
@@ -131,7 +132,7 @@ class FindReverseParams(BaseModel):
 
 class FindByCoordinatesParams(BaseModel):
     """Parámetros validados para find_by_coordinates."""
-    
+
     x: float = Field(..., description="Coordenada X")
     y: float = Field(..., description="Coordenada Y")
     epsg: int = Field(25831, ge=1000, le=99999, description="Código EPSG")
@@ -142,12 +143,12 @@ class FindByCoordinatesParams(BaseModel):
 
 class FindAddressParams(BaseModel):
     """Parámetros validados para find_address."""
-    
+
     street: str = Field(..., min_length=1, max_length=200, description="Nombre de la calle")
     number: str = Field(..., min_length=1, max_length=20, description="Número de portal")
     municipality: str = Field("", max_length=100, description="Municipio")
     street_type: str = Field("Carrer", max_length=50, description="Tipo de vía")
-    
+
     @field_validator("street", "number")
     @classmethod
     def validate_not_empty(cls, v: str) -> str:
@@ -159,10 +160,10 @@ class FindAddressParams(BaseModel):
 
 class FindRoadKmParams(BaseModel):
     """Parámetros validados para find_road_km."""
-    
+
     road: str = Field(..., min_length=1, max_length=20, description="Código de carretera")
     kilometer: float = Field(..., ge=0, le=10000, description="Kilómetro")
-    
+
     @field_validator("road")
     @classmethod
     def validate_road(cls, v: str) -> str:
@@ -174,12 +175,12 @@ class FindRoadKmParams(BaseModel):
 
 class SearchNearbyParams(BaseModel):
     """Parámetros validados para search_nearby."""
-    
+
     place_name: str = Field(..., min_length=1, max_length=200, description="Nombre del lugar")
     radius_km: float = Field(1.0, gt=0, le=100, description="Radio en km")
     layers: str = Field("address,tops,pk", description="Capas a buscar")
     max_results: int = Field(10, ge=1, le=100, description="Número máximo de resultados")
-    
+
     @field_validator("place_name")
     @classmethod
     def validate_place(cls, v: str) -> str:
@@ -195,43 +196,43 @@ class SearchNearbyParams(BaseModel):
 
 def convert_geofinder_error(e: Exception) -> Exception:
     """Convierte excepciones de GeoFinder a excepciones estándar de Python.
-    
+
     Esto permite que los clientes MCP reciban mensajes de error claros
     y específicos sin necesidad de conocer la jerarquía de GeoFinder.
-    
+
     Args:
         e: Excepción original de GeoFinder
-        
+
     Returns:
         Exception: Excepción estándar de Python apropiada
     """
     if isinstance(e, ParsingError):
         return ValueError(f"Formato de búsqueda inválido: {e.message}")
-    
+
     elif isinstance(e, CoordinateError):
         return ValueError(f"Coordenadas inválidas: {e.message}")
-    
+
     elif isinstance(e, ConfigurationError):
         return RuntimeError(f"Error de configuración del servicio: {e.message}")
-    
+
     elif isinstance(e, ServiceTimeoutError):
         return TimeoutError(f"El servicio ICGC no respondió a tiempo: {e.message}")
-    
+
     elif isinstance(e, ServiceConnectionError):
         return ConnectionError(f"No se pudo conectar con el servicio ICGC: {e.message}")
-    
+
     elif isinstance(e, ServiceHTTPError):
         if e.status_code and 400 <= e.status_code < 500:
             return ValueError(f"Petición inválida al servicio: {e.message}")
         else:
             return RuntimeError(f"Error del servicio ICGC: {e.message}")
-    
+
     elif isinstance(e, ServiceError):
         return RuntimeError(f"Error del servicio de geocodificación: {e.message}")
-    
+
     elif isinstance(e, GeoFinderError):
         return RuntimeError(f"Error de geocodificación: {e.message}")
-    
+
     # Si no es una excepción de GeoFinder, retornar tal cual
     return e
 
@@ -241,24 +242,22 @@ def convert_geofinder_error(e: Exception) -> Exception:
 # Configuración del Servidor MCP con Lifespan
 # ============================================================================
 
-from contextlib import asynccontextmanager
-
 @asynccontextmanager
 async def lifespan(app):
     """
     Context manager para manejar el ciclo de vida del servidor MCP.
-    
+
     - Startup: Se ejecuta antes de que el servidor comience a aceptar conexiones
     - Shutdown: Se ejecuta cuando el servidor se está cerrando
     """
     # Startup: No necesitamos hacer nada aquí porque usamos lazy loading
     logger.info("🚀 Iniciando servidor GeoFinder MCP...")
-    
+
     yield  # El servidor está corriendo
-    
+
     # Shutdown: Cerrar recursos
     global _geofinder_instance
-    
+
     if _geofinder_instance:
         logger.info("⏳ Cerrando servidor GeoFinder MCP...")
         try:
@@ -346,22 +345,22 @@ async def find_place(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en find_place: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         results = await gf.find(params.query, default_epsg=params.default_epsg, size=params.size)
         logger.info(f"find_place: '{params.query}' (size={params.size}) -> {len(results)} results")
         return [r.model_dump() for r in results]
-    
+
     except ValidationError as e:
         logger.warning(f"Error de validación en find_place: {e}")
         raise ValueError(f"Datos inválidos: {e}") from e
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_place: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en find_place: {e}", exc_info=True)
         raise
@@ -400,18 +399,18 @@ async def autocomplete(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en autocomplete: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         results = await gf.autocomplete(params.partial_text, size=params.max_suggestions)
         logger.info(f"autocomplete: '{params.partial_text}' -> {len(results)} suggestions")
         return results
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en autocomplete: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en autocomplete: {e}", exc_info=True)
         raise
@@ -465,9 +464,9 @@ async def find_reverse(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en find_reverse: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         results = await gf.find_reverse(
             params.longitude, params.latitude,
@@ -480,11 +479,11 @@ async def find_reverse(
             f"EPSG:{params.epsg} -> {len(results)} results"
         )
         return results
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_reverse: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en find_reverse: {e}", exc_info=True)
         raise
@@ -570,9 +569,9 @@ async def find_by_coordinates(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en find_by_coordinates: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         # Usar el método público find_point_coordinate_icgc con control de radio
         results = await gf.find_point_coordinate_icgc(
@@ -587,11 +586,11 @@ async def find_by_coordinates(
             f"radius:{params.search_radius_km}km -> {len(results)} results"
         )
         return results
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_by_coordinates: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en find_by_coordinates: {e}", exc_info=True)
         raise
@@ -644,9 +643,9 @@ async def find_address(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en find_address: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         # Usar el método público find_address para búsqueda precisa
         results = await gf.find_address(
@@ -661,11 +660,11 @@ async def find_address(
             f"{params.municipality} -> {len(results)} results"
         )
         return results
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_address: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en find_address: {e}", exc_info=True)
         raise
@@ -712,9 +711,9 @@ async def find_road_km(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en find_road_km: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         # Usar el método público find_road
         results = await gf.find_road(
@@ -724,11 +723,11 @@ async def find_road_km(
 
         logger.info(f"find_road_km: {params.road} km {params.kilometer} -> {len(results)} results")
         return results
-    
+
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_road_km: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en find_road_km: {e}", exc_info=True)
         raise
@@ -873,9 +872,9 @@ async def search_nearby(
     except ValidationError as e:
         logger.warning(f"Parámetros inválidos en search_nearby: {e}")
         raise ValueError(f"Parámetros inválidos: {e}") from e
-    
+
     gf = get_geofinder()
-    
+
     try:
         # Llamar al nuevo método del core que ya maneja caché y duplicados
         results = await gf.search_nearby(
@@ -894,7 +893,7 @@ async def search_nearby(
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en search_nearby: {e}", exc_info=True)
         raise convert_geofinder_error(e) from e
-    
+
     except Exception as e:
         logger.error(f"Error inesperado en search_nearby: {e}", exc_info=True)
         raise

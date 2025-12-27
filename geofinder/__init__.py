@@ -34,19 +34,19 @@ Modelos de Datos (Pydantic):
     tanto por atributo (r.nom) como por clave (r['nom']).
 """
 
-from .geofinder import GeoFinder
-from .pelias import PeliasClient, PeliasConnectionError, PeliasError, PeliasTimeoutError
-from .models import GeoResult, GeoResponse
 from .exceptions import (
-    GeoFinderError,
     ConfigurationError,
-    ParsingError,
     CoordinateError,
-    ServiceError,
+    GeoFinderError,
+    ParsingError,
     ServiceConnectionError,
-    ServiceTimeoutError,
+    ServiceError,
     ServiceHTTPError,
+    ServiceTimeoutError,
 )
+from .geofinder import GeoFinder
+from .models import GeoResponse, GeoResult
+from .pelias import PeliasClient, PeliasConnectionError, PeliasError, PeliasTimeoutError
 
 __version__ = "2.3.0"
 __author__ = "ICGC / Adapted for standalone use by Goalnefesh"

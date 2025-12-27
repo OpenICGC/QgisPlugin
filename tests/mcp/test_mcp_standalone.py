@@ -4,9 +4,9 @@ Test del servidor MCP en modo standalone.
 Verifica que el servidor funciona correctamente cuando se instala como paquete.
 """
 
-import pytest
 import subprocess
-import sys
+
+import pytest
 
 
 class TestMCPServerImports:
@@ -40,11 +40,11 @@ class TestMCPServerTools:
             from geofinder.mcp_server import app
         except ImportError:
             pytest.skip("fastmcp not installed")
-        
+
         # Listar herramientas
         tools = app.list_tools()
         tool_names = [t.name for t in tools]
-        
+
         # Herramientas esperadas
         expected_tools = [
             'find_place',
@@ -55,7 +55,7 @@ class TestMCPServerTools:
             'find_road_km',
             'search_nearby',
         ]
-        
+
         for tool in expected_tools:
             assert tool in tool_names, f"Tool '{tool}' not found in {tool_names}"
 
@@ -65,9 +65,9 @@ class TestMCPServerTools:
             from geofinder.mcp_server import app
         except ImportError:
             pytest.skip("fastmcp not installed")
-        
+
         tools = app.list_tools()
-        
+
         for tool in tools:
             assert tool.description, f"Tool '{tool.name}' has no description"
             assert len(tool.description) > 10, f"Tool '{tool.name}' description too short"
@@ -82,7 +82,7 @@ class TestMCPServerResources:
             from geofinder.mcp_server import app
         except ImportError:
             pytest.skip("fastmcp not installed")
-        
+
         resources = app.list_resources()
         assert len(resources) > 0, "No resources found"
 
@@ -97,7 +97,7 @@ class TestMCPEntryPoint:
             capture_output=True,
             text=True
         )
-        
+
         # Si el paquete está instalado en modo editable, debe existir
         if result.returncode == 0:
             assert 'geofinder-icgc' in result.stdout
@@ -111,7 +111,7 @@ class TestMCPEntryPoint:
                 text=True,
                 timeout=5
             )
-            
+
             # Si funciona, debe mostrar información
             if result.returncode == 0:
                 assert 'geofinder' in result.stdout.lower() or 'mcp' in result.stdout.lower()
@@ -127,7 +127,7 @@ class TestMCPServerFunctionality:
         """Verifica que el servidor puede iniciar (sin ejecutar)."""
         try:
             from geofinder.mcp_server import app
-            
+
             # Verificar que tiene los métodos necesarios
             assert hasattr(app, 'run')
             assert callable(app.run)

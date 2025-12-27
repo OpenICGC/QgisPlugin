@@ -5,17 +5,15 @@ Cliente para servidores Pelias (API de geocodificación)
 import asyncio
 import logging
 import random
-from typing import Optional
-import time
 
 import httpx
 
 from .exceptions import (
     ConfigurationError,
-    ServiceError,
     ServiceConnectionError,
-    ServiceTimeoutError,
+    ServiceError,
     ServiceHTTPError,
+    ServiceTimeoutError,
 )
 
 # Aliases para compatibilidad hacia atrás (deprecated)
@@ -58,8 +56,8 @@ class PeliasClient:
         retry_max_delay=10.0,
         retry_on_5xx=True,
         verify_ssl=True,
-        http_client: Optional[httpx.AsyncClient] = None,
-        timeout: Optional[float] = None, # Add timeout for compatibility
+        http_client: httpx.AsyncClient | None = None,
+        timeout: float | None = None, # Add timeout for compatibility
     ):
         """Configura la conexión al servidor.
 
@@ -79,7 +77,7 @@ class PeliasClient:
         """
         if not url:
             raise ConfigurationError("La URL del servidor Pelias no puede estar vacía")
-        
+
         # Asegurar que la URL tiene protocolo
         if not url.startswith(("http://", "https://")):
             # Si parece un dominio pero no tiene protocolo, añadir https
@@ -128,7 +126,7 @@ class PeliasClient:
                 verify=self.verify_ssl,
                 follow_redirects=True
             )
-        
+
         self._closed = False
 
     async def geocode(self, query_string, **extra_params_dict):
@@ -211,7 +209,7 @@ class PeliasClient:
         self.last_request = url
 
         last_exception = None
-        
+
         for attempt in range(self.max_retries + 1):
             try:
                 response = await self.client.get(
@@ -228,7 +226,7 @@ class PeliasClient:
 
                 # Parsear JSON
                 data = response.json()
-                
+
                 # Validar que tiene la estructura mínima esperada (features)
                 # Esto evita KeyErrors en el llamador y nos permite lanzar ServiceError
                 if not isinstance(data, dict) or "features" not in data:
@@ -237,7 +235,7 @@ class PeliasClient:
                         url=str(response.url),
                         details={"response": data}
                     )
-                
+
                 return data
 
             except (httpx.ConnectError, httpx.NetworkError, httpx.TimeoutException) as e:
@@ -252,7 +250,7 @@ class PeliasClient:
                     )
                     await asyncio.sleep(delay)
                     continue
-                
+
                 if isinstance(e, httpx.TimeoutException):
                     raise ServiceTimeoutError(
                         f"Timeout después de {self.timeout}s ({self.max_retries + 1} intentos)",
@@ -269,7 +267,7 @@ class PeliasClient:
                 # Errores HTTP (4xx, 5xx)
                 last_exception = e
                 status_code = e.response.status_code
-                
+
                 # Errores 5xx: reintentar si está habilitado
                 if status_code >= 500 and self.retry_on_5xx:
                     if attempt < self.max_retries:
@@ -287,7 +285,7 @@ class PeliasClient:
                         status_code=status_code,
                         response_text=e.response.text,
                     ) from e
-                
+
                 # Errores 4xx o 5xx sin reintentos: NO reintentar
                 self.log.error("Error HTTP %d en %s: %s", status_code, url, e.response.text)
                 raise ServiceHTTPError(
@@ -347,7 +345,7 @@ class PeliasClient:
 
     async def close(self):
         """Cierra el cliente httpx de forma idempotente.
-        
+
         Solo cierra el cliente si fue creado internamente (owned).
         Si el cliente fue proporcionado externamente, NO lo cierra.
         """

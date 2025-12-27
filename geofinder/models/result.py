@@ -1,34 +1,36 @@
-from typing import Any, Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..exceptions import CoordinateError
+
 
 class GeoResult(BaseModel):
     """Modelo para un resultado de geocodificación individual."""
     model_config = ConfigDict(populate_by_name=True)
 
     nom: str = Field(..., description="Nombre del lugar")
-    id: Optional[str] = Field(None, description="Identificador único del resultado")
-    idTipus: Optional[int] = Field(None, description="ID del tipo de lugar")
+    id: str | None = Field(None, description="Identificador único del resultado")
+    idTipus: int | None = Field(None, description="ID del tipo de lugar")
     nomTipus: str = Field("", description="Nombre del tipo de lugar")
     nomMunicipi: str = Field("", description="Nombre del municipio")
     nomComarca: str = Field("", description="Nombre de la comarca")
-    
+
     # Códigos internos
-    idMunicipi: Optional[str] = Field(None, description="Código ID del municipio")
-    idComarca: Optional[str] = Field(None, description="Código ID de la comarca")
-    layer: Optional[str] = Field(None, description="Capa de origen (topo1, adreça, etc.)")
+    idMunicipi: str | None = Field(None, description="Código ID del municipio")
+    idComarca: str | None = Field(None, description="Código ID de la comarca")
+    layer: str | None = Field(None, description="Capa de origen (topo1, adreça, etc.)")
 
     # Coordenadas
     x: float = Field(..., description="Coordenada X (habitualmente longitud)")
     y: float = Field(..., description="Coordenada Y (habitualmente latitud)")
     epsg: int = Field(..., description="Código EPSG del sistema de coordenadas")
-    
+
     # Metadatos para rectángulos (opcional)
-    west: Optional[float] = None
-    north: Optional[float] = None
-    east: Optional[float] = None
-    south: Optional[float] = None
+    west: float | None = None
+    north: float | None = None
+    east: float | None = None
+    south: float | None = None
 
     @field_validator('epsg')
     @classmethod
@@ -46,12 +48,12 @@ class GeoResult(BaseModel):
         if self.epsg == 4326:
             if not (-180 <= self.x <= 180):
                 raise CoordinateError(
-                    f"Longitud fuera de rango (-180, 180)",
+                    "Longitud fuera de rango (-180, 180)",
                     details={"x": self.x, "epsg": self.epsg}
                 )
             if not (-90 <= self.y <= 90):
                 raise CoordinateError(
-                    f"Latitud fuera de rango (-90, 90)",
+                    "Latitud fuera de rango (-90, 90)",
                     details={"y": self.y, "epsg": self.epsg}
                 )
         return self
@@ -64,7 +66,7 @@ class GeoResult(BaseModel):
         return str(v)
 
     @classmethod
-    def from_icgc_feature(cls, feature: dict, epsg: int, default_type: Optional[str] = None) -> "GeoResult":
+    def from_icgc_feature(cls, feature: dict, epsg: int, default_type: str | None = None) -> "GeoResult":
         """Crea una instancia a partir de una feature GeoJSON del ICGC."""
         props = feature.get("properties", {})
         addendum = props.get("addendum", {})
@@ -105,7 +107,7 @@ class GeoResult(BaseModel):
 
     def is_in_catalonia(self) -> bool:
         """Comprueba si el punto está dentro de los límites aproximados de Cataluña.
-        
+
         Soporta WGS84 (4326) y UTM 31N (25831).
         """
         if self.epsg == 4326:

@@ -3,7 +3,6 @@
 Script de prueba para verificar la migración a requests
 """
 
-import os
 
 from geofinder import GeoFinder, PeliasError
 
