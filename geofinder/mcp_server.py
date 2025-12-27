@@ -1032,6 +1032,7 @@ def parse_search_query(query: str) -> dict:
         }
 
     except Exception as e:
+        # print(f"DEBUG: parse_search_query error: {e}") # Temporarily disabled
         logger.error(f"Error in parse_search_query: {e}", exc_info=True)
         return {
             "query_type": "error",
