@@ -48,7 +48,7 @@ class LRUCache:
         self._cache.move_to_end(key)
         return self._cache[key]
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         """Guarda un elemento en la caché.
 
         Args:
@@ -68,12 +68,12 @@ class LRUCache:
             oldest_key = next(iter(self._cache))
             self.pop(oldest_key)
 
-    def pop(self, key: str):
+    def pop(self, key: str) -> None:
         """Elimina un elemento de la caché."""
         self._cache.pop(key, None)
         self._timestamps.pop(key, None)
 
-    def clear(self):
+    def clear(self) -> None:
         """Limpia toda la caché."""
         self._cache.clear()
         self._timestamps.clear()

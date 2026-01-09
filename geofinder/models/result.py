@@ -66,11 +66,11 @@ class GeoResult(BaseModel):
         return str(v)
 
     @classmethod
-    def from_icgc_feature(cls, feature: dict, epsg: int, default_type: str | None = None) -> "GeoResult":
+    def from_icgc_feature(cls, feature: dict[str, Any], epsg: int, default_type: str | None = None) -> "GeoResult":
         """Crea una instancia a partir de una feature GeoJSON del ICGC."""
-        props = feature.get("properties", {})
-        addendum = props.get("addendum", {})
-        coords = feature.get("geometry", {}).get("coordinates", [0, 0])
+        props: dict[str, Any] = feature.get("properties", {})
+        addendum: dict[str, Any] = props.get("addendum", {})
+        coords: list[float] = feature.get("geometry", {}).get("coordinates", [0.0, 0.0])
 
         # Extraer nombre
         nom = addendum.get("scn", {}).get("label") or props.get("etiqueta") or props.get("nom") or ""
@@ -118,12 +118,17 @@ class GeoResult(BaseModel):
             return 250000 <= self.x <= 540000 and 4480000 <= self.y <= 4750000
         return True # Para otros EPSG no validamos por ahora
 
-    def __getitem__(self, item):
-        """Permite acceso tipo diccionario solo para campos de datos."""
-        if item in self.__class__.model_fields:
-            return getattr(self, item)
-        raise KeyError(f"'{item}' no es un campo válido del modelo")
+    def __getitem__(self, key: str) -> Any:
+        """Soporte para acceso tipo diccionario (para compatibilidad)."""
+        # Usamos getattr para evitar problemas de tipos con Pydantic si property no está en __fields__
+        props = getattr(self, "properties", None)
+        if props and isinstance(props, dict) and key in props:
+            return props[key]
+        return getattr(self, key)
 
-    def get(self, key, default=None):
-        """Simula dict.get() para compatibilidad hacia atrás."""
+    def get(self, key: str, default: Any = None) -> Any:
+        """Soporte para método get (para compatibilidad)."""
+        props = getattr(self, "properties", None)
+        if props and isinstance(props, dict) and key in props:
+            return props.get(key, default)
         return getattr(self, key, default)

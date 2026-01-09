@@ -1,3 +1,4 @@
+from typing import Any, Iterator
 
 from pydantic import BaseModel
 
@@ -13,13 +14,13 @@ class GeoResponse(BaseModel):
     time_ms: float | None = None
 
     @classmethod
-    def from_results(cls, query: str, results: list[dict]) -> "GeoResponse":
+    def from_results(cls, query: str, results: list[dict[str, Any]]) -> "GeoResponse":
         return cls(
             query=query,
             results=[GeoResult(**r) for r in results],
             count=len(results)
         )
 
-    def __iter__(self):
-        """Permite iterar sobre los resultados directamente: for r in response: ..."""
+    def __iter__(self) -> Iterator[GeoResult]:  # type: ignore[override]
+        """Permite iterar directamente sobre los resultados."""
         return iter(self.results)
