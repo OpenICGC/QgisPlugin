@@ -1,14 +1,15 @@
 import asyncio
-import pytest
-import httpx
 import sys
 from pathlib import Path
+
+import httpx
+import pytest
 
 # Añadir el directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from geofinder.pelias import PeliasClient, PeliasError, PeliasConnectionError
-from geofinder.exceptions import ServiceError, ServiceConnectionError
+from geofinder.pelias import PeliasClient
+
 
 @pytest.mark.asyncio
 async def test_network_instability():
@@ -19,9 +20,9 @@ async def test_network_instability():
         retry_base_delay=0.01,
         retry_max_delay=0.1
     )
-    
+
     call_count = 0
-    
+
     async def mock_get(url, *args, **kwargs):
         nonlocal call_count
         call_count += 1
@@ -34,13 +35,13 @@ async def test_network_instability():
             request = httpx.Request("GET", url)
             response = httpx.Response(500, text="Internal Server Error", request=request)
             raise httpx.HTTPStatusError("500 Error", request=request, response=response)
-        
+
         # Éxito en el 4º intento
         request = httpx.Request("GET", url)
         return httpx.Response(200, json={"features": [{"properties": {"nom": "Test"}}, {"properties": {"nom": "Test 2"}}]}, request=request)
 
     client.client.get = mock_get
-    
+
     try:
         result = await client.geocode("Barcelona")
         assert call_count == 4

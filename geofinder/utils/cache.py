@@ -4,7 +4,7 @@ Sistema de caché asíncrono LRU con TTL para GeoFinder.
 
 import time
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 
 class LRUCache:
@@ -27,7 +27,7 @@ class LRUCache:
         self._cache: OrderedDict[str, Any] = OrderedDict()
         self._timestamps: dict[str, float] = {}
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Obtiene un elemento de la caché si existe y no ha expirado.
 
         Args:
@@ -57,7 +57,7 @@ class LRUCache:
         """
         if key in self._cache:
             self._cache.move_to_end(key)
-        
+
         self._cache[key] = value
         self._timestamps[key] = time.monotonic()
 

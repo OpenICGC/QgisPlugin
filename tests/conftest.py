@@ -1,7 +1,8 @@
-import pytest
+
 import httpx
+import pytest
+
 from geofinder import GeoFinder
-from unittest.mock import AsyncMock
 
 
 @pytest.fixture
@@ -42,13 +43,13 @@ class MockResponseGenerator:
         self.call_count += 1
         url_str = str(url)
         params = kwargs.get("params", {})
-        
+
         # 1. Check pattern matches
         for pattern, resp_config in self.pattern_responses.items():
             # Check if pattern is in URL path OR in any param value
             if pattern in url_str:
                  return self._make_response(url_str, resp_config)
-            
+
             for p_val in params.values():
                 if pattern in str(p_val):
                     return self._make_response(url_str, resp_config)
@@ -57,7 +58,7 @@ class MockResponseGenerator:
         if self.responses:
             resp_idx = min(self.call_count - 1, len(self.responses) - 1)
             return self._make_response(url_str, self.responses[resp_idx])
-            
+
         # 3. Default empty response
         return httpx.Response(200, json={"features": []}, request=httpx.Request("GET", url_str))
 
@@ -65,8 +66,8 @@ class MockResponseGenerator:
         if resp_config.get("exception"):
             raise resp_config["exception"]
         return httpx.Response(
-            resp_config["status_code"], 
-            json=resp_config["json"], 
+            resp_config["status_code"],
+            json=resp_config["json"],
             request=httpx.Request("GET", url)
         )
 
@@ -75,19 +76,19 @@ class MockResponseGenerator:
 def pelias_mock(monkeypatch):
     """Fixture that patches PeliasClient's internal httpx client."""
     generator = MockResponseGenerator()
-    
+
     from geofinder.pelias import PeliasClient
-    
+
     # Patch the 'call' or internal client? Patching the internal client's get is better.
     # But we need to do it globally for all instances.
-    
+
     original_init = PeliasClient.__init__
-    
+
     def patched_init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
         # Force the mock on the client
         self.client.get = generator.mock_get
-        
+
     monkeypatch.setattr(PeliasClient, "__init__", patched_init)
     return generator
 

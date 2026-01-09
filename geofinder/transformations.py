@@ -3,9 +3,8 @@ Transformaciones de coordenadas entre sistemas de referencia.
 Soporta GDAL (osr) y pyproj como backends intercambiables.
 """
 
-import math
 import logging
-from typing import Tuple, Optional, Union
+import math
 
 # Configurar logger
 logger = logging.getLogger("geofinder.transformations")
@@ -24,7 +23,7 @@ except ImportError:
         pass
 
 
-def get_backend() -> Optional[str]:
+def get_backend() -> str | None:
     """Retorna el backend de transformación disponible.
 
     Returns:
@@ -34,11 +33,11 @@ def get_backend() -> Optional[str]:
 
 
 def transform_point(
-    x: float, 
-    y: float, 
-    source_epsg: Union[int, str], 
-    destination_epsg: Union[int, str]
-) -> Tuple[Optional[float], Optional[float]]:
+    x: float,
+    y: float,
+    source_epsg: int | str,
+    destination_epsg: int | str
+) -> tuple[float | None, float | None]:
     """Transforma un punto entre sistemas de referencia.
 
     Args:
@@ -74,7 +73,7 @@ def transform_point(
         return None, None
 
 
-def _transform_gdal(x: float, y: float, source_epsg: Union[int, str], destination_epsg: Union[int, str]) -> Tuple[Optional[float], Optional[float]]:
+def _transform_gdal(x: float, y: float, source_epsg: int | str, destination_epsg: int | str) -> tuple[float | None, float | None]:
     """Transformación usando GDAL/OGR."""
     from osgeo import osr
 
@@ -94,7 +93,7 @@ def _transform_gdal(x: float, y: float, source_epsg: Union[int, str], destinatio
     return (None if math.isinf(dest_x) else dest_x, None if math.isinf(dest_y) else dest_y)
 
 
-def _transform_pyproj(x: float, y: float, source_epsg: Union[int, str], destination_epsg: Union[int, str]) -> Tuple[Optional[float], Optional[float]]:
+def _transform_pyproj(x: float, y: float, source_epsg: int | str, destination_epsg: int | str) -> tuple[float | None, float | None]:
     """Transformación usando pyproj."""
     from pyproj import Transformer
 

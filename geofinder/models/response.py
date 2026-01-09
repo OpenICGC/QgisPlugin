@@ -1,14 +1,16 @@
-from typing import Optional
+
 from pydantic import BaseModel
+
 from .result import GeoResult
+
 
 class GeoResponse(BaseModel):
     """Modelo para una respuesta completa de geocodificación."""
     query: str
     results: list[GeoResult]
     count: int
-    error: Optional[str] = None
-    time_ms: Optional[float] = None
+    error: str | None = None
+    time_ms: float | None = None
 
     @classmethod
     def from_results(cls, query: str, results: list[dict]) -> "GeoResponse":

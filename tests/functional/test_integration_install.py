@@ -4,9 +4,10 @@ Test de integración que simula instalación limpia.
 Verifica que todos los imports y funcionalidad básica funcionan.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Añadir el directorio raíz al path para desarrollo
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,9 +18,8 @@ class TestPackageImports:
 
     def test_main_imports(self):
         """Verifica que los imports principales funcionan."""
-        from geofinder import GeoFinder, PeliasClient
-        from geofinder import GeoResult, GeoResponse
-        
+        from geofinder import GeoFinder, GeoResponse, GeoResult, PeliasClient
+
         assert GeoFinder is not None
         assert PeliasClient is not None
         assert GeoResult is not None
@@ -28,16 +28,16 @@ class TestPackageImports:
     def test_exception_imports(self):
         """Verifica que todas las excepciones son importables."""
         from geofinder import (
-            GeoFinderError,
             ConfigurationError,
-            ParsingError,
             CoordinateError,
-            ServiceError,
+            GeoFinderError,
+            ParsingError,
             ServiceConnectionError,
-            ServiceTimeoutError,
+            ServiceError,
             ServiceHTTPError,
+            ServiceTimeoutError,
         )
-        
+
         assert GeoFinderError is not None
         assert ConfigurationError is not None
         assert ParsingError is not None
@@ -50,11 +50,11 @@ class TestPackageImports:
     def test_legacy_exception_imports(self):
         """Verifica que los aliases legacy funcionan."""
         from geofinder import (
+            PeliasConnectionError,
             PeliasError,
             PeliasTimeoutError,
-            PeliasConnectionError,
         )
-        
+
         assert PeliasError is not None
         assert PeliasTimeoutError is not None
         assert PeliasConnectionError is not None
@@ -62,9 +62,9 @@ class TestPackageImports:
     def test_all_exports(self):
         """Verifica que __all__ contiene todos los exports esperados."""
         import geofinder
-        
+
         assert hasattr(geofinder, '__all__')
-        
+
         expected_exports = [
             'GeoFinder',
             'PeliasClient',
@@ -82,7 +82,7 @@ class TestPackageImports:
             'PeliasTimeoutError',
             'PeliasConnectionError',
         ]
-        
+
         for export in expected_exports:
             assert export in geofinder.__all__, f"{export} not in __all__"
 
@@ -93,15 +93,15 @@ class TestPackageMetadata:
     def test_version_available(self):
         """Verifica que __version__ está disponible."""
         import geofinder
-        
+
         assert hasattr(geofinder, '__version__')
         assert isinstance(geofinder.__version__, str)
-        assert geofinder.__version__ == "2.2.0"
+        assert geofinder.__version__ == "2.3.0"
 
     def test_author_available(self):
         """Verifica que __author__ está disponible."""
         import geofinder
-        
+
         assert hasattr(geofinder, '__author__')
         assert isinstance(geofinder.__author__, str)
 
@@ -112,16 +112,16 @@ class TestBasicFunctionality:
     def test_geofinder_instantiation(self):
         """Verifica que GeoFinder se puede instanciar."""
         from geofinder import GeoFinder
-        
+
         gf = GeoFinder()
         assert gf is not None
 
     def test_geofinder_has_methods(self):
         """Verifica que GeoFinder tiene los métodos esperados."""
         from geofinder import GeoFinder
-        
+
         gf = GeoFinder()
-        
+
         # Métodos async
         assert hasattr(gf, 'find')
         assert hasattr(gf, 'find_response')
@@ -129,14 +129,14 @@ class TestBasicFunctionality:
         assert hasattr(gf, 'autocomplete')
         assert hasattr(gf, 'find_batch')
         assert hasattr(gf, 'find_reverse_batch')
-        
+
         # Métodos sync
         assert hasattr(gf, 'find_sync')
         assert hasattr(gf, 'find_reverse_sync')
         assert hasattr(gf, 'autocomplete_sync')
         assert hasattr(gf, 'find_batch_sync')
         assert hasattr(gf, 'find_reverse_batch_sync')
-        
+
         # Métodos de gestión
         assert hasattr(gf, 'close')
         assert hasattr(gf, 'clear_cache')
@@ -144,7 +144,7 @@ class TestBasicFunctionality:
     def test_pelias_client_instantiation(self):
         """Verifica que PeliasClient se puede instanciar."""
         from geofinder.pelias import PeliasClient
-        
+
         client = PeliasClient("https://test.example.com")
         assert client is not None
         # httpx normaliza URLs añadiendo trailing slash
@@ -152,8 +152,8 @@ class TestBasicFunctionality:
 
     def test_models_instantiation(self):
         """Verifica que los modelos Pydantic funcionan."""
-        from geofinder.models import GeoResult, GeoResponse
-        
+        from geofinder.models import GeoResponse, GeoResult
+
         # GeoResult con datos mínimos
         result = GeoResult(
             nom="Test",
@@ -164,7 +164,7 @@ class TestBasicFunctionality:
         )
         assert result.nom == "Test"
         assert result.x == 2.0
-        
+
         # GeoResponse
         response = GeoResponse(
             results=[result],
@@ -182,10 +182,10 @@ class TestOptionalDependencies:
         """Verifica que el core funciona sin pyproj."""
         # El core debe funcionar sin pyproj
         from geofinder import GeoFinder
-        
+
         gf = GeoFinder()
         assert gf is not None
-        
+
         # Transformations puede no estar disponible
         try:
             from geofinder.transformations import transform_point
@@ -199,10 +199,10 @@ class TestOptionalDependencies:
         """Verifica que el core funciona sin fastmcp."""
         # El core debe funcionar sin fastmcp
         from geofinder import GeoFinder
-        
+
         gf = GeoFinder()
         assert gf is not None
-        
+
         # MCP server puede no estar disponible
         try:
             from geofinder.mcp_server import app
@@ -218,14 +218,14 @@ class TestExceptionHierarchy:
     def test_exception_inheritance(self):
         """Verifica que las excepciones heredan correctamente."""
         from geofinder import (
-            GeoFinderError,
             ConfigurationError,
-            ParsingError,
             CoordinateError,
-            ServiceError,
+            GeoFinderError,
+            ParsingError,
             ServiceConnectionError,
+            ServiceError,
         )
-        
+
         # Todas deben heredar de GeoFinderError
         assert issubclass(ConfigurationError, GeoFinderError)
         assert issubclass(ParsingError, GeoFinderError)
@@ -236,14 +236,14 @@ class TestExceptionHierarchy:
     def test_legacy_aliases_work(self):
         """Verifica que los aliases legacy apuntan a las clases correctas."""
         from geofinder import (
-            PeliasError,
-            ServiceError,
-            PeliasTimeoutError,
-            ServiceTimeoutError,
             PeliasConnectionError,
+            PeliasError,
+            PeliasTimeoutError,
             ServiceConnectionError,
+            ServiceError,
+            ServiceTimeoutError,
         )
-        
+
         # Los aliases deben ser las mismas clases
         assert PeliasError is ServiceError
         assert PeliasTimeoutError is ServiceTimeoutError

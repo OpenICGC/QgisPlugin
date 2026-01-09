@@ -9,14 +9,16 @@ Requiere conexión a internet para acceder al servicio ICGC.
 """
 
 import asyncio
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Añadir el directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from geofinder import GeoFinder
+
 
 @pytest.fixture
 async def gf():
@@ -48,7 +50,7 @@ def print_results(description, results, max_results=3):
                 tipo = result.get('nomTipus', 'N/A')
                 lat = result.get('y', 'N/A')
                 lon = result.get('x', 'N/A')
-            
+
             # Mostrar coordenadas en formato (lat, lon) para mayor claridad
             print(f"   {i}. {name} ({tipo}) - ({lat}, {lon})")
         if len(results) > max_results:

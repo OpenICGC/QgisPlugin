@@ -2,7 +2,7 @@
 Modelos de datos para GeoFinder.
 """
 
-from .result import GeoResult
 from .response import GeoResponse
+from .result import GeoResult
 
 __all__ = ["GeoResult", "GeoResponse"]

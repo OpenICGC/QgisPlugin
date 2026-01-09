@@ -6,13 +6,11 @@ Verifica que los reintentos funcionan correctamente para errores transitorios
 y que NO se reintentan errores del cliente (4xx).
 """
 
-import asyncio
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
+import pytest
 
-from geofinder.pelias import PeliasClient, PeliasError, PeliasConnectionError, PeliasTimeoutError
-from geofinder.exceptions import ServiceError, ServiceConnectionError, ServiceTimeoutError, ServiceHTTPError
+from geofinder.exceptions import ServiceError, ServiceHTTPError, ServiceTimeoutError
+from geofinder.pelias import PeliasClient
 
 
 @pytest.fixture
@@ -37,7 +35,7 @@ class TestExponentialBackoff:
         pelias_mock.add_response(503).add_response(503).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
-        
+
         assert pelias_mock.call_count == 3
         assert result == {"features": []}
 
@@ -48,7 +46,7 @@ class TestExponentialBackoff:
 
         with pytest.raises(ServiceHTTPError) as exc_info:
             await pelias_client.geocode("invalid-query")
-        
+
         assert pelias_mock.call_count == 1
         assert "404" in str(exc_info.value)
 
@@ -59,7 +57,7 @@ class TestExponentialBackoff:
         pelias_mock.add_response(exception=timeout_exc).add_response(exception=timeout_exc).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
-        
+
         assert pelias_mock.call_count == 3
         assert result == {"features": []}
 
@@ -70,7 +68,7 @@ class TestExponentialBackoff:
         pelias_mock.add_response(exception=conn_exc).add_response(200)
 
         result = await pelias_client.geocode("Barcelona")
-        
+
         assert pelias_mock.call_count == 2
         assert result == {"features": []}
 
@@ -81,7 +79,7 @@ class TestExponentialBackoff:
 
         with pytest.raises(ServiceError) as exc_info:
             await pelias_client.geocode("Barcelona")
-        
+
         assert pelias_mock.call_count == 4
         assert "4 intentos" in str(exc_info.value)
 
@@ -92,7 +90,7 @@ class TestExponentialBackoff:
 
         with pytest.raises(ServiceTimeoutError) as exc_info:
             await pelias_client.geocode("Barcelona")
-        
+
         assert pelias_mock.call_count == 4
         assert "4 intentos" in str(exc_info.value)
 
