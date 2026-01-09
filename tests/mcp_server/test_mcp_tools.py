@@ -71,7 +71,7 @@ async def test_find_place_validation_error():
 
 @pytest.mark.asyncio
 async def test_autocomplete_success(mock_geofinder):
-    mock_geofinder.autocomplete.return_value = [{"nom": "Sugerencia"}]
+    mock_geofinder.autocomplete.return_value = [GeoResult(nom="Sugerencia", nomTipus="Tipo", x=1.0, y=2.0, epsg=4326)]
 
     results = await autocomplete.fn(partial_text="Barc")
 
@@ -81,7 +81,7 @@ async def test_autocomplete_success(mock_geofinder):
 
 @pytest.mark.asyncio
 async def test_find_reverse_success(mock_geofinder):
-    mock_geofinder.find_reverse.return_value = [{"nom": "Lugar"}]
+    mock_geofinder.find_reverse.return_value = [GeoResult(nom="Lugar", nomTipus="Tipo", x=2.0, y=41.0, epsg=4326)]
 
     results = await find_reverse.fn(longitude=2.0, latitude=41.0)
 
@@ -90,7 +90,7 @@ async def test_find_reverse_success(mock_geofinder):
 
 @pytest.mark.asyncio
 async def test_find_by_coordinates_success(mock_geofinder):
-    mock_geofinder.find_point_coordinate_icgc.return_value = [{"nom": "Punto"}]
+    mock_geofinder.find_point_coordinate_icgc.return_value = [GeoResult(nom="Punto", nomTipus="Tipo", x=2.0, y=41.0, epsg=4326)]
 
     results = await find_by_coordinates.fn(x=430000, y=4580000)
 
@@ -99,7 +99,7 @@ async def test_find_by_coordinates_success(mock_geofinder):
 
 @pytest.mark.asyncio
 async def test_find_address_success(mock_geofinder):
-    mock_geofinder.find_address.return_value = [{"nom": "Calle 1"}]
+    mock_geofinder.find_address.return_value = [GeoResult(nom="Calle 1", nomTipus="Adreça", x=2.0, y=41.0, epsg=4326, nomMunicipi="Bcn")]
 
     results = await find_address.fn(street="Diagonal", number="100", municipality="Barcelona")
 
@@ -108,7 +108,7 @@ async def test_find_address_success(mock_geofinder):
 
 @pytest.mark.asyncio
 async def test_find_road_km_success(mock_geofinder):
-    mock_geofinder.find_road.return_value = [{"nom": "C-32 km 10"}]
+    mock_geofinder.find_road.return_value = [GeoResult(nom="C-32 km 10", nomTipus="Punt quilomètric", x=2.0, y=41.0, epsg=4326)]
 
     results = await find_road_km.fn(road="C-32", kilometer=10.0)
 
@@ -117,7 +117,7 @@ async def test_find_road_km_success(mock_geofinder):
 
 @pytest.mark.asyncio
 async def test_search_nearby_success(mock_geofinder):
-    mock_geofinder.search_nearby.return_value = [{"nom": "Cerca"}]
+    mock_geofinder.search_nearby.return_value = [GeoResult(nom="Cerca", nomTipus="Tipo", x=2.0, y=41.0, epsg=4326)]
 
     results = await search_nearby.fn(place_name="Montserrat", radius_km=5.0)
 

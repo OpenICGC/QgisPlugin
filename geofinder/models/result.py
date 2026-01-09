@@ -120,11 +120,16 @@ class GeoResult(BaseModel):
 
     def __getitem__(self, key: str) -> Any:
         """Soporte para acceso tipo diccionario (para compatibilidad)."""
-        # Usamos getattr para evitar problemas de tipos con Pydantic si property no está en __fields__
+        # 1. Campos definidos en el modelo Pydantic
+        if key in self.model_fields:
+            return getattr(self, key)
+            
+        # 2. Soporte para 'properties' si se añadió dinámicamente
         props = getattr(self, "properties", None)
         if props and isinstance(props, dict) and key in props:
             return props[key]
-        return getattr(self, key)
+            
+        raise KeyError(key)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Soporte para método get (para compatibilidad)."""
