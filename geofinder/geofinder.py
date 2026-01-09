@@ -11,6 +11,7 @@ import json
 import logging
 import re
 import time
+from typing import Any, Coroutine, Type, TypeVar, Optional, cast
 
 import httpx
 
@@ -19,6 +20,9 @@ from .models import GeoResponse, GeoResult
 from .pelias import PeliasClient
 from .transformations import transform_point
 from .utils.cache import AsyncLRUCache
+
+
+T = TypeVar("T")
 
 
 class GeoFinder:
@@ -49,24 +53,24 @@ class GeoFinder:
     """
 
     # Configuración del servicio
-    timeout = 5
-    geoencoder_epsg = 4326
+    timeout: float = 5.0
+    geoencoder_epsg: int = 4326
 
     def __init__(
         self,
-        logger=None,
-        icgc_url="https://eines.icgc.cat/geocodificador",
-        timeout=5,
-        verify_ssl=True,
-        cache_size=128,
-        cache_ttl=3600,
-        max_retries=3,
-        retry_base_delay=0.5,
-        retry_max_delay=10.0,
-        retry_on_5xx=True,
-        default_size=10,
+        logger: logging.Logger | None = None,
+        icgc_url: str = "https://eines.icgc.cat/geocodificador",
+        timeout: float = 5.0,
+        verify_ssl: bool = True,
+        cache_size: int = 128,
+        cache_ttl: int = 3600,
+        max_retries: int = 3,
+        retry_base_delay: float = 0.5,
+        retry_max_delay: float = 10.0,
+        retry_on_5xx: bool = True,
+        default_size: int = 10,
         http_client: httpx.AsyncClient | None = None,
-    ):
+    ) -> None:
         """Inicializa el geocodificador.
 
         Args:
@@ -88,7 +92,7 @@ class GeoFinder:
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self._icgc_url = icgc_url
-        self._icgc_client = None
+        self._icgc_client: Optional[PeliasClient] = None
         self._external_http_client = http_client  # Almacenar cliente externo
 
         # Configuración de reintentos
@@ -130,34 +134,40 @@ class GeoFinder:
                         verify_ssl=self.verify_ssl,
                         http_client=self._external_http_client,  # Pasar cliente externo
                     )
+        assert self._icgc_client is not None
         return self._icgc_client
 
-    async def _reset_client(self):
+    async def _reset_client(self) -> None:
         """Resetea el cliente cerrando el anterior de forma segura."""
         async with self._client_lock:
             if self._icgc_client:
                 await self._icgc_client.close()
                 self._icgc_client = None
 
-    async def close(self):
-        """Cierra el cliente http subyacente."""
-        if self._icgc_client:
-            await self._icgc_client.close()
+    async def close(self) -> None:
+        client = self._icgc_client
+        if client:
+            await client.close()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "GeoFinder":
         """Soporte para async context manager."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any
+    ) -> None:
         """Cierra el cliente al salir del async context manager."""
         await self.close()
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Limpia la caché de resultados."""
         if self._cache is not None:
             self._cache.clear()
 
-    def _get_cache_key(self, method: str, *args, **kwargs) -> str:
+    def _get_cache_key(self, method: str, *args: Any, **kwargs: Any) -> str:
         """Genera una clave única (hash) para la caché de forma robusta."""
         # Usar JSON para serializar de forma estable y evitar inyecciones de separadores
         key_data = {
@@ -348,19 +358,21 @@ class GeoFinder:
     # Detección de tipo de búsqueda
     # =========================================================================
 
-    async def _find_data(self, text, default_epsg, size=None):
+    async def _find_data(self, text: str, default_epsg: int, size: int | None = None) -> list[GeoResult]:
         """Detecta el tipo de búsqueda y ejecuta la consulta apropiada."""
         final_size = size or self._default_size
 
         # Rectángulo de coordenadas
         west, north, east, south, epsg = self._parse_rectangle(text)
         if all(c is not None for c in (west, north, east, south)):
-            return await self._find_rectangle(west, north, east, south, epsg or default_epsg, size=final_size)
+            return await self._find_rectangle(
+                west, north, east, south, epsg or default_epsg, size=final_size  # type: ignore
+            )
 
         # Punto de coordenadas
-        x, y, epsg = self._parse_point(text)
-        if x is not None and y is not None:
-            return await self._find_point_coordinate(x, y, epsg or default_epsg, size=final_size)
+        px, py, epsg = self._parse_point(text)
+        if px is not None and py is not None:
+            return await self._find_point_coordinate(px, py, epsg or default_epsg, size=final_size)
 
         # Carretera y kilómetro
         road, km = self._parse_road(text)
@@ -376,7 +388,7 @@ class GeoFinder:
         return await self.find_placename(text, size=final_size)
 
     @staticmethod
-    def _parse_rectangle(text):
+    def _parse_rectangle(text: str) -> tuple[float | None, float | None, float | None, float | None, int | None]:
         """Detecta un rectángulo de coordenadas en el texto.
 
         Formatos aceptados:
@@ -405,7 +417,7 @@ class GeoFinder:
         return None, None, None, None, None
 
     @staticmethod
-    def _parse_point(text):
+    def _parse_point(text: str) -> tuple[float | None, float | None, int | None]:
         """Detecta coordenadas de un punto en el texto.
 
         Formatos aceptados:
@@ -432,7 +444,7 @@ class GeoFinder:
         return None, None, None
 
     @staticmethod
-    def _parse_road(text):
+    def _parse_road(text: str) -> tuple[str | None, str | None]:
         """Detecta una carretera y kilómetro.
 
         Formatos aceptados:
@@ -450,7 +462,7 @@ class GeoFinder:
         return None, None
 
     @staticmethod
-    def _parse_address(text):
+    def _parse_address(text: str) -> tuple[str | None, str | None, str | None, str | None]:
         """Detecta una dirección de forma robusta.
 
         Formatos aceptados:
@@ -515,7 +527,9 @@ class GeoFinder:
     # Métodos de búsqueda
     # =========================================================================
 
-    async def _find_rectangle(self, west, north, east, south, epsg, size=5) -> list[GeoResult]:
+    async def _find_rectangle(
+        self, west: float, north: float, east: float, south: float, epsg: int, size: int = 5
+    ) -> list[GeoResult]:
         """Busca en un rectángulo de coordenadas."""
         self.log.info("Search rectangle: %s %s %s %s EPSG:%s", west, north, east, south, epsg)
 
@@ -561,7 +575,9 @@ class GeoFinder:
 
         return results
 
-    async def _find_point_coordinate(self, x, y, epsg, add_point=True, size=None) -> list[GeoResult]:
+    async def _find_point_coordinate(
+        self, x: float, y: float, epsg: int, add_point: bool = True, size: int | None = None
+    ) -> list[GeoResult]:
         """Busca lugares en un punto de coordenadas."""
         self.log.info("Search coordinate: %s %s EPSG:%s", x, y, epsg)
 
@@ -589,7 +605,7 @@ class GeoFinder:
         for r in all_results:
             # Usar ID si está disponible, si no una clave compuesta
             if r.id:
-                key = f"id:{r.id}"
+                key: Any = f"id:{r.id}"
             else:
                 key = (r.nom, r.nomTipus, round(r.x, 6), round(r.y, 6))
 
@@ -622,8 +638,14 @@ class GeoFinder:
         return results
 
     async def find_point_coordinate_icgc(
-        self, x, y, epsg, layers="address,tops,pk", search_radius_km=0.05, size=2
-    ):
+        self,
+        x: float,
+        y: float,
+        epsg: int,
+        layers: str = "address,tops,pk",
+        search_radius_km: float | None = 0.05,
+        size: int = 2
+    ) -> list[GeoResult]:
         """Busca en el geocodificador ICGC por coordenadas."""
         # Transformar a WGS84 para la consulta
         query_x, query_y = transform_point(x, y, epsg, self.geoencoder_epsg)
@@ -636,7 +658,7 @@ class GeoFinder:
             )
 
         try:
-            extra_params = {}
+            extra_params: dict[str, Any] = {}
             if search_radius_km:
                 extra_params["boundary.circle.radius"] = search_radius_km
 
@@ -656,7 +678,7 @@ class GeoFinder:
 
         return self._parse_icgc_response(res_dict)
 
-    async def find_road(self, road, km, size=None):
+    async def find_road(self, road: str, km: str, size: int | None = None) -> list[GeoResult]:
         """Busca un punto kilométrico de carretera."""
         self.log.info("Search road: %s km %s", road, km)
         final_size = size or self._default_size
@@ -675,7 +697,14 @@ class GeoFinder:
 
         return self._parse_icgc_response(res_dict, default_type="Punt quilomètric")
 
-    async def find_address(self, municipality, street_type, street, number, size=None):
+    async def find_address(
+        self,
+        municipality: str | None,
+        street_type: str | None,
+        street: str,
+        number: str,
+        size: int | None = None
+    ) -> list[GeoResult]:
         """Busca una dirección."""
         self.log.info("Search address: %s, %s %s %s", municipality, street_type, street, number)
         final_size = size or self._default_size
@@ -703,7 +732,7 @@ class GeoFinder:
 
         return self._parse_icgc_response(res_dict, default_type="Adreça")
 
-    async def find_placename(self, text, size=None):
+    async def find_placename(self, text: str, size: int | None = None) -> list[GeoResult]:
         """Busca un topónimo."""
         self.log.info("Search placename: %s", text)
         final_size = size or self._default_size
@@ -726,7 +755,7 @@ class GeoFinder:
     # Parsing de respuestas
     # =========================================================================
 
-    def _parse_icgc_response(self, res_dict, default_type=None) -> list[GeoResult]:
+    def _parse_icgc_response(self, res_dict: dict[str, Any], default_type: str | None = None) -> list[GeoResult]:
         """Convierte respuesta ICGC a formato de modelos GeoResult."""
         return [
             GeoResult.from_icgc_feature(f, self.geoencoder_epsg, default_type)
@@ -741,7 +770,7 @@ class GeoFinder:
         """Comprueba si los resultados son de tipo rectángulo."""
         return len(results) == 1 and results[0].west is not None
 
-    def get_rectangle(self, results: list[GeoResult]):
+    def get_rectangle(self, results: list[GeoResult]) -> tuple[float | None, float | None, float | None, float | None, int | None]:
         """Extrae coordenadas de un resultado de tipo rectángulo.
 
         Returns:
@@ -750,7 +779,7 @@ class GeoFinder:
         r = results[0]
         return r.west, r.north, r.east, r.south, r.epsg
 
-    def get_point(self, results: list[GeoResult], index=0):
+    def get_point(self, results: list[GeoResult], index: int = 0) -> tuple[float, float, int]:
         """Extrae coordenadas de un resultado.
 
         Returns:
@@ -759,7 +788,7 @@ class GeoFinder:
         r = results[index]
         return r.x, r.y, r.epsg
 
-    def get_name(self, results: list[GeoResult], index=0):
+    def get_name(self, results: list[GeoResult], index: int = 0) -> str:
         """Extrae el nombre de un resultado."""
         return results[index].nom
 
@@ -830,7 +859,7 @@ class GeoFinder:
         if use_cache and self._cache is not None:
             self._cache.set(cache_key, unique_results)
 
-        return unique_results
+        return unique_results  # type: ignore[no-any-return]
 
     async def find_batch(
         self,
@@ -946,7 +975,7 @@ class GeoFinder:
         use_cache: bool = True,
     ) -> list[GeoResponse]:
         """Versión síncrona de find_batch."""
-        return self._sync(self.find_batch(queries, default_epsg, max_concurrency, use_cache))
+        return self._sync(self.find_batch(queries, default_epsg, max_concurrency, use_cache)) # type: ignore[no-any-return]
 
     def find_reverse_batch_sync(
         self,
@@ -960,10 +989,9 @@ class GeoFinder:
         """Versión síncrona de find_reverse_batch."""
         return self._sync(
             self.find_reverse_batch(coordinates, epsg, layers, size, max_concurrency, use_cache)
-        )
+        ) # type: ignore[no-any-return]
 
-
-    def _sync(self, coro):
+    def _sync(self, coro: Coroutine[Any, Any, T]) -> T:
         """Ejecuta una corrutina de forma síncrona, gestionando el loop."""
         try:
             loop = asyncio.get_event_loop()
@@ -984,30 +1012,31 @@ class GeoFinder:
             finally:
                 # Reset seguro del cliente (el loop de run ya se cerró)
                 try:
+                    # Usamos un loop temporal para el reset
                     asyncio.run(self._reset_client())
                 except Exception:
                     pass
 
     def find_sync(self, user_text: str, default_epsg: int = 25831, use_cache: bool = True) -> list[GeoResult]:
         """Busca ubicaciones a partir de un texto (versión síncrona)."""
-        return self._sync(self.find(user_text, default_epsg, use_cache=use_cache))
+        return self._sync(self.find(user_text, default_epsg, use_cache=use_cache)) # type: ignore[no-any-return]
 
     def find_response_sync(self, user_text: str, default_epsg: int = 25831, use_cache: bool = True) -> GeoResponse:
         """Busca ubicaciones y devuelve un objeto GeoResponse (versión síncrona)."""
-        return self._sync(self.find_response(user_text, default_epsg, use_cache=use_cache))
+        return self._sync(self.find_response(user_text, default_epsg, use_cache=use_cache)) # type: ignore[no-any-return]
 
     def find_reverse_sync(
         self, x: float, y: float, epsg: int = 25831, layers: str = "address,tops,pk", size: int = 5, use_cache: bool = True
     ) -> list[GeoResult]:
         """Geocodificación inversa (versión síncrona)."""
-        return self._sync(self.find_reverse(x, y, epsg, layers, size, use_cache=use_cache))
+        return self._sync(self.find_reverse(x, y, epsg, layers, size, use_cache=use_cache)) # type: ignore[no-any-return]
 
     def find_reverse_response_sync(
         self, x: float, y: float, epsg: int = 25831, layers: str = "address,tops,pk", size: int = 5, use_cache: bool = True
     ) -> GeoResponse:
         """Geocodificación inversa response (versión síncrona)."""
-        return self._sync(self.find_reverse_response(x, y, epsg, layers, size, use_cache=use_cache))
+        return self._sync(self.find_reverse_response(x, y, epsg, layers, size, use_cache=use_cache)) # type: ignore[no-any-return]
 
     def autocomplete_sync(self, partial_text: str, size: int = 10, use_cache: bool = True) -> list[GeoResult]:
         """Obtiene sugerencias de autocompletado (versión síncrona)."""
-        return self._sync(self.autocomplete(partial_text, size, use_cache=use_cache))
+        return self._sync(self.autocomplete(partial_text, size, use_cache=use_cache))  # type: ignore[no-any-return]
