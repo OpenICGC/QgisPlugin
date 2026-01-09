@@ -15,7 +15,7 @@ class TestMCPServerImports:
     def test_mcp_server_importable(self):
         """Verifica que el servidor MCP es importable."""
         try:
-            from geofinder.mcp_server import mcp, main
+            from geofinder.mcp_server import main, mcp
             assert mcp is not None
             assert main is not None
         except ImportError as e:
