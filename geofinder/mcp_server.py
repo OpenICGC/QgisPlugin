@@ -28,6 +28,7 @@ from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field, ValidationError, field_validator
+from typing import Any, Type, AsyncGenerator
 
 from .exceptions import (
     ConfigurationError,
@@ -243,7 +244,7 @@ def convert_geofinder_error(e: Exception) -> Exception:
 # ============================================================================
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: FastMCP) -> AsyncGenerator[None, None]:
     """
     Context manager para manejar el ciclo de vida del servidor MCP.
 
@@ -306,7 +307,7 @@ async def find_place(
     query: str,
     default_epsg: int = 25831,
     size: int = 5
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Busca lugares, direcciones o coordenadas en Cataluña.
 
@@ -370,7 +371,7 @@ async def find_place(
 async def autocomplete(
     partial_text: str,
     max_suggestions: int = 10
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Obtiene sugerencias de autocompletado para búsquedas.
 
@@ -405,7 +406,7 @@ async def autocomplete(
     try:
         results = await gf.autocomplete(params.partial_text, size=params.max_suggestions)
         logger.info(f"autocomplete: '{params.partial_text}' -> {len(results)} suggestions")
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en autocomplete: {e}", exc_info=True)
@@ -423,7 +424,7 @@ async def find_reverse(
     epsg: int = 25831,
     layers: str = "address,tops,pk",
     max_results: int = 5
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Geocodificación inversa: encuentra lugares en unas coordenadas dadas.
 
@@ -478,7 +479,7 @@ async def find_reverse(
             f"find_reverse: ({params.longitude}, {params.latitude}) "
             f"EPSG:{params.epsg} -> {len(results)} results"
         )
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_reverse: {e}", exc_info=True)
@@ -497,7 +498,7 @@ async def find_by_coordinates(
     search_radius_km: float = 0.05,
     layers: str = "address,tops,pk",
     max_results: int = 5
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Busca lugares cerca de unas coordenadas específicas.
 
@@ -585,7 +586,7 @@ async def find_by_coordinates(
             f"find_by_coordinates: ({params.x}, {params.y}) EPSG:{params.epsg} "
             f"radius:{params.search_radius_km}km -> {len(results)} results"
         )
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_by_coordinates: {e}", exc_info=True)
@@ -602,7 +603,7 @@ async def find_address(
     number: str,
     municipality: str = "",
     street_type: str = "Carrer"
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Busca una dirección específica de forma estructurada.
 
@@ -659,7 +660,7 @@ async def find_address(
             f"find_address: {params.street_type} {params.street} {params.number}, "
             f"{params.municipality} -> {len(results)} results"
         )
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_address: {e}", exc_info=True)
@@ -674,7 +675,7 @@ async def find_address(
 async def find_road_km(
     road: str,
     kilometer: float
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Busca un punto kilométrico específico en una carretera.
 
@@ -722,7 +723,7 @@ async def find_road_km(
         )
 
         logger.info(f"find_road_km: {params.road} km {params.kilometer} -> {len(results)} results")
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en find_road_km: {e}", exc_info=True)
@@ -739,7 +740,7 @@ def transform_coordinates(
     y: float,
     from_epsg: int,
     to_epsg: int = 4326
-) -> dict:
+) -> dict[str, Any]:
     """
     Transforma coordenadas entre diferentes sistemas de referencia (EPSG).
 
@@ -818,7 +819,7 @@ async def search_nearby(
     radius_km: float = 1.0,
     layers: str = "address,tops,pk",
     max_results: int = 10
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Busca lugares cerca de una ubicación nombrada.
 
@@ -888,7 +889,7 @@ async def search_nearby(
             f"search_nearby: '{params.place_name}' radius:{params.radius_km}km -> "
             f"{len(results)} results"
         )
-        return results
+        return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
         logger.error(f"Error de GeoFinder en search_nearby: {e}", exc_info=True)
@@ -900,7 +901,7 @@ async def search_nearby(
 
 
 @mcp.tool()
-def parse_search_query(query: str) -> dict:
+def parse_search_query(query: str) -> dict[str, Any]:
     """
     Analiza una consulta de búsqueda y detecta su tipo.
 
@@ -1046,7 +1047,7 @@ def parse_search_query(query: str) -> dict:
 # Función Principal (CLI)
 # ============================================================================
 
-def main():
+def main() -> None:
     """
     Función principal para ejecutar el servidor MCP.
 
