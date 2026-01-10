@@ -41,18 +41,22 @@ from .exceptions import (
     ServiceTimeoutError,
 )
 from .geofinder import GeoFinder
+from .utils.logging import setup_logging
 
 # ============================================================================
 # Configuración de Logging
 # ============================================================================
 
-# Configurar logging
-log_level = os.getenv("FASTMCP_LOG_LEVEL", "INFO")
-logging.basicConfig(
-    level=getattr(logging, log_level),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Configurar logging basándose en variables de entorno
+log_level_name = os.getenv("FASTMCP_LOG_LEVEL", "INFO")
+log_level = getattr(logging, log_level_name.upper(), logging.INFO)
+log_format = os.getenv("GEOFINDER_LOG_FORMAT", "text").lower()
+
+logger = setup_logging(
+    level=log_level,
+    json_format=(log_format == "json"),
+    logger_name="geofinder.mcp"
 )
-logger = logging.getLogger("geofinder.mcp")
 
 # Instancia compartida de GeoFinder
 _geofinder_instance: GeoFinder | None = None
@@ -74,7 +78,8 @@ def get_geofinder() -> GeoFinder:
         logger.info(
             "Inicializando GeoFinder (ICGC URL: %s, timeout: %s)",
             icgc_url,
-            timeout
+            timeout,
+            extra={"icgc_url": icgc_url, "timeout": timeout}
         )
 
         _geofinder_instance = GeoFinder(
@@ -351,7 +356,15 @@ async def find_place(
 
     try:
         results = await gf.find(params.query, default_epsg=params.default_epsg, size=params.size)
-        logger.info(f"find_place: '{params.query}' (size={params.size}) -> {len(results)} results")
+        logger.info(
+            f"find_place: '{params.query}' (size={params.size}) -> {len(results)} results",
+            extra={
+                "tool": "find_place",
+                "query": params.query,
+                "size": params.size,
+                "results_count": len(results)
+            }
+        )
         return [r.model_dump() for r in results]
 
     except ValidationError as e:
@@ -405,7 +418,15 @@ async def autocomplete(
 
     try:
         results = await gf.autocomplete(params.partial_text, size=params.max_suggestions)
-        logger.info(f"autocomplete: '{params.partial_text}' -> {len(results)} suggestions")
+        logger.info(
+            f"autocomplete: '{params.partial_text}' -> {len(results)} suggestions",
+            extra={
+                "tool": "autocomplete",
+                "partial_text": params.partial_text,
+                "max_suggestions": params.max_suggestions,
+                "results_count": len(results)
+            }
+        )
         return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
@@ -477,7 +498,15 @@ async def find_reverse(
         )
         logger.info(
             f"find_reverse: ({params.longitude}, {params.latitude}) "
-            f"EPSG:{params.epsg} -> {len(results)} results"
+            f"EPSG:{params.epsg} -> {len(results)} results",
+            extra={
+                "tool": "find_reverse",
+                "longitude": params.longitude,
+                "latitude": params.latitude,
+                "epsg": params.epsg,
+                "layers": params.layers,
+                "results_count": len(results)
+            }
         )
         return [r.model_dump() for r in results]
 
@@ -584,7 +613,16 @@ async def find_by_coordinates(
 
         logger.info(
             f"find_by_coordinates: ({params.x}, {params.y}) EPSG:{params.epsg} "
-            f"radius:{params.search_radius_km}km -> {len(results)} results"
+            f"radius:{params.search_radius_km}km -> {len(results)} results",
+            extra={
+                "tool": "find_by_coordinates",
+                "x": params.x,
+                "y": params.y,
+                "epsg": params.epsg,
+                "radius_km": params.search_radius_km,
+                "layers": params.layers,
+                "results_count": len(results)
+            }
         )
         return [r.model_dump() for r in results]
 
@@ -658,7 +696,15 @@ async def find_address(
 
         logger.info(
             f"find_address: {params.street_type} {params.street} {params.number}, "
-            f"{params.municipality} -> {len(results)} results"
+            f"{params.municipality} -> {len(results)} results",
+            extra={
+                "tool": "find_address",
+                "street": params.street,
+                "number": params.number,
+                "municipality": params.municipality,
+                "street_type": params.street_type,
+                "results_count": len(results)
+            }
         )
         return [r.model_dump() for r in results]
 
@@ -722,7 +768,15 @@ async def find_road_km(
             str(int(params.kilometer) if params.kilometer.is_integer() else params.kilometer)
         )
 
-        logger.info(f"find_road_km: {params.road} km {params.kilometer} -> {len(results)} results")
+        logger.info(
+            f"find_road_km: {params.road} km {params.kilometer} -> {len(results)} results",
+            extra={
+                "tool": "find_road_km",
+                "road": params.road,
+                "kilometer": params.kilometer,
+                "results_count": len(results)
+            }
+        )
         return [r.model_dump() for r in results]
 
     except GeoFinderError as e:
