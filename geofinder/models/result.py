@@ -121,7 +121,7 @@ class GeoResult(BaseModel):
     def __getitem__(self, key: str) -> Any:
         """Soporte para acceso tipo diccionario (para compatibilidad)."""
         # 1. Campos definidos en el modelo Pydantic
-        if key in self.model_fields:
+        if key in self.__class__.model_fields:
             return getattr(self, key)
             
         # 2. Soporte para 'properties' si se añadió dinámicamente
