@@ -229,3 +229,209 @@ async def test_find_place_unexpected_error(mock_geofinder):
 
     with pytest.raises(Exception, match="Unexpected"):
         await find_place.fn(query="Barcelona")
+
+
+# ============================================================================
+# Tests de Validación de Parámetros
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_autocomplete_validation_error():
+    """Test que autocomplete rechaza texto vacío."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await autocomplete.fn(partial_text="  ")
+
+
+@pytest.mark.asyncio
+async def test_find_reverse_validation_error():
+    """Test que find_reverse rechaza EPSG inválido."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await find_reverse.fn(longitude=2.0, latitude=41.0, epsg=999)
+
+
+@pytest.mark.asyncio
+async def test_find_by_coordinates_validation_error():
+    """Test que find_by_coordinates rechaza radio negativo."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await find_by_coordinates.fn(x=430000, y=4580000, search_radius_km=-1)
+
+
+@pytest.mark.asyncio
+async def test_find_address_validation_error():
+    """Test que find_address rechaza calle vacía."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await find_address.fn(street="  ", number="100")
+
+
+@pytest.mark.asyncio
+async def test_find_road_km_validation_error():
+    """Test que find_road_km rechaza carretera vacía."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await find_road_km.fn(road="  ", kilometer=10.0)
+
+
+@pytest.mark.asyncio
+async def test_search_nearby_validation_error():
+    """Test que search_nearby rechaza lugar vacío."""
+    with pytest.raises(ValueError, match="Parámetros inválidos"):
+        await search_nearby.fn(place_name="  ")
+
+
+# ============================================================================
+# Tests de Manejo de Errores de GeoFinder
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_autocomplete_geofinder_error(mock_geofinder):
+    """Test que autocomplete convierte errores de GeoFinder correctamente."""
+    mock_geofinder.autocomplete.side_effect = ServiceTimeoutError("Timeout")
+
+    with pytest.raises(TimeoutError):
+        await autocomplete.fn(partial_text="Barc")
+
+
+@pytest.mark.asyncio
+async def test_autocomplete_unexpected_error(mock_geofinder):
+    """Test que autocomplete propaga errores inesperados."""
+    mock_geofinder.autocomplete.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await autocomplete.fn(partial_text="Barc")
+
+
+@pytest.mark.asyncio
+async def test_find_reverse_geofinder_error(mock_geofinder):
+    """Test que find_reverse convierte errores de GeoFinder correctamente."""
+    mock_geofinder.find_reverse.side_effect = ServiceConnectionError("Connection failed")
+
+    with pytest.raises(ConnectionError):
+        await find_reverse.fn(longitude=2.0, latitude=41.0)
+
+
+@pytest.mark.asyncio
+async def test_find_reverse_unexpected_error(mock_geofinder):
+    """Test que find_reverse propaga errores inesperados."""
+    mock_geofinder.find_reverse.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await find_reverse.fn(longitude=2.0, latitude=41.0)
+
+
+@pytest.mark.asyncio
+async def test_find_by_coordinates_geofinder_error(mock_geofinder):
+    """Test que find_by_coordinates convierte errores de GeoFinder correctamente."""
+    mock_geofinder.find_point_coordinate_icgc.side_effect = CoordinateError("Invalid coords")
+
+    with pytest.raises(ValueError, match="Coordenadas inválidas"):
+        await find_by_coordinates.fn(x=430000, y=4580000)
+
+
+@pytest.mark.asyncio
+async def test_find_by_coordinates_unexpected_error(mock_geofinder):
+    """Test que find_by_coordinates propaga errores inesperados."""
+    mock_geofinder.find_point_coordinate_icgc.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await find_by_coordinates.fn(x=430000, y=4580000)
+
+
+@pytest.mark.asyncio
+async def test_find_address_geofinder_error(mock_geofinder):
+    """Test que find_address convierte errores de GeoFinder correctamente."""
+    mock_geofinder.find_address.side_effect = ParsingError("Invalid address")
+
+    with pytest.raises(ValueError, match="Formato de búsqueda inválido"):
+        await find_address.fn(street="Diagonal", number="100", municipality="Barcelona")
+
+
+@pytest.mark.asyncio
+async def test_find_address_unexpected_error(mock_geofinder):
+    """Test que find_address propaga errores inesperados."""
+    mock_geofinder.find_address.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await find_address.fn(street="Diagonal", number="100", municipality="Barcelona")
+
+
+@pytest.mark.asyncio
+async def test_find_road_km_geofinder_error(mock_geofinder):
+    """Test que find_road_km convierte errores de GeoFinder correctamente."""
+    mock_geofinder.find_road.side_effect = ServiceHTTPError("Server error", status_code=503)
+
+    with pytest.raises(RuntimeError, match="Error del servicio ICGC"):
+        await find_road_km.fn(road="C-32", kilometer=10.0)
+
+
+@pytest.mark.asyncio
+async def test_find_road_km_unexpected_error(mock_geofinder):
+    """Test que find_road_km propaga errores inesperados."""
+    mock_geofinder.find_road.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await find_road_km.fn(road="C-32", kilometer=10.0)
+
+
+@pytest.mark.asyncio
+async def test_search_nearby_geofinder_error(mock_geofinder):
+    """Test que search_nearby convierte errores de GeoFinder correctamente."""
+    mock_geofinder.search_nearby.side_effect = GeoFinderError("Generic error")
+
+    with pytest.raises(RuntimeError, match="Error de geocodificación"):
+        await search_nearby.fn(place_name="Montserrat")
+
+
+@pytest.mark.asyncio
+async def test_search_nearby_unexpected_error(mock_geofinder):
+    """Test que search_nearby propaga errores inesperados."""
+    mock_geofinder.search_nearby.side_effect = Exception("Unexpected")
+
+    with pytest.raises(Exception, match="Unexpected"):
+        await search_nearby.fn(place_name="Montserrat")
+
+
+# ============================================================================
+# Tests de Lifespan y Casos Edge
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_lifespan_no_instance():
+    """Test que lifespan maneja correctamente cuando no hay instancia."""
+    with patch("geofinder.mcp_server._geofinder_instance", None):
+        async with lifespan(None):
+            pass
+    # No debe lanzar excepción
+
+
+@pytest.mark.asyncio
+async def test_lifespan_close_error(mock_geofinder):
+    """Test que lifespan maneja errores al cerrar."""
+    mock_geofinder.close.side_effect = Exception("Close error")
+
+    with patch("geofinder.mcp_server._geofinder_instance", mock_geofinder):
+        # No debe lanzar excepción, solo loggear el error
+        async with lifespan(None):
+            pass
+
+    mock_geofinder.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_find_road_km_decimal_kilometer(mock_geofinder):
+    """Test que find_road_km maneja kilómetros decimales correctamente."""
+    mock_geofinder.find_road.return_value = [
+        GeoResult(nom="C-32 km 10.5", nomTipus="Punt quilomètric", x=2.0, y=41.0, epsg=4326)
+    ]
+
+    results = await find_road_km.fn(road="C-32", kilometer=10.5)
+
+    assert len(results) == 1
+    mock_geofinder.find_road.assert_called_once_with("C-32", "10.5")
+
+
+def test_convert_geofinder_error_configuration():
+    """Test que convert_geofinder_error maneja ConfigurationError."""
+    from geofinder.exceptions import ConfigurationError
+    err = ConfigurationError("Config error")
+    result = convert_geofinder_error(err)
+    assert isinstance(result, RuntimeError)
+    assert "configuración" in str(result)
