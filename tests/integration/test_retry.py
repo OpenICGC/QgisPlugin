@@ -14,7 +14,7 @@ from geofinder.pelias import PeliasClient
 
 
 @pytest.fixture
-def pelias_client():
+def pelias_client(pelias_mock):
     """Cliente Pelias con reintentos configurados para tests."""
     return PeliasClient(
         url="https://test.example.com",
