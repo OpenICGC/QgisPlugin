@@ -1,52 +1,52 @@
 # 📚 GeoFinder Cookbook
 
-> **Guía práctica con ejemplos de integración** para el geocodificador de Cataluña.
+> **Practical guide with integration examples** for the Catalonia geocoder.
 
 ---
 
-## 📋 Tabla de Contenidos
+## 📋 Table of Contents
 
-| Sección                                                     | Descripción                |
+| Section                                                     | Description                |
 | ----------------------------------------------------------- | -------------------------- |
-| [🚀 Ejemplos Básicos](#-ejemplos-básicos)                   | Primeros pasos y uso común |
-| [🌐 Integración Web](#-integración-web)                     | FastAPI (Recomendado)      |
-| [📊 Análisis de Datos](#-análisis-de-datos)                 | Pandas, GeoPandas          |
-| [⚡ Geocodificación por Lote](#-geocodificación-por-lote) | Procesamiento masivo       |
-| [🛡️ Manejo de Errores](#️-manejo-de-errores)                | Patrones robustos          |
-| [💾 Caché y Rendimiento](#-caché-y-rendimiento)             | Optimización               |
-| [🏢 Casos de Uso Reales](#-casos-de-uso-reales)             | Aplicaciones prácticas     |
+| [🚀 Basic Examples](#-basic-examples)                       | Getting started and common usage |
+| [🌐 Web Integration](#-web-integration)                     | FastAPI (Recommended)      |
+| [📊 Data Analysis](#-data-analysis)                         | Pandas, GeoPandas          |
+| [⚡ Batch Geocoding](#-batch-geocoding)                      | Bulk processing            |
+| [🛡️ Error Handling](#️-error-handling)                      | Robust patterns            |
+| [💾 Caching and Performance](#-caching-and-performance)     | Optimization               |
+| [🏢 Real-World Use Cases](#-real-world-use-cases)           | Practical applications     |
 
 ---
 
-## 🚀 Ejemplos Básicos
+## 🚀 Basic Examples
 
-### Instalación
+### Installation
 
 ```bash
-# Instalación básica
+# Basic installation
 pip install -e .
 
-# Con transformación de coordenadas
+# With coordinate transformation
 pip install -e ".[pyproj]"
 
-# Con servidor MCP para IA
+# With MCP server for AI
 pip install -e ".[mcp,pyproj]"
 ```
 
-### Búsqueda Simple (Async)
+### Simple Search (Async)
 
 ```python
 import asyncio
 from geofinder import GeoFinder
 
 async def main():
-    # Inicializar con context manager
+    # Initialize with context manager
     async with GeoFinder() as gf:
-        # Buscar un municipio
+        # Search for a municipality
         results = await gf.find("Barcelona")
         for r in results:
             print(f"{r.nom} ({r.nomTipus}) - {r.x}, {r.y}")
-            # También funciona el acceso tipo dict por compatibilidad:
+            # Dict-style access also works for compatibility:
             # print(r['nom'])
 
 if __name__ == "__main__":
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 # Output: Barcelona (Cap de municipi) - 2.177, 41.382
 ```
 
-### Búsqueda Síncrona (Scripts)
+### Synchronous Search (Scripts)
 
 ```python
 from geofinder import GeoFinder
@@ -65,52 +65,52 @@ for r in results:
     print(r.nom)
 ```
 
-### Búsqueda con Diferentes Formatos
+### Search with Different Formats
 
 ```python
 from geofinder import GeoFinder
 
 gf = GeoFinder()
 
-# Desactivar verificación SSL para servidores con certificados autofirmados
+# Disable SSL verification for servers with self-signed certificates
 gf = GeoFinder(verify_ssl=False)
 
-# 1. Topónimo
+# 1. Toponym
 results = gf.find("Montserrat")
 
-# 2. Municipio + Calle + Número
+# 2. Municipality + Street + Number
 results = gf.find("Barcelona, Diagonal 100")
 
-# 3. Coordenadas UTM
+# 3. UTM Coordinates
 results = gf.find("430000 4580000 EPSG:25831")
 
-# 4. Punto kilométrico
+# 4. Road kilometer point
 results = gf.find("C-32 km 10")
 
-# 5. Coordenadas GPS
+# 5. GPS Coordinates
 results = gf.find("2.1734 41.3851 EPSG:4326")
 ```
 
-### Geocodificación Inversa
+### Reverse Geocoding
 
 ```python
 async with GeoFinder() as gf:
-    # Desde coordenadas GPS → información del lugar
+    # From GPS coordinates → place information
     results = await gf.find_reverse(2.1734, 41.3851, epsg=4326)
 
     for r in results:
         print(f"📍 {r.nom}")
-        print(f"   Municipio: {r.nomMunicipi}")
-        print(f"   Comarca: {r.nomComarca}")
-        # Metadata extra ahora disponible
-        print(f"   ID Municipio: {r.idMunicipi}")
+        print(f"   Municipality: {r.nomMunicipi}")
+        print(f"   County: {r.nomComarca}")
+        # Extra metadata now available
+        print(f"   Municipality ID: {r.idMunicipi}")
 ```
 
-### Autocompletado
+### Autocomplete
 
 ```python
 async with GeoFinder() as gf:
-    # Sugerencias mientras el usuario escribe
+    # Suggestions as the user types
     suggestions = await gf.autocomplete("Barcel", size=5)
 
     for s in suggestions:
@@ -119,23 +119,23 @@ async with GeoFinder() as gf:
 
 ---
 
-## 🌐 Integración Web
+## 🌐 Web Integration
 
-### FastAPI - Pool de Conexiones Compartido (Recomendado)
+### FastAPI - Shared Connection Pool (Recommended)
 
-**¿Por qué compartir el pool de conexiones?**
+**Why share the connection pool?**
 
-Cuando tienes una aplicación web con múltiples endpoints que usan GeoFinder, crear un nuevo cliente HTTP para cada petición es ineficiente:
+When you have a web application with multiple endpoints using GeoFinder, creating a new HTTP client for each request is inefficient:
 
-- ❌ **Sin compartir**: Cada petición crea/cierra conexiones → overhead de red
-- ✅ **Con pool compartido**: Reutiliza conexiones → menor latencia, mejor rendimiento
+- ❌ **Without sharing**: Each request creates/closes connections → network overhead
+- ✅ **With shared pool**: Reuses connections → lower latency, better performance
 
-#### Ejemplo Completo con Pool Compartido
+#### Complete Example with Shared Pool
 
 ```python
 """
-API FastAPI con pool de conexiones compartido.
-Ejecutar: uvicorn app:app --reload
+FastAPI API with shared connection pool.
+Run: uvicorn app:app --reload
 """
 from fastapi import FastAPI, Query, HTTPException, Depends
 from contextlib import asynccontextmanager
@@ -144,57 +144,57 @@ from geofinder import GeoFinder
 from geofinder.models import GeoResponse, GeoResult
 
 # ============================================================================
-# 1. CONFIGURACIÓN DEL POOL DE CONEXIONES
+# 1. CONNECTION POOL CONFIGURATION
 # ============================================================================
 
-# Cliente HTTP compartido con configuración optimizada
+# Shared HTTP client with optimized configuration
 shared_http_client: httpx.AsyncClient | None = None
 
 def get_shared_client() -> httpx.AsyncClient:
-    """Obtiene el cliente HTTP compartido."""
+    """Gets the shared HTTP client."""
     if shared_http_client is None:
-        raise RuntimeError("Cliente HTTP no inicializado")
+        raise RuntimeError("HTTP client not initialized")
     return shared_http_client
 
 
 # ============================================================================
-# 2. LIFECYCLE DE LA APLICACIÓN
+# 2. APPLICATION LIFECYCLE
 # ============================================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Gestiona el ciclo de vida de la aplicación."""
+    """Manages the application lifecycle."""
     global shared_http_client
     
-    # STARTUP: Crear cliente compartido
-    print("🚀 Iniciando pool de conexiones...")
+    # STARTUP: Create shared client
+    print("🚀 Starting connection pool...")
     shared_http_client = httpx.AsyncClient(
         timeout=10.0,
         limits=httpx.Limits(
-            max_connections=100,        # Máximo de conexiones totales
-            max_keepalive_connections=20  # Conexiones keep-alive
+            max_connections=100,        # Maximum total connections
+            max_keepalive_connections=20  # Keep-alive connections
         ),
         follow_redirects=True
     )
-    print(f"✅ Pool creado: {shared_http_client.limits}")
+    print(f"✅ Pool created: {shared_http_client.limits}")
     
-    yield  # La aplicación está corriendo
+    yield  # The application is running
     
-    # SHUTDOWN: Cerrar cliente compartido
-    print("⏳ Cerrando pool de conexiones...")
+    # SHUTDOWN: Close shared client
+    print("⏳ Closing connection pool...")
     await shared_http_client.aclose()
-    print("✅ Pool cerrado correctamente")
+    print("✅ Pool closed correctly")
 
 
 # ============================================================================
-# 3. APLICACIÓN FASTAPI
+# 3. FASTAPI APPLICATION
 # ============================================================================
 
 app = FastAPI(
     title="GeoFinder API",
-    description="API de geocodificación para Cataluña con pool compartido",
+    description="Geocoding API for Catalonia with shared pool",
     version="2.1.0",
-    lifespan=lifespan  # ← Importante: gestión del lifecycle
+    lifespan=lifespan  # ← Important: lifecycle management
 )
 
 
@@ -206,9 +206,9 @@ def get_geofinder(
     client: httpx.AsyncClient = Depends(get_shared_client)
 ) -> GeoFinder:
     """
-    Crea una instancia de GeoFinder con el cliente compartido.
+    Creates a GeoFinder instance with the shared client.
     
-    IMPORTANTE: GeoFinder NO cerrará este cliente porque fue inyectado.
+    IMPORTANT: GeoFinder will NOT close this client because it was injected.
     """
     return GeoFinder(http_client=client)
 
@@ -219,14 +219,14 @@ def get_geofinder(
 
 @app.get("/search", response_model=GeoResponse)
 async def search(
-    q: str = Query(..., description="Texto a buscar"),
-    size: int = Query(10, ge=1, le=100, description="Número de resultados"),
+    q: str = Query(..., description="Text to search"),
+    size: int = Query(10, ge=1, le=100, description="Number of results"),
     gf: GeoFinder = Depends(get_geofinder)
 ):
     """
-    Busca un lugar por nombre o dirección.
+    Search for a place by name or address.
     
-    Ejemplos:
+    Examples:
     - /search?q=Barcelona
     - /search?q=Diagonal 100, Barcelona&size=5
     """
@@ -238,15 +238,15 @@ async def search(
 
 @app.get("/reverse", response_model=list[GeoResult])
 async def reverse(
-    x: float = Query(..., description="Coordenada X / Longitud"),
-    y: float = Query(..., description="Coordenada Y / Latitud"),
-    epsg: int = Query(4326, description="Sistema de coordenadas"),
+    x: float = Query(..., description="X Coordinate / Longitude"),
+    y: float = Query(..., description="Y Coordinate / Latitude"),
+    epsg: int = Query(4326, description="Coordinate system"),
     gf: GeoFinder = Depends(get_geofinder)
 ):
     """
-    Geocodificación inversa: coordenadas → lugar.
+    Reverse geocoding: coordinates → place.
     
-    Ejemplos:
+    Examples:
     - /reverse?x=2.1734&y=41.3851&epsg=4326
     - /reverse?x=430000&y=4580000&epsg=25831
     """
@@ -258,14 +258,14 @@ async def reverse(
 
 @app.get("/autocomplete")
 async def autocomplete(
-    q: str = Query(..., min_length=2, description="Texto parcial"),
+    q: str = Query(..., min_length=2, description="Partial text"),
     size: int = Query(10, ge=1, le=50),
     gf: GeoFinder = Depends(get_geofinder)
 ):
     """
-    Sugerencias de autocompletado.
+    Autocomplete suggestions.
     
-    Ejemplo: /autocomplete?q=Barcel
+    Example: /autocomplete?q=Barcel
     """
     try:
         suggestions = await gf.autocomplete(q, size=size)
@@ -276,7 +276,7 @@ async def autocomplete(
 
 @app.get("/health")
 async def health(client: httpx.AsyncClient = Depends(get_shared_client)):
-    """Endpoint de salud que muestra el estado del pool."""
+    """Health endpoint that shows the pool status."""
     return {
         "status": "healthy",
         "pool": {
@@ -288,7 +288,7 @@ async def health(client: httpx.AsyncClient = Depends(get_shared_client)):
 
 
 # ============================================================================
-# 6. EJECUCIÓN
+# 6. EXECUTION
 # ============================================================================
 
 if __name__ == "__main__":
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-#### ¿Cómo Funciona el Pool Compartido?
+#### How Does the Shared Pool Work?
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -328,57 +328,57 @@ if __name__ == "__main__":
 │  │  │  ┌──────┐ ┌──────┐ ┌──────┐       │ │  │          │
 │  │  │  │ Conn │ │ Conn │ │ Conn │  ...  │ │  │          │
 │  │  │  └──────┘ └──────┘ └──────┘       │ │  │          │
-│  │  │  (Reutilizadas entre peticiones)  │ │  │          │
+│  │  │  (Reused between requests)        │ │  │          │
 │  │  └────────────────────────────────────┘ │  │          │
 │  └──────────────────────────────────────────┘  │          │
 │                                                 │          │
 └─────────────────────────────────────────────────┘
                          │
                          ▼
-              Servidor ICGC Pelias
+              ICGC Pelias Server
 ```
 
-#### Ventajas del Pool Compartido
+#### Shared Pool Advantages
 
-| Aspecto | Sin Pool | Con Pool Compartido |
+| Aspect | Without Pool | With Shared Pool |
 |---------|----------|---------------------|
-| **Conexiones** | Nueva por petición | Reutilizadas |
-| **Latencia** | ~100-200ms | ~20-50ms |
-| **Overhead** | Alto (TCP handshake) | Bajo (keep-alive) |
-| **Recursos** | Muchos sockets | Controlado |
-| **Escalabilidad** | Limitada | Alta |
+| **Connections** | New per request | Reused |
+| **Latency** | ~100-200ms | ~20-50ms |
+| **Overhead** | High (TCP handshake) | Low (keep-alive) |
+| **Resources** | Many sockets | Controlled |
+| **Scalability** | Limited | High |
 
-#### Configuración del Pool
+#### Pool Configuration
 
 ```python
-# Ajustar según tus necesidades
+# Adjust according to your needs
 httpx.AsyncClient(
-    timeout=10.0,  # Timeout global
+    timeout=10.0,  # Global timeout
     limits=httpx.Limits(
-        max_connections=100,        # Total de conexiones simultáneas
-        max_keepalive_connections=20,  # Conexiones keep-alive
-        keepalive_expiry=30.0       # Tiempo de vida de keep-alive
+        max_connections=100,        # Total simultaneous connections
+        max_keepalive_connections=20,  # Keep-alive connections
+        keepalive_expiry=30.0       # Keep-alive lifetime
     )
 )
 ```
 
-**Recomendaciones**:
-- **API de bajo tráfico**: `max_connections=20`, `max_keepalive=5`
-- **API de tráfico medio**: `max_connections=50`, `max_keepalive=10`
-- **API de alto tráfico**: `max_connections=100`, `max_keepalive=20`
+**Recommendations**:
+- **Low traffic API**: `max_connections=20`, `max_keepalive=5`
+- **Medium traffic API**: `max_connections=50`, `max_keepalive=10`
+- **High traffic API**: `max_connections=100`, `max_keepalive=20`
 
 ---
 
-### FastAPI - Versión Simple (Sin Pool Compartido)
+### FastAPI - Simple Version (No Shared Pool)
 
-Si no necesitas optimización extrema, puedes usar la versión simple:
+If you don't need extreme optimization, you can use the simple version:
 
 ```python
 from fastapi import FastAPI, Query
 from geofinder import GeoFinder
 
 app = FastAPI()
-gf = GeoFinder()  # Cliente propio, se gestiona internamente
+gf = GeoFinder()  # Own client, managed internally
 
 @app.get("/search")
 async def search(q: str = Query(...)):
@@ -386,25 +386,25 @@ async def search(q: str = Query(...)):
 ```
 
 > [!NOTE]
-> Esta versión es más simple pero menos eficiente. Cada instancia de `GeoFinder` tiene su propio cliente HTTP.
+> This version is simpler but less efficient. Each `GeoFinder` instance has its own HTTP client.
 
 ---
 
-## 📊 Análisis de Datos
+## 📊 Data Analysis
 
-### Pandas - Geocodificar DataFrame
+### Pandas - Geocode DataFrame
 
 ```python
 """
-Geocodificar un DataFrame de direcciones.
+Geocode a DataFrame of addresses.
 """
 import pandas as pd
 from geofinder import GeoFinder
 
-# Datos de ejemplo
+# Example data
 data = {
     'id': [1, 2, 3, 4],
-    'direccion': [
+    'address': [
         'Barcelona, Diagonal 100',
         'Girona, Carrer Nou 50',
         'Lleida, Plaça Paeria 1',
@@ -413,12 +413,12 @@ data = {
 }
 df = pd.DataFrame(data)
 
-# Inicializar geocodificador
+# Initialize geocoder
 gf = GeoFinder()
 
 
 async def geocode_address(gf, address: str) -> dict:
-    """Geocodifica una dirección y devuelve coordenadas."""
+    """Geocodes an address and returns coordinates."""
     try:
         results = await gf.find(address)
         if results:
@@ -426,83 +426,83 @@ async def geocode_address(gf, address: str) -> dict:
             return {
                 'lat': r.y,
                 'lon': r.x,
-                'municipio': r.nomMunicipi,
-                'comarca': r.nomComarca,
-                'tipo': r.nomTipus
+                'municipality': r.nomMunicipi,
+                'county': r.nomComarca,
+                'type': r.nomTipus
             }
     except Exception as e:
-        print(f"Error geocodificando '{address}': {e}")
-    return {'lat': None, 'lon': None, 'municipio': '', 'comarca': '', 'tipo': ''}
+        print(f"Error geocoding '{address}': {e}")
+    return {'lat': None, 'lon': None, 'municipality': '', 'county': '', 'type': ''}
 
 
-# Aplicar geocodificación
-geo_data = df['direccion'].apply(geocode_address).apply(pd.Series)
+# Apply geocoding
+geo_data = df['address'].apply(geocode_address).apply(pd.Series)
 df = pd.concat([df, geo_data], axis=1)
 
 print(df)
-#    id                       direccion       lat       lon  municipio     comarca       tipo
+#    id                       address       lat       lon  municipality     county       type
 # 0   1          Barcelona, Diagonal 100  41.3851    2.1734  Barcelona  Barcelonès     Adreça
 # 1   2             Girona, Carrer Nou 50  41.9831    2.8249     Girona    Gironès      Adreça
 # ...
 ```
 
-### GeoPandas - Crear GeoDataFrame
+### GeoPandas - Create GeoDataFrame
 
 ```python
 """
-Crear un GeoDataFrame con geometrías para análisis espacial.
+Create a GeoDataFrame with geometries for spatial analysis.
 """
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 from geofinder import GeoFinder
 
-# Datos
-lugares = ['Barcelona', 'Girona', 'Lleida', 'Tarragona', 'Reus', 'Figueres']
+# Data
+places = ['Barcelona', 'Girona', 'Lleida', 'Tarragona', 'Reus', 'Figueres']
 
 gf = GeoFinder()
 
-# Geocodificar
+# Geocode
 data = []
 async with GeoFinder() as gf:
-    for lugar in lugares:
-        results = await gf.find(lugar)
+    for place in places:
+        results = await gf.find(place)
         if results:
             r = results[0]
             data.append({
-                'nombre': r.nom,
-                'tipo': r.nomTipus,
-                'comarca': r.nomComarca,
+                'name': r.nom,
+                'type': r.nomTipus,
+                'county': r.nomComarca,
                 'geometry': Point(r.x, r.y)
             })
 
-# Crear GeoDataFrame
+# Create GeoDataFrame
 gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
 
-# Operaciones espaciales
-print(f"Extensión: {gdf.total_bounds}")
+# Spatial operations
+print(f"Extent: {gdf.total_bounds}")
 
-# Guardar como GeoJSON
-gdf.to_file("municipios_cataluña.geojson", driver="GeoJSON")
+# Save as GeoJSON
+gdf.to_file("municipalities_catalonia.geojson", driver="GeoJSON")
 
-# Buffer de 10km alrededor de Barcelona
-barcelona = gdf[gdf['nombre'] == 'Barcelona'].geometry.iloc[0]
-buffer_10km = barcelona.buffer(0.1)  # ~10km en grados
+# 10km buffer around Barcelona
+barcelona = gdf[gdf['name'] == 'Barcelona'].geometry.iloc[0]
+buffer_10km = barcelona.buffer(0.1)  # ~10km in degrees
 ```
 
-### Visualización con Folium
+### Visualization with Folium
 
 ```python
 """
-Crear mapa interactivo con resultados geocodificados.
+Create interactive map with geocoded results.
 """
 import folium
 from geofinder import GeoFinder
 
 gf = GeoFinder()
 
-# Geocodificar lugares de interés
-lugares = [
+# Geocode points of interest
+places = [
     'Sagrada Família, Barcelona',
     'Park Güell, Barcelona',
     'Montserrat',
@@ -510,32 +510,32 @@ lugares = [
     'Delta de l\'Ebre'
 ]
 
-# Crear mapa centrado en Cataluña
-mapa = folium.Map(location=[41.5, 1.5], zoom_start=8)
+# Create map centered on Catalonia
+map = folium.Map(location=[41.5, 1.5], zoom_start=8)
 
-for lugar in lugares:
-    results = gf.find_sync(lugar)
+for place in places:
+    results = gf.find_sync(place)
     if results:
         r = results[0]
         folium.Marker(
-            location=[r.y, r.x],  # Folium usa lat, lon
+            location=[r.y, r.x],  # Folium uses lat, lon
             popup=f"<b>{r.nom}</b><br>{r.nomTipus}",
             tooltip=r.nom,
             icon=folium.Icon(color='blue', icon='info-sign')
-        ).add_to(mapa)
+        ).add_to(map)
 
-# Guardar mapa
-mapa.save('mapa_cataluña.html')
-print("Mapa guardado en mapa_cataluña.html")
+# Save map
+map.save('map_catalonia.html')
+print("Map saved to map_catalonia.html")
 ```
 
 ---
 
-## ⚡ Geocodificación por Lotes
+## ⚡ Batch Geocoding
 
-### Uso de `find_batch` (Recomendado)
+### Using `find_batch` (Recommended)
 
-`find_batch` es la forma más eficiente y sencilla de procesar múltiples direcciones. Gestiona automáticamente la concurrencia para no saturar el servidor.
+`find_batch` is the most efficient and simple way to process multiple addresses. It automatically manages concurrency to avoid overwhelming the server.
 
 ```python
 import asyncio
@@ -543,7 +543,7 @@ from geofinder import GeoFinder
 
 async def main():
     async with GeoFinder() as gf:
-        direcciones = [
+        addresses = [
             "Barcelona",
             "Girona",
             "Lleida",
@@ -551,23 +551,23 @@ async def main():
             "Montserrat"
         ]
         
-        # max_concurrency limita las peticiones simultáneas (default: 5)
-        results = await gf.find_batch(direcciones, max_concurrency=10)
+        # max_concurrency limits simultaneous requests (default: 5)
+        results = await gf.find_batch(addresses, max_concurrency=10)
         
-        for query, response in zip(direcciones, results):
+        for query, response in zip(addresses, results):
             if response.results:
                 top = response.results[0]
                 print(f"✅ {query} -> {top.nom} ({top.x}, {top.y})")
             else:
-                print(f"❌ {query} no encontrado")
+                print(f"❌ {query} not found")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Geocodificación Inversa por Lotes
+### Batch Reverse Geocoding
 
-También puedes procesar múltiples coordenadas de forma eficiente.
+You can also efficiently process multiple coordinates.
 
 ```python
 async with GeoFinder() as gf:
@@ -577,7 +577,7 @@ async with GeoFinder() as gf:
         (0.6231, 41.6176)
     ]
     
-    # Procesa en paralelo con concurrencia controlada
+    # Process in parallel with controlled concurrency
     results = await gf.find_reverse_batch(coords, epsg=4326, max_concurrency=3)
     
     for c, res_list in zip(coords, results):
@@ -585,18 +585,18 @@ async with GeoFinder() as gf:
             print(f"📍 {c} -> {res_list[0].nom}")
 ```
 
-### Versión Síncrona (Scripts Simples)
+### Synchronous Version (Simple Scripts)
 
-Si no estás usando `async/await`, puedes usar las versiones `_sync`.
+If you're not using `async/await`, you can use the `_sync` versions.
 
 ```python
 from geofinder import GeoFinder
 
 gf = GeoFinder()
-direcciones = ["Barcelona", "Girona"]
+addresses = ["Barcelona", "Girona"]
 
-# Bloquea hasta que todo el lote se procesa
-results = gf.find_batch_sync(direcciones)
+# Blocks until the entire batch is processed
+results = gf.find_batch_sync(addresses)
 
 for resp in results:
     if resp.results:
@@ -604,17 +604,17 @@ for resp in results:
 ```
 
 > [!TIP]
-> **Gestión de Sesiones Síncronas**: Las llamadas `_sync` gestionan internamente el ciclo de vida del cliente. Puedes realizar múltiples llamadas secuenciales sobre la misma instancia de `GeoFinder` sin problemas.
+> **Synchronous Session Management**: The `_sync` calls internally manage the client lifecycle. You can make multiple sequential calls on the same `GeoFinder` instance without issues.
 
 ---
 
-## 🛡️ Manejo de Errores
+## 🛡️ Error Handling
 
-### Patrón Completo de Manejo de Errores
+### Complete Error Handling Pattern
 
 ```python
 """
-Ejemplo de manejo robusto de errores con GeoFinder.
+Example of robust error handling with GeoFinder.
 """
 from geofinder import GeoFinder
 from geofinder.pelias import (
@@ -624,13 +624,13 @@ from geofinder.pelias import (
 )
 import logging
 
-# Configurar logging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 async def geocode_safely(query: str, gf: GeoFinder) -> dict:
-    """Geocodificar de forma segura con modelos Pydantic."""
+    """Geocode safely with Pydantic models."""
     try:
         results = await gf.find(query)
 
@@ -638,7 +638,7 @@ async def geocode_safely(query: str, gf: GeoFinder) -> dict:
             return {
                 'success': False,
                 'error': 'NOT_FOUND',
-                'message': f"No se encontraron resultados para '{query}'"
+                'message': f"No results found for '{query}'"
             }
 
         best = results[0]
@@ -654,11 +654,11 @@ async def geocode_safely(query: str, gf: GeoFinder) -> dict:
         return {'success': False, 'error': 'ERROR', 'message': str(e)}
 ```
 
-### Validación de Entrada
+### Input Validation
 
 ```python
 """
-Validar y normalizar entrada antes de geocodificar.
+Validate and normalize input before geocoding.
 """
 import re
 from typing import Optional, Tuple
@@ -666,28 +666,28 @@ from typing import Optional, Tuple
 
 def validate_address(address: str) -> Tuple[bool, Optional[str]]:
     """
-    Valida y normaliza una dirección.
+    Validates and normalizes an address.
 
     Returns:
         (is_valid, normalized_address or error_message)
     """
     if not address or not isinstance(address, str):
-        return False, "La dirección no puede estar vacía"
+        return False, "Address cannot be empty"
 
-    # Normalizar espacios
+    # Normalize spaces
     address = ' '.join(address.split())
 
-    # Mínimo 3 caracteres
+    # Minimum 3 characters
     if len(address) < 3:
-        return False, "La dirección es demasiado corta"
+        return False, "Address is too short"
 
-    # Máximo 200 caracteres
+    # Maximum 200 characters
     if len(address) > 200:
-        return False, "La dirección es demasiado larga"
+        return False, "Address is too long"
 
-    # Detectar caracteres inválidos
+    # Detect invalid characters
     if re.search(r'[<>{}|\\^~\[\]]', address):
-        return False, "La dirección contiene caracteres inválidos"
+        return False, "Address contains invalid characters"
 
     return True, address
 
@@ -698,92 +698,92 @@ def validate_coordinates(
     epsg: int = 4326
 ) -> Tuple[bool, Optional[str]]:
     """
-    Valida coordenadas según el sistema EPSG.
+    Validates coordinates according to the EPSG system.
     """
     if epsg == 4326:  # WGS84
-        # Cataluña aprox: lon 0.2-3.3, lat 40.5-42.8
+        # Catalonia approx: lon 0.2-3.3, lat 40.5-42.8
         if not (0.0 <= x <= 4.0):
-            return False, f"Longitud {x} fuera de rango para Cataluña"
+            return False, f"Longitude {x} out of range for Catalonia"
         if not (39.0 <= y <= 43.0):
-            return False, f"Latitud {y} fuera de rango para Cataluña"
+            return False, f"Latitude {y} out of range for Catalonia"
 
     elif epsg == 25831:  # UTM 31N
-        # Cataluña aprox: X 250000-550000, Y 4500000-4750000
+        # Catalonia approx: X 250000-550000, Y 4500000-4750000
         if not (200000 <= x <= 600000):
-            return False, f"Coordenada X {x} fuera de rango UTM 31N"
+            return False, f"X coordinate {x} out of range for UTM 31N"
         if not (4400000 <= y <= 4800000):
-            return False, f"Coordenada Y {y} fuera de rango UTM 31N"
+            return False, f"Y coordinate {y} out of range for UTM 31N"
 
     return True, None
 
 
-# Uso
+# Usage
 address = "  Barcelona,   Diagonal 100  "
 is_valid, result = validate_address(address)
 if is_valid:
-    print(f"Dirección válida: '{result}'")
-    # Geocodificar...
+    print(f"Valid address: '{result}'")
+    # Geocode...
 else:
     print(f"Error: {result}")
 ```
 
 ---
 
-## 💾 Caché y Rendimiento
+## 💾 Caching and Performance
 
-### Caché Nativa Integrada
+### Built-in Native Cache
 
-GeoFinder incluye un sistema de caché asíncrono LRU con TTL. No necesitas implementar nada externo a menos que requieras persistencia en base de datos.
+GeoFinder includes an asynchronous LRU cache system with TTL. You don't need to implement anything external unless you require database persistence.
 
 ```python
 """
-Configuración y uso de la caché nativa.
+Configuration and usage of the native cache.
 """
 from geofinder import GeoFinder
 
-# 1. Configurar al inicializar
+# 1. Configure at initialization
 gf = GeoFinder(
-    cache_size=200,    # Capacidad para 200 resultados
-    cache_ttl=3600     # 1 hora de vida
+    cache_size=200,    # Capacity for 200 results
+    cache_ttl=3600     # 1 hour lifetime
 )
 
 async def demo_cache():
-    # Primera vez: MISS (petición a red)
+    # First time: MISS (network request)
     res1 = await gf.find("Barcelona")
     
-    # Segunda vez: HIT (instantáneo desde memoria)
+    # Second time: HIT (instant from memory)
     res2 = await gf.find("Barcelona")
     
-    # Forzar actualización (saltar caché)
+    # Force update (skip cache)
     res3 = await gf.find("Barcelona", use_cache=False)
     
-    # Limpiar caché
+    # Clear cache
     gf.clear_cache()
 ```
 
-### Caché Persistente DIY (Implementación por Usuario)
+### DIY Persistent Cache (User Implementation)
 
 > [!IMPORTANT]
-> **Filosofía Standalone:** GeoFinder mantiene solo caché en memoria por defecto para ser completamente standalone sin dependencias externas. Sin embargo, para aplicaciones long-running o casos de uso específicos, puedes implementar fácilmente tu propia capa de caché persistente.
+> **Standalone Philosophy:** GeoFinder maintains only in-memory cache by default to be completely standalone without external dependencies. However, for long-running applications or specific use cases, you can easily implement your own persistent cache layer.
 
-#### ¿Cuándo Necesitas Caché Persistente?
+#### When Do You Need Persistent Cache?
 
-| Escenario | Caché en Memoria | Caché Persistente |
+| Scenario | In-Memory Cache | Persistent Cache |
 |-----------|------------------|-------------------|
-| **Scripts ocasionales** | ✅ Perfecto | ❌ Innecesario |
-| **Notebooks interactivos** | ✅ Suficiente | ❌ Overhead |
-| **Servidor 24/7** | ⚠️ Se pierde al reiniciar | ✅ Recomendado |
-| **CLI repetitiva** | ⚠️ Cada ejecución = nueva caché | ✅ Útil |
-| **Datos muy estáticos** | ✅ Funciona | ✅ Optimiza latencia |
+| **Occasional scripts** | ✅ Perfect | ❌ Unnecessary |
+| **Interactive notebooks** | ✅ Sufficient | ❌ Overhead |
+| **24/7 server** | ⚠️ Lost on restart | ✅ Recommended |
+| **Repetitive CLI** | ⚠️ Each run = new cache | ✅ Useful |
+| **Very static data** | ✅ Works | ✅ Optimizes latency |
 
-#### Implementación Síncrona (SQLite)
+#### Synchronous Implementation (SQLite)
 
-Ideal para scripts y CLIs simples:
+Ideal for simple scripts and CLIs:
 
 ```python
 """
-Caché persistente usando SQLite para geocodificación (versión sync).
-Guardado en: examples/persistent_cache_sync.py
+Persistent cache using SQLite for geocoding (sync version).
+Saved in: examples/persistent_cache_sync.py
 """
 import sqlite3
 import json
@@ -794,15 +794,15 @@ from geofinder import GeoFinder
 
 
 class GeoCacheSQLite:
-    """Caché de geocodificación con SQLite (sync)."""
+    """Geocoding cache with SQLite (sync)."""
 
     def __init__(self, db_path: str = "geocache.db", ttl_days: int = 30):
         """
-        Inicializa la caché SQLite.
+        Initializes the SQLite cache.
         
         Args:
-            db_path: Ruta al archivo de base de datos
-            ttl_days: Días de validez de la caché (30 por defecto)
+            db_path: Path to the database file
+            ttl_days: Cache validity in days (30 by default)
         """
         self.db_path = db_path
         self.ttl_days = ttl_days
@@ -810,7 +810,7 @@ class GeoCacheSQLite:
         self._init_db()
 
     def _init_db(self):
-        """Crea la tabla de caché si no existe."""
+        """Creates the cache table if it doesn't exist."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS geocache (
@@ -826,16 +826,16 @@ class GeoCacheSQLite:
             """)
 
     def _hash_query(self, query: str, **kwargs) -> str:
-        """Genera hash único para la query incluyendo parámetros."""
-        # Normalizar query
+        """Generates unique hash for the query including parameters."""
+        # Normalize query
         normalized = query.lower().strip()
         
-        # Incluir parámetros importantes en el hash
+        # Include important parameters in the hash
         cache_key = f"{normalized}:{kwargs.get('epsg', 25831)}:{kwargs.get('size', 10)}"
         return hashlib.md5(cache_key.encode()).hexdigest()
 
     def get(self, query: str, **kwargs) -> Optional[List]:
-        """Obtiene resultado de caché si existe y es válido."""
+        """Gets result from cache if it exists and is valid."""
         query_hash = self._hash_query(query, **kwargs)
         min_date = datetime.now() - timedelta(days=self.ttl_days)
 
@@ -849,18 +849,18 @@ class GeoCacheSQLite:
             )
             row = cursor.fetchone()
             if row:
-                # Reconstruir GeoResult objects desde JSON
+                # Reconstruct GeoResult objects from JSON
                 results_json = json.loads(row[0])
-                # Por simplicidad, retornamos el JSON directamente
-                # En producción, podrías reconstruir objetos GeoResult
+                # For simplicity, we return the JSON directly
+                # In production, you could reconstruct GeoResult objects
                 return results_json
         return None
 
     def set(self, query: str, results: List, **kwargs):
-        """Guarda resultado en caché."""
+        """Saves result to cache."""
         query_hash = self._hash_query(query, **kwargs)
         
-        # Serializar resultados (convertir GeoResult a dict)
+        # Serialize results (convert GeoResult to dict)
         results_json = [
             {
                 'nom': r.nom,
@@ -883,25 +883,25 @@ class GeoCacheSQLite:
             )
 
     def find(self, query: str, **kwargs) -> List:
-        """Geocodifica con caché (wrapper sincrónico)."""
-        # Intentar caché primero
+        """Geocodes with cache (synchronous wrapper)."""
+        # Try cache first
         cached = self.get(query, **kwargs)
         if cached is not None:
             print(f"✅ CACHE HIT: {query}")
             return cached
 
-        # Cache miss - llamar al servicio
-        print(f"🌐 CACHE MISS: {query} (consultando ICGC...)")
+        # Cache miss - call the service
+        print(f"🌐 CACHE MISS: {query} (querying ICGC...)")
         results = self.gf.find_sync(query, **kwargs)
 
-        # Guardar en caché
+        # Save to cache
         if results:
             self.set(query, results, **kwargs)
 
         return results
     
     def clear_expired(self):
-        """Elimina entradas expiradas de la caché."""
+        """Removes expired entries from cache."""
         min_date = datetime.now() - timedelta(days=self.ttl_days)
         
         with sqlite3.connect(self.db_path) as conn:
@@ -910,11 +910,11 @@ class GeoCacheSQLite:
                 (min_date.isoformat(),)
             ).rowcount
             
-        print(f"🧹 Eliminadas {deleted} entradas expiradas")
+        print(f"🧹 Deleted {deleted} expired entries")
         return deleted
     
     def stats(self):
-        """Muestra estadísticas de la caché."""
+        """Shows cache statistics."""
         with sqlite3.connect(self.db_path) as conn:
             total = conn.execute("SELECT COUNT(*) FROM geocache").fetchone()[0]
             
@@ -934,40 +934,40 @@ class GeoCacheSQLite:
 
 
 # ============================================================================
-# USO DE LA CACHÉ PERSISTENTE
+# PERSISTENT CACHE USAGE
 # ============================================================================
 
 if __name__ == "__main__":
-    # Crear instancia con caché
-    cache = GeoCacheSQLite(db_path="mi_cache.db", ttl_days=7)
+    # Create instance with cache
+    cache = GeoCacheSQLite(db_path="my_cache.db", ttl_days=7)
 
-    # Primera búsqueda (cache miss)
+    # First search (cache miss)
     results1 = cache.find("Barcelona")
-    print(f"Encontrados: {len(results1)} resultados")
+    print(f"Found: {len(results1)} results")
 
-    # Segunda búsqueda (cache hit - instantáneo)
+    # Second search (cache hit - instant)
     results2 = cache.find("Barcelona")
-    print(f"Encontrados: {len(results2)} resultados")
+    print(f"Found: {len(results2)} results")
 
-    # Mostrar estadísticas
+    # Show statistics
     stats = cache.stats()
-    print(f"\n📊 Estadísticas de caché:")
-    print(f"  - Entradas válidas: {stats['valid_entries']}")
-    print(f"  - Entradas totales: {stats['total_entries']}")
-    print(f"  - Archivo: {stats['db_path']}")
+    print(f"\n📊 Cache statistics:")
+    print(f"  - Valid entries: {stats['valid_entries']}")
+    print(f"  - Total entries: {stats['total_entries']}")
+    print(f"  - File: {stats['db_path']}")
 
-    # Limpiar expiradas
+    # Clear expired
     cache.clear_expired()
 ```
 
-#### Implementación Asíncrona (SQLite con aiosqlite)
+#### Asynchronous Implementation (SQLite with aiosqlite)
 
-Para aplicaciones async modernas (FastAPI, etc.):
+For modern async applications (FastAPI, etc.):
 
 ```python
 """
-Caché persistente asíncrona usando aiosqlite.
-Instalación: pip install aiosqlite
+Asynchronous persistent cache using aiosqlite.
+Installation: pip install aiosqlite
 """
 import aiosqlite
 import json
@@ -978,7 +978,7 @@ from geofinder import GeoFinder
 
 
 class AsyncGeoCacheSQLite:
-    """Caché de geocodificación asíncrona con SQLite."""
+    """Asynchronous geocoding cache with SQLite."""
 
     def __init__(self, db_path: str = "geocache_async.db", ttl_days: int = 30):
         self.db_path = db_path
@@ -987,7 +987,7 @@ class AsyncGeoCacheSQLite:
         self._initialized = False
 
     async def _ensure_init(self):
-        """Inicializa la DB de forma lazy."""
+        """Lazily initializes the DB."""
         if not self._initialized:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("""
@@ -1006,13 +1006,13 @@ class AsyncGeoCacheSQLite:
             self._initialized = True
 
     def _hash_query(self, query: str, **kwargs) -> str:
-        """Genera hash único para la query."""
+        """Generates unique hash for the query."""
         normalized = query.lower().strip()
         cache_key = f"{normalized}:{kwargs.get('epsg', 25831)}:{kwargs.get('size', 10)}"
         return hashlib.md5(cache_key.encode()).hexdigest()
 
     async def get(self, query: str, **kwargs) -> Optional[List]:
-        """Obtiene resultado de caché si existe y es válido."""
+        """Gets result from cache if it exists and is valid."""
         await self._ensure_init()
         
         query_hash = self._hash_query(query, **kwargs)
@@ -1029,12 +1029,12 @@ class AsyncGeoCacheSQLite:
         return None
 
     async def set(self, query: str, results: List, **kwargs):
-        """Guarda resultado en caché."""
+        """Saves result to cache."""
         await self._ensure_init()
         
         query_hash = self._hash_query(query, **kwargs)
         
-        # Serializar
+        # Serialize
         results_json = [
             {
                 'nom': r.nom,
@@ -1053,8 +1053,8 @@ class AsyncGeoCacheSQLite:
             await db.commit()
 
     async def find(self, query: str, **kwargs) -> List:
-        """Geocodifica con caché (wrapper asíncrono)."""
-        # Intentar caché
+        """Geocodes with cache (asynchronous wrapper)."""
+        # Try cache
         cached = await self.get(query, **kwargs)
         if cached is not None:
             return cached
@@ -1062,34 +1062,34 @@ class AsyncGeoCacheSQLite:
         # Cache miss
         results = await self.gf.find(query, **kwargs)
 
-        # Guardar
+        # Save
         if results:
             await self.set(query, results, **kwargs)
 
         return results
 
 
-# USO ASYNC
-async def ejemplo_async():
+# ASYNC USAGE
+async def async_example():
     cache = AsyncGeoCacheSQLite()
     
-    # Primera vez: consulta ICGC
+    # First time: queries ICGC
     results = await cache.find("Girona")
     
-    # Segunda vez: desde SQLite
+    # Second time: from SQLite
     results = await cache.find("Girona")
     
     await cache.gf.close()
 ```
 
-#### Caché con Redis (Producción)
+#### Cache with Redis (Production)
 
-Para aplicaciones distribuidas con múltiples instancias:
+For distributed applications with multiple instances:
 
 ```python
 """
-Caché distribuida con Redis.
-Instalación: pip install redis
+Distributed cache with Redis.
+Installation: pip install redis
 """
 import redis
 import json
@@ -1098,28 +1098,28 @@ from geofinder import GeoFinder
 
 
 class GeoCacheRedis:
-    """Caché de geocodificación con Redis."""
+    """Geocoding cache with Redis."""
 
     def __init__(
         self,
         redis_url: str = "redis://localhost:6379/0",
-        ttl_seconds: int = 86400  # 24 horas
+        ttl_seconds: int = 86400  # 24 hours
     ):
         self.client = redis.from_url(redis_url)
         self.ttl = ttl_seconds
         self.gf = GeoFinder()
 
     def _cache_key(self, query: str, **kwargs) -> str:
-        """Genera clave de Redis."""
+        """Generates Redis key."""
         epsg = kwargs.get('epsg', 25831)
         size = kwargs.get('size', 10)
         return f"geo:{query.lower()}:{epsg}:{size}"
 
     def find(self, query: str, **kwargs) -> List:
-        """Geocodifica con caché Redis."""
+        """Geocodes with Redis cache."""
         key = self._cache_key(query, **kwargs)
         
-        # Intentar caché
+        # Try cache
         cached = self.client.get(key)
         if cached:
             print(f"✅ REDIS HIT: {query}")
@@ -1129,7 +1129,7 @@ class GeoCacheRedis:
         print(f"🌐 REDIS MISS: {query}")
         results = self.gf.find_sync(query, **kwargs)
 
-        # Guardar con TTL
+        # Save with TTL
         if results:
             results_json = [
                 {'nom': r.nom, 'x': r.x, 'y': r.y, 'epsg': r.epsg}
@@ -1144,81 +1144,39 @@ class GeoCacheRedis:
         return results
 
 
-# USO
+# USAGE
 cache_redis = GeoCacheRedis(redis_url="redis://localhost:6379/0")
 results = cache_redis.find("Lleida")
 ```
 
-#### Comparación de Implementaciones
+#### Implementation Comparison
 
-| Solución | Ventajas | Desventajas | Casos de Uso |
+| Solution | Advantages | Disadvantages | Use Cases |
 |----------|----------|-------------|--------------|
-| **En memoria (default)** | ✅ Sin setup<br>✅ Rápido<br>✅ Standalone | ❌ No persistente | Scripts, notebooks, pruebas |
-| **SQLite sync** | ✅ Persistente<br>✅ Sin deps extra<br>✅ Simple | ❌ No paralelo | CLIs, scripts repetitivos |
-| **SQLite async** | ✅ Persistente<br>✅ Async-friendly | ⚠️ Dep: aiosqlite | FastAPI, aplicaciones async |
-| **Redis** | ✅ Distribuido<br>✅ Muy rápido<br>✅ TTL automático | ❌ Requiere servidor Redis | Microservicios, escalado horizontal |
+| **In-memory (default)** | ✅ No setup<br>✅ Fast<br>✅ Standalone | ❌ Not persistent | Scripts, notebooks, testing |
+| **SQLite sync** | ✅ Persistent<br>✅ No extra deps<br>✅ Simple | ❌ Not parallel | CLIs, repetitive scripts |
+| **SQLite async** | ✅ Persistent<br>✅ Async-friendly | ⚠️ Dep: aiosqlite | FastAPI, async applications |
+| **Redis** | ✅ Distributed<br>✅ Very fast<br>✅ Automatic TTL | ❌ Requires Redis server | Microservices, horizontal scaling |
 
-#### Mejores Prácticas
+#### Best Practices
 
-1. **Usa caché en memoria por defecto** - Es suficiente para el 90% de casos
-2. **SQLite para persistencia local** - Scripts que se ejecutan regularmente
-3. **Redis para producción distribuida** - Múltiples workers/pods
-4. **Incluye parámetros en el hash** - EPSG y size afectan los resultados
-5. **Establece TTL razonable** - Municipios no cambian, pero direcciones nuevas sí
-6. **Limpia cachés expiradas** - Evita crecimiento infinito de la DB
-
----
-
-            self.set(query, result)
-
-        return result
-
-    def clear_expired(self):
-        """Elimina entradas expiradas."""
-        min_date = datetime.now() - timedelta(days=self.ttl_days)
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "DELETE FROM geocache WHERE created_at < ?",
-                (min_date.isoformat(),)
-            )
-            return cursor.rowcount
-
-    def stats(self) -> dict:
-        """Estadísticas de la caché."""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute("SELECT COUNT(*) FROM geocache")
-            total = cursor.fetchone()[0]
-
-            min_date = datetime.now() - timedelta(days=self.ttl_days)
-            cursor = conn.execute(
-                "SELECT COUNT(*) FROM geocache WHERE created_at > ?",
-                (min_date.isoformat(),)
-            )
-            valid = cursor.fetchone()[0]
-
-        return {"total": total, "valid": valid, "expired": total - valid}
-
-
-# Uso
-cache = GeoCache(ttl_days=7)
-
-result = cache.geocode("Barcelona")  # Llama al servicio
-result = cache.geocode("Barcelona")  # Usa caché
-
-print(cache.stats())
-# {'total': 1, 'valid': 1, 'expired': 0}
-```
+1. **Use in-memory cache by default** - It's sufficient for 90% of cases
+2. **SQLite for local persistence** - Scripts that run regularly
+3. **Redis for distributed production** - Multiple workers/pods
+4. **Include parameters in the hash** - EPSG and size affect results
+5. **Set reasonable TTL** - Municipalities don't change, but new addresses do
+6. **Clean expired caches** - Avoid infinite DB growth
 
 ---
 
-## 🏢 Casos de Uso Reales
+## 🏢 Real-World Use Cases
 
-### 1. Validador de Direcciones Postales
+### 1. Postal Address Validator
 
 ```python
 """
-Validar y enriquecer direcciones postales.
-Útil para: ecommerce, logística, CRM.
+Validate and enrich postal addresses.
+Useful for: ecommerce, logistics, CRM.
 """
 from geofinder import GeoFinder
 from dataclasses import dataclass
@@ -1227,14 +1185,14 @@ from typing import Optional
 
 @dataclass
 class ValidatedAddress:
-    """Dirección validada y enriquecida."""
+    """Validated and enriched address."""
     original: str
     is_valid: bool
     normalized: Optional[str] = None
     street: Optional[str] = None
     municipality: Optional[str] = None
-    comarca: Optional[str] = None
-    postal_code: Optional[str] = None  # Si está disponible
+    county: Optional[str] = None
+    postal_code: Optional[str] = None  # If available
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     confidence: float = 0.0
@@ -1242,13 +1200,13 @@ class ValidatedAddress:
 
 
 class AddressValidator:
-    """Validador de direcciones para Cataluña."""
+    """Address validator for Catalonia."""
 
     def __init__(self):
         self.gf = GeoFinder()
 
     def validate(self, address: str) -> ValidatedAddress:
-        """Valida y enriquece una dirección."""
+        """Validates and enriches an address."""
         try:
             results = self.gf.find(address)
 
@@ -1256,12 +1214,12 @@ class AddressValidator:
                 return ValidatedAddress(
                     original=address,
                     is_valid=False,
-                    error="Dirección no encontrada"
+                    error="Address not found"
                 )
 
             best = results[0]
 
-            # Determinar confianza según tipo
+            # Determine confidence based on type
             confidence = 1.0 if best.nomTipus == 'Adreça' else 0.7
 
             return ValidatedAddress(
@@ -1270,7 +1228,7 @@ class AddressValidator:
                 normalized=best.nom,
                 street=best.nomTipus,
                 municipality=best.nomMunicipi,
-                comarca=best.nomComarca,
+                county=best.nomComarca,
                 latitude=best.y,
                 longitude=best.x,
                 confidence=confidence
@@ -1284,7 +1242,7 @@ class AddressValidator:
             )
 
 
-# Uso
+# Usage
 validator = AddressValidator()
 
 addresses = [
@@ -1298,17 +1256,17 @@ for addr in addresses:
     if result.is_valid:
         print(f"✅ {result.normalized}")
         print(f"   📍 {result.latitude}, {result.longitude}")
-        print(f"   🏘️ {result.municipality}, {result.comarca}")
+        print(f"   🏘️ {result.municipality}, {result.county}")
     else:
         print(f"❌ {addr}: {result.error}")
 ```
 
-### 2. Buscador de Servicios Cercanos
+### 2. Nearby Services Finder
 
 ```python
 """
-Buscar servicios/ubicaciones cerca de un punto.
-Útil para: apps de delivery, servicios a domicilio.
+Find services/locations near a point.
+Useful for: delivery apps, home services.
 """
 from geofinder import GeoFinder
 from geofinder.transformations import transform_point
@@ -1319,7 +1277,7 @@ import math
 
 @dataclass
 class NearbyResult:
-    """Resultado de búsqueda cercana."""
+    """Nearby search result."""
     name: str
     type: str
     distance_km: float
@@ -1328,7 +1286,7 @@ class NearbyResult:
 
 
 class NearbySearch:
-    """Buscador de ubicaciones cercanas."""
+    """Nearby locations finder."""
 
     def __init__(self):
         self.gf = GeoFinder()
@@ -1340,14 +1298,14 @@ class NearbySearch:
         max_results: int = 10
     ) -> List[NearbyResult]:
         """
-        Busca lugares cerca de una ubicación nombrada.
+        Searches for places near a named location.
 
         Args:
-            place_name: Nombre del lugar de referencia
-            radius_km: Radio de búsqueda en km
-            max_results: Máximo de resultados
+            place_name: Reference location name
+            radius_km: Search radius in km
+            max_results: Maximum results
         """
-        # Usar el método integrado del core para mayor eficiencia
+        # Use the integrated core method for efficiency
         results = await self.gf.search_nearby(place_name, radius_km=radius_km, max_results=max_results)
         
         if not results:
@@ -1358,43 +1316,15 @@ class NearbySearch:
             NearbyResult(
                 name=r.nom,
                 type=r.nomTipus,
-                distance_km=0.0, # El core no calcula distancias exactas aún
+                distance_km=0.0, # Core doesn't calculate exact distances yet
                 latitude=r.y,
                 longitude=r.x
             ) for r in results
         ]
 
-        ref = ref_results[0]
-        ref_x, ref_y = ref.x, ref.y
-
-        # Buscar lugares cercanos
-        nearby = await self.gf.find_reverse(
-            ref_x, ref_y,
-            epsg=4326,
-            layers="address,tops,pk",
-            size=max_results
-        )
-
-        results = []
-        for place in nearby:
-            # Calcular distancia
-            dist = self._haversine(ref_y, ref_x, place.y, place.x)
-
-            if dist <= radius_km:
-                results.append(NearbyResult(
-                    name=place.nom,
-                    type=place.nomTipus,
-                    distance_km=round(dist, 2),
-                    latitude=place.y,
-                    longitude=place.x
-                ))
-
-        # Ordenar por distancia
-        return sorted(results, key=lambda x: x.distance_km)
-
     def _haversine(self, lat1, lon1, lat2, lon2) -> float:
-        """Calcula distancia en km entre dos puntos."""
-        R = 6371  # Radio de la Tierra en km
+        """Calculates distance in km between two points."""
+        R = 6371  # Earth radius in km
 
         lat1_rad = math.radians(lat1)
         lat2_rad = math.radians(lat2)
@@ -1409,22 +1339,22 @@ class NearbySearch:
         return R * c
 
 
-# Uso
+# Usage
 searcher = NearbySearch()
 
 nearby = searcher.search_near_place("Plaça Catalunya, Barcelona", radius_km=0.5)
 
-print("Lugares cerca de Plaça Catalunya:")
+print("Places near Plaça Catalunya:")
 for place in nearby[:5]:
     print(f"  📍 {place.name} ({place.type}) - {place.distance_km}km")
 ```
 
-### 3. Conversor de Coordenadas para GPS
+### 3. GPS Coordinate Converter
 
 ```python
 """
-Herramienta para convertir coordenadas entre formatos.
-Útil para: cartografía, topografía, agrimensura.
+Tool for converting coordinates between formats.
+Useful for: cartography, topography, surveying.
 """
 from geofinder.transformations import transform_point, get_backend
 from dataclasses import dataclass
@@ -1433,7 +1363,7 @@ from typing import Tuple
 
 @dataclass
 class CoordinateResult:
-    """Resultado de conversión de coordenadas."""
+    """Coordinate conversion result."""
     x: float
     y: float
     epsg: int
@@ -1442,7 +1372,7 @@ class CoordinateResult:
 
 
 class CoordinateConverter:
-    """Conversor de coordenadas con múltiples formatos."""
+    """Coordinate converter with multiple formats."""
 
     FORMATS = {
         4326: "WGS84 (GPS)",
@@ -1456,9 +1386,9 @@ class CoordinateConverter:
         backend = get_backend()
         if not backend:
             raise ImportError(
-                "Instala pyproj o GDAL para usar transformaciones"
+                "Install pyproj or GDAL to use transformations"
             )
-        print(f"Usando backend: {backend}")
+        print(f"Using backend: {backend}")
 
     def convert(
         self,
@@ -1467,7 +1397,7 @@ class CoordinateConverter:
         from_epsg: int,
         to_epsg: int
     ) -> CoordinateResult:
-        """Convierte coordenadas entre sistemas."""
+        """Converts coordinates between systems."""
         dest_x, dest_y = transform_point(x, y, from_epsg, to_epsg)
 
         return CoordinateResult(
@@ -1484,20 +1414,20 @@ class CoordinateConverter:
         y: float,
         from_epsg: int
     ) -> list[CoordinateResult]:
-        """Convierte a todos los sistemas disponibles."""
+        """Converts to all available systems."""
         results = []
         for epsg in self.FORMATS:
             if epsg != from_epsg:
                 try:
                     results.append(self.convert(x, y, from_epsg, epsg))
                 except Exception:
-                    pass  # Algunos sistemas pueden no ser compatibles
+                    pass  # Some systems may not be compatible
         return results
 
     def _format_coords(self, x: float, y: float, epsg: int) -> str:
-        """Formatea coordenadas según el sistema."""
+        """Formats coordinates according to the system."""
         if epsg == 4326:
-            # Formato DMS para GPS
+            # DMS format for GPS
             lat_dir = 'N' if y >= 0 else 'S'
             lon_dir = 'E' if x >= 0 else 'W'
             return f"{abs(y):.6f}°{lat_dir}, {abs(x):.6f}°{lon_dir}"
@@ -1505,38 +1435,38 @@ class CoordinateConverter:
             return f"X: {x:.2f}, Y: {y:.2f}"
 
 
-# Uso
+# Usage
 converter = CoordinateConverter()
 
-# Convertir UTM a GPS
+# Convert UTM to GPS
 result = converter.convert(430000, 4580000, 25831, 4326)
 print(f"{result.format_name}: {result.formatted}")
 
-# Ver en todos los formatos
-print("\nMismas coordenadas en diferentes sistemas:")
+# View in all formats
+print("\nSame coordinates in different systems:")
 for r in converter.convert_to_all(430000, 4580000, 25831):
     print(f"  {r.format_name}: {r.formatted}")
 ```
 
 ---
 
-## 📎 Recursos Adicionales
+## 📎 Additional Resources
 
-### Documentación Relacionada
+### Related Documentation
 
-- [README.md](README.md) - Guía rápida de instalación y uso
-- [README-DEV.md](README-DEV.md) - Configuración del entorno de desarrollo
-- [README-ARQ.md](README-ARQ.md) - Arquitectura técnica interna
-- [README-MCP.md](README-MCP.md) - Servidor MCP para integración con IA
+- [README.md](README.md) - Quick installation and usage guide
+- [README-DEV.md](README-DEV.md) - Development environment setup
+- [README-ARQ.md](README-ARQ.md) - Internal technical architecture
+- [README-MCP.md](README-MCP.md) - MCP Server for AI integration
 
-### Enlaces Útiles
+### Useful Links
 
-- [Repositorio GitHub](https://github.com/jccamel/geofinder-icgc)
-- [Geocodificador ICGC](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
+- [GitHub Repository](https://github.com/jccamel/geofinder-icgc)
+- [ICGC Geocoder](https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC)
 - [Pelias Documentation](https://github.com/pelias/documentation)
 - [EPSG Registry](https://epsg.io/)
 
 ---
 
-**Autor:** Goalnefesh  
-**Licencia:** GPL-2.0-or-later
+**Author:** Goalnefesh  
+**License:** GPL-2.0-or-later
