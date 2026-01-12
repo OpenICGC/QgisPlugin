@@ -332,11 +332,12 @@ class PeliasClient:
         Returns:
             float: Delay en segundos (limitado por retry_max_delay)
         """
-        base_delay = self.retry_base_delay * (2 ** attempt)
+        base_delay: float = self.retry_base_delay * (2 ** attempt)
         # Añadir jitter aleatorio (+/- 10%) para evitar thundering herd
-        jitter = base_delay * 0.1 * (2 * random.random() - 1)
-        delay = base_delay + jitter
-        return max(0.0, min(delay, self.retry_max_delay))
+        jitter: float = base_delay * 0.1 * (2 * random.random() - 1)
+        delay: float = base_delay + jitter
+        result: float = max(0.0, min(delay, self.retry_max_delay))
+        return result
 
     def last_sent(self) -> str | None:
         """Retorna la última petición ejecutada (útil para debug).
@@ -358,8 +359,7 @@ class PeliasClient:
 
     async def get_response_time(self, response: httpx.Response) -> float:
         """Retorna el tiempo de respuesta en segundos a partir de los metadatos de httpx."""
-        # Calcular tiempo de respuesta
-        return cast(float, response.elapsed.total_seconds())
+        return response.elapsed.total_seconds()
 
     async def __aenter__(self) -> "PeliasClient":
         """Soporte para async context manager."""
