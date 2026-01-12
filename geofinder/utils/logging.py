@@ -169,6 +169,7 @@ def setup_logging(
     # Evitar duplicar manejadores si ya están configurados
     if not logger.handlers:
         handler = logging.StreamHandler()
+        formatter: logging.Formatter  # Declarar tipo base para ambas ramas
         
         if json_format:
             formatter = StructuredJSONFormatter()
