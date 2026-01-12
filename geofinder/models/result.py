@@ -123,12 +123,12 @@ class GeoResult(BaseModel):
         # 1. Campos definidos en el modelo Pydantic
         if key in self.__class__.model_fields:
             return getattr(self, key)
-            
+
         # 2. Soporte para 'properties' si se añadió dinámicamente
         props = getattr(self, "properties", None)
         if props and isinstance(props, dict) and key in props:
             return props[key]
-            
+
         raise KeyError(key)
 
     def get(self, key: str, default: Any = None) -> Any:

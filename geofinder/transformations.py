@@ -5,7 +5,7 @@ Soporta GDAL (osr) y pyproj como backends intercambiables.
 
 import logging
 import math
-from typing import Any, cast
+from typing import Any
 
 # Configurar logger
 logger = logging.getLogger("geofinder.transformations")
@@ -81,7 +81,7 @@ def transform_point(
 
 def _transform_gdal(x: float, y: float, source_epsg: int | str, destination_epsg: int | str) -> tuple[float | None, float | None]:
     """Transformación usando GDAL/OGR."""
-    from osgeo import osr # type: ignore[import-not-found] # Added type ignore here
+    from osgeo import osr  # type: ignore[import-not-found] # Added type ignore here
 
     source_crs = osr.SpatialReference()
     source_crs.ImportFromEPSG(int(source_epsg))

@@ -24,11 +24,12 @@ import argparse
 import logging
 import os
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from typing import Any, Type, AsyncGenerator
 
 from .exceptions import (
     ConfigurationError,

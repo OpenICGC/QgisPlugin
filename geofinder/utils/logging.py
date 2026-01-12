@@ -1,12 +1,11 @@
+import contextvars
 import json
 import logging
-import contextvars
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
-
+from datetime import UTC, datetime
+from typing import Any
 
 # Context variable para correlation_id (permite trazar peticiones en entornos async)
-correlation_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+correlation_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "correlation_id", default=None
 )
 
@@ -14,19 +13,19 @@ correlation_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextV
 def set_correlation_id(correlation_id: str) -> None:
     """
     Establece el correlation_id para la petición actual.
-    
+
     Útil para trazar peticiones en sistemas distribuidos.
-    
+
     Args:
         correlation_id: Identificador único de la petición
     """
     correlation_id_var.set(correlation_id)
 
 
-def get_correlation_id() -> Optional[str]:
+def get_correlation_id() -> str | None:
     """
     Obtiene el correlation_id de la petición actual.
-    
+
     Returns:
         El correlation_id o None si no está establecido
     """
@@ -36,9 +35,9 @@ def get_correlation_id() -> Optional[str]:
 def _get_reserved_fields() -> set[str]:
     """
     Obtiene dinámicamente los campos reservados de LogRecord.
-    
+
     Más robusto que hardcodear, ya que se adapta a futuras versiones de Python.
-    
+
     Returns:
         Set con los nombres de campos reservados
     """
@@ -49,18 +48,18 @@ def _get_reserved_fields() -> set[str]:
         "message", "msg", "name", "pathname", "process", "processName",
         "relativeCreated", "stack_info", "thread", "threadName", "taskName"
     }
-    
+
     # Añadir __slots__ si existe (Python 3.11+)
     if hasattr(logging.LogRecord, "__slots__"):
         base_fields.update(logging.LogRecord.__slots__)
-    
+
     return base_fields
 
 
 class StructuredJSONFormatter(logging.Formatter):
     """
     Formateador de logs en formato JSON para mejor observabilidad.
-    
+
     Características:
     - Serialización robusta con fallback para tipos no serializables
     - Soporte para correlation_id (trazabilidad distribuida)
@@ -75,34 +74,34 @@ class StructuredJSONFormatter(logging.Formatter):
     def _serialize_value(self, value: Any) -> Any:
         """
         Serializa un valor de forma segura, con fallback a string.
-        
+
         Args:
             value: Valor a serializar
-            
+
         Returns:
             Valor serializable (original o convertido a string)
         """
         # Tipos primitivos JSON-safe
         if value is None or isinstance(value, (bool, int, float, str)):
             return value
-        
+
         # Listas y diccionarios: intentar serializar recursivamente
         if isinstance(value, dict):
             return {k: self._serialize_value(v) for k, v in value.items()}
         if isinstance(value, (list, tuple)):
             return [self._serialize_value(v) for v in value]
-        
+
         # Datetime: convertir a ISO format
         if isinstance(value, datetime):
             return value.isoformat()
-        
+
         # Objetos Pydantic: usar model_dump si está disponible
         if hasattr(value, "model_dump"):
             try:
                 return value.model_dump()
             except Exception:
                 pass
-        
+
         # Fallback: convertir a string
         try:
             return str(value)
@@ -120,8 +119,8 @@ class StructuredJSONFormatter(logging.Formatter):
             str: Representación JSON del log.
         """
         # Datos estándar del log
-        log_data: Dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+        log_data: dict[str, Any] = {
+            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -170,14 +169,14 @@ def setup_logging(
     if not logger.handlers:
         handler = logging.StreamHandler()
         formatter: logging.Formatter  # Declarar tipo base para ambas ramas
-        
+
         if json_format:
             formatter = StructuredJSONFormatter()
         else:
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
-            
+
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 

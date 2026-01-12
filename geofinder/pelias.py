@@ -5,7 +5,7 @@ Cliente para servidores Pelias (API de geocodificación)
 import asyncio
 import logging
 import random
-from typing import Any, Type, Optional, cast
+from typing import Any
 
 import httpx
 
@@ -320,7 +320,7 @@ class PeliasClient:
                 url=url,
                 details={"attempts": self.max_retries + 1}
             ) from last_exception
-        
+
         raise ServiceError("Error inesperado en PeliasClient.call")
 
     def _calculate_backoff_delay(self, attempt: int) -> float:
@@ -365,6 +365,6 @@ class PeliasClient:
         """Soporte para async context manager."""
         return self
 
-    async def __aexit__(self, exc_type: Type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any) -> None:
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any) -> None:
         """Cierra el cliente al salir del async context manager."""
         await self.close()

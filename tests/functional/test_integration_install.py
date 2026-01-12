@@ -96,7 +96,7 @@ class TestPackageMetadata:
 
         assert hasattr(geofinder, '__version__')
         assert isinstance(geofinder.__version__, str)
-        assert geofinder.__version__ == "2.3.0"
+        assert geofinder.__version__ == "2.4.0"
 
     def test_author_available(self):
         """Verifica que __author__ está disponible."""

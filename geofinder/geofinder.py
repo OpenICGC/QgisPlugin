@@ -11,7 +11,8 @@ import json
 import logging
 import re
 import time
-from typing import Any, Coroutine, Type, TypeVar, Optional, cast
+from collections.abc import Coroutine
+from typing import Any, TypeVar, cast
 
 import httpx
 
@@ -20,7 +21,6 @@ from .models import GeoResponse, GeoResult
 from .pelias import PeliasClient
 from .transformations import transform_point
 from .utils.cache import AsyncLRUCache
-
 
 T = TypeVar("T")
 
@@ -92,7 +92,7 @@ class GeoFinder:
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self._icgc_url = icgc_url
-        self._icgc_client: Optional[PeliasClient] = None
+        self._icgc_client: PeliasClient | None = None
         self._external_http_client = http_client  # Almacenar cliente externo
 
         # Configuración de reintentos
@@ -155,7 +155,7 @@ class GeoFinder:
 
     async def __aexit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: Any
     ) -> None:
