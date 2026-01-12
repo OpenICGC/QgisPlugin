@@ -1,49 +1,47 @@
-# Arquitectura de GeoFinder ICGC
+# GeoFinder ICGC Architecture
 
-> **Documentación técnica del funcionamiento interno del proyecto GeoFinder**  
-> Última actualización: 2025-12-19 (v2.1.0)
-
----
-
-## 📋 Tabla de Contenidos
-
-- [Visión General](#-visión-general)
-- [Arquitectura en Capas](#-arquitectura-en-capas)
-- [Componentes Principales](#-componentes-principales)
-- [Flujo de Datos](#-flujo-de-datos)
-- [Mapeo de Herramientas](#-mapeo-de-herramientas)
-- [Endpoints del ICGC](#-endpoints-del-icgc)
-- [Ejemplos de Flujo Completo](#-ejemplos-de-flujo-completo)
+> **Technical documentation of the internal operation of the GeoFinder project**  
+> Last updated: 2025-12-19 (v2.1.0)
 
 ---
 
-## 🎯 Visión General
+## 📋 Table of Contents
 
-1. **Capa de Presentación** - Servidor MCP (async) y API pública (async + wrappers sync)
-2. **Capa de Lógica de Negocio** - GeoFinder (async, parsing, detección, transformaciones)
-3. **Capa de Caché** - AsyncLRUCache (en memoria, LRU + TTL)
-4. **Capa de Comunicación** - PeliasClient (httpx.AsyncClient, reintentos, errores)
-
-> **Modelos de Datos**: La comunicación entre capas se realiza mediante objetos **Pydantic** (`GeoResult`, `GeoResponse`), asegurando integridad y tipado fuerte.
-
-> **API Dual**: El core es async para máximo rendimiento, pero ofrece wrappers sync (`find_sync()`, etc.) para scripts simples.
+- [Overview](#-overview)
+- [Layered Architecture](#-layered-architecture)
+- [Main Components](#-main-components)
+- [Data Flow](#-data-flow)
+- [Tool Mapping](#-tool-mapping)
+- [ICGC Endpoints](#-icgc-endpoints)
+- [Full Flow Examples](#-full-flow-examples)
 
 ---
 
-## 🏗️ Arquitectura en Capas
+## 🎯 Overview
+
+1. **Presentation Layer** - MCP Server (async) and public API (async + sync wrappers)
+2. **Business Logic Layer** - GeoFinder (async, parsing, detection, transformations)
+3. **Cache Layer** - AsyncLRUCache (in-memory, LRU + TTL)
+4. **Communication Layer** - PeliasClient (httpx.AsyncClient, retries, errors)
+
+> **Data Models**: Inter-layer communication is performed using **Pydantic** (`GeoResult`, `GeoResponse`), ensuring integrity and strong typing.
+
+> **Dual API**: The core is async for maximum performance, but offers sync wrappers (`find_sync()`, etc.) for simple scripts.
+
+---
+
+## 🏗️ Layered Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│                   CAPA DE PRESENTACIÓN                            │
+│                    PRESENTATION LAYER                             │
 │  ┌────────────────────────┐  ┌──────────────────────────────────┐ │
-│  │   Servidor MCP         │  │   API Pública Python             │ │
-│  │  (mcp_server.py)       │  │   (geofinder.py)                 │ │
-│  │  ══════════════════    │  │   ══════════════════             │ │
-│  │  🔄 ASYNC               │  │   🔄 ASYNC (nativo)              │ │
-│  │                        │  │   🔁 SYNC (wrappers)             │ │
+│  │      MCP Server        │  │      Public Python API           │ │
+│  │    (mcp_server.py)     │  │      (geofinder.py)              │ │
+│  │  ══════════════════    │  │  ══════════════════              │ │
+│  │  🔄 ASYNC               │  │  🔄 ASYNC (native)               │ │
+│  │                        │  │  🔁 SYNC (wrappers)              │ │
 │  │  - find_place()    ⚡  │  │                                  │ │
-│  │  - autocomplete()  ⚡  │  │  Async:                          │ │
-│  │  - find_reverse()  ⚡  │  │  - await find()                  │ │
 │  │  - find_address()  ⚡  │  │  - await find_reverse()          │ │
 │  │  - find_road_km()  ⚡  │  │  - await autocomplete()          │ │
 │  │  - search_nearby() ⚡  │  │                                  │ │

@@ -1,7 +1,7 @@
 # GeoFinder MCP Server
 
-> **Servidor de geocodificación para Cataluña** usando el servicio ICGC a través del Model Context Protocol.  
-> 🔄 Arquitectura completamente asíncrona con **caché inteligente integrada**.
+> **Geocoding server for Catalonia** using the ICGC service through the Model Context Protocol.  
+> 🔄 Completely asynchronous architecture with **integrated smart caching**.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13+-green.svg)](https://gofastmcp.com)
@@ -9,70 +9,62 @@
 
 ---
 
-## 📚 Guía Rápida
+## 📚 Quick Guide
 
-| Sección | Descripción |
+| Section | Description |
 |---------|-------------|
-| [🚀 Inicio Rápido](#-inicio-rápido) | Instala y ejecuta en 2 minutos |
-| [🛠️ Herramientas](#️-herramientas) | 5 herramientas MCP disponibles |
-| [🔌 Integración](#-integración-con-claude-desktop) | Conecta con Claude Desktop |
-| [⚙️ Configuración](#️-configuración-avanzada) | Variables de entorno y opciones |
-| [🐛 Solución de Problemas](#-solución-de-problemas) | Troubleshooting común |
+| [🚀 Quick Start](#-quick-start) | Install and run in 2 minutes |
+| [🛠️ Tools](#️-tools) | 5 available MCP tools |
+| [🔌 Integration](#-integration-with-claude-desktop) | Connect with Claude Desktop |
+| [⚙️ Configuration](#️-advanced-configuration) | Environment variables and options |
+| [🐛 Troubleshooting](#-troubleshooting) | Common troubleshooting |
 
 ---
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Instalación
+### Installation
 
 ```bash
-# Opción 1: PyPI (recomendado para usuarios)
+# Option 1: PyPI (recommended for users)
 pip install geofinder-icgc[mcp,pyproj]
 
-# Opción 2: Desarrollo
+# Option 2: Development
 git clone https://github.com/jccamel/geofinder-icgc.git
 cd geofinder-icgc
 uv pip install -e ".[mcp,dev,pyproj]"
 ```
 
-### Ejecutar el Servidor
+### Run the Server
 
 ```bash
-# Ejecutar como módulo Python
+# Run as Python module
 python -m geofinder.mcp_server
 
-# HTTP (para testing local)
+# HTTP (for local testing)
 python -m geofinder.mcp_server --transport http --port 8000
 ```
 
-### Probar con el Inspector
+### Test with the Inspector
 
 ```bash
-# Instalar MCP Inspector
+# Install MCP Inspector
 npm install -g @modelcontextprotocol/inspector
 
-# Ejecutar
+# Run
 npx @modelcontextprotocol/inspector python -m geofinder.mcp_server
 ```
 
 ---
 
-## 🛠️ Herramientas
+## 🛠️ Tools
 
-El servidor proporciona **10 herramientas** para geocodificación:
+The server provides **10 tools** for geocodification:
 
-### Tabla Resumen
+### Summary Table
 
-| # | Herramienta | Uso | Ejemplo |
+| # | Tool | Usage | Example |
 |---|-------------|-----|---------|
-| 1 | 🔍 `find_place` | Búsqueda general inteligente | `"Barcelona"`, `"Diagonal 100"` |
-| 2 | 📍 `find_reverse` | Coordenadas → Lugar | `(2.1734, 41.3851)` |
-| 3 | ⌨️ `autocomplete` | Sugerencias en tiempo real | `"Barcel"` → `"Barcelona"` |
-| 4 | 🏠 `find_address` | Búsqueda estructurada | `street="Diagonal", number="100"` |
-| 5 | 🛣️ `find_road_km` | Punto kilométrico | `road="C-32", km=10` |
-| 6 | 📌 `find_by_coordinates` | Búsqueda por coords avanzada | Con control de radio |
-| 7 | 🗺️ `transform_coordinates` | Conversión EPSG | `UTM31N` → `WGS84` |
-| 8 | 📡 `search_nearby` | Buscar cerca de lugar | `"cerca de Barcelona"` |
 | 9 | 🔎 `parse_search_query` | Detector inteligente | Analiza tipo de consulta |
 
 <details>

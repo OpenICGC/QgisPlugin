@@ -1,147 +1,147 @@
-# Guía de Desarrollo - GeoFinder
+# Development Guide - GeoFinder
 
-## 🚀 Configuración Inicial con uv
+## 🚀 Initial Setup with uv
 
-### 1. Instalar el proyecto en modo desarrollo
+### 1. Install the project in development mode
 
 ```bash
-# Instalar el paquete en modo editable con dependencias de desarrollo
+# Install the package in editable mode with development dependencies
 uv pip install -e ".[dev,pyproj]"
 
-# O instalar todo (dev + pyproj + http + docs)
+# Or install everything (dev + pyproj + http + docs)
 uv pip install -e ".[dev,pyproj,http,docs]"
 ```
 
-### 2. Verificar instalación
+### 2. Verify installation
 
 ```bash
-# Verificar que pytest está instalado
+# Verify that pytest is installed
 uv run pytest --version
 
-# Verificar que ruff está instalado
+# Verify that ruff is installed
 uv run ruff --version
 
-# Verificar que mypy está instalado
+# Verify that mypy is installed
 uv run mypy --version
 ```
 
-## 🛠️ Comandos de Desarrollo
+## 🛠️ Development Commands
 
 ### Testing
 
 ```bash
-# Ejecutar todos los tests
+# Run all tests
 uv run pytest
 
-# Ejecutar tests con cobertura
+# Run tests with coverage
 uv run pytest --cov
 
-# Ejecutar tests en modo watch (requiere pytest-watch)
+# Run tests in watch mode (requires pytest-watch)
 uv run pytest-watch
 
-# Ejecutar un test específico
+# Run a specific test
 uv run pytest tests/test_geofinder.py::test_find_placename
 ```
 
-### Linting y Formateo
+### Linting and Formatting
 
 ```bash
-# Verificar código con ruff
+# Check code with ruff
 uv run ruff check .
 
-# Formatear código automáticamente
+# Automatically format code
 uv run ruff format .
 
-# Verificar y auto-arreglar problemas
+# Check and auto-fix issues
 uv run ruff check --fix .
 ```
 
 ### Type Checking
 
 ```bash
-# Verificar tipos con mypy
+# Check types with mypy
 uv run mypy geofinder/
 ```
 
-### Ejecutar Todo (CI Local)
+### Run Everything (Local CI)
 
 ```bash
-# Formatear, lint y tests
+# Format, lint and tests
 uv run ruff format . && uv run ruff check --fix . && uv run pytest
 ```
 
-## 📦 Gestión de Dependencias
+## 📦 Dependency Management
 
-### Añadir una dependencia
+### Adding a dependency
 
 ```bash
-# Dependencia de producción (editar pyproject.toml manualmente)
-# Luego sincronizar:
+# Production dependency (edit pyproject.toml manually)
+# Then sync:
 uv pip install -e .
 
-# Dependencia de desarrollo
-# Añadir a [project.optional-dependencies.dev] en pyproject.toml
-# Luego:
+# Development dependency
+# Add to [project.optional-dependencies.dev] in pyproject.toml
+# Then:
 uv pip install -e ".[dev]"
 ```
 
-### Actualizar dependencias
+### Update dependencies
 
 ```bash
-# Actualizar todas las dependencias
+# Update all dependencies
 uv pip install --upgrade -e ".[dev,pyproj]"
 ```
 
-### Ver dependencias instaladas
+### View installed dependencies
 
 ```bash
 uv pip list
 ```
 
-## 🧪 Estructura de Tests (Recomendada)
+## 🧪 Test Structure (Recommended)
 
 ```
 tests/
 ├── __init__.py
-├── conftest.py              # Fixtures compartidas
-├── test_geofinder.py        # Tests de GeoFinder
-├── test_pelias.py           # Tests de PeliasClient
-├── test_transformations.py  # Tests de transformaciones
+├── conftest.py              # Shared fixtures
+├── test_geofinder.py        # GeoFinder tests
+├── test_pelias.py           # PeliasClient tests
+├── test_transformations.py  # Transformation tests
 └── fixtures/
-    └── mock_responses.json  # Respuestas mock del ICGC
+    └── mock_responses.json  # ICGC mock responses
 ```
 
-## 📝 Workflow de Desarrollo
+## 📝 Development Workflow
 
-1. **Crear una rama**
+1. **Create a branch**
    ```bash
-   git checkout -b feature/nueva-funcionalidad
+   git checkout -b feature/new-functionality
    ```
 
-2. **Hacer cambios y verificar**
+2. **Make changes and verify**
    ```bash
-   # Formatear código
+   # Format code
    uv run ruff format .
    
-   # Verificar linting
+   # Check linting
    uv run ruff check .
    
-   # Ejecutar tests
+   # Run tests
    uv run pytest
    ```
 
-3. **Commit y push**
+3. **Commit and push**
    ```bash
    git add .
-   git commit -m "feat: descripción del cambio"
-   git push origin feature/nueva-funcionalidad
+   git commit -m "feat: change description"
+   git push origin feature/new-functionality
    ```
 
-## 🔧 Configuración del IDE
+## 🔧 IDE Configuration
 
 ### VS Code
 
-Crear `.vscode/settings.json`:
+Create `.vscode/settings.json`:
 
 ```json
 {
@@ -166,39 +166,39 @@ Crear `.vscode/settings.json`:
 
 ### PyCharm
 
-1. Settings → Project → Python Interpreter → Seleccionar `.venv`
+1. Settings → Project → Python Interpreter → Select `.venv`
 2. Settings → Tools → Python Integrated Tools → Testing → pytest
 3. Settings → Editor → Code Style → Python → Line length: 100
 
-## 🌐 Desarrollo del Servidor MCP
+## 🌐 MCP Server Development
 
-### Instalación con Dependencias MCP
+### Installation with MCP Dependencies
 
 ```bash
-# Instalar con soporte MCP completo
+# Install with full MCP support
 uv pip install -e ".[mcp,dev,pyproj]"
 
-# Verificar instalación
+# Verify installation
 geofinder-icgc --help
 ```
 
-### Configuración del Servidor
+### Server Configuration
 
 ```bash
-# Copiar archivo de configuración de ejemplo
+# Copy example configuration file
 cp .env.example .env
 
-# Editar configuración si es necesario
-# .env contiene variables de entorno para el servidor
+# Edit configuration if necessary
+# .env contains environment variables for the server
 ```
 
-### Ejecutar el Servidor en Desarrollo
+### Run the Server in Development
 
 ```bash
-# Modo STDIO (para integración con clientes MCP)
+# STDIO mode (for integration with MCP clients)
 python -m geofinder.mcp_server
 
-# Modo HTTP (para testing)
+# HTTP mode (for testing)
 python -m geofinder.mcp_server --transport http --port 8000
 
 # Con logging detallado

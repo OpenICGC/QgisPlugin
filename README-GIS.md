@@ -1,45 +1,44 @@
-# Glosario de Términos GIS
+# GIS Terms Glossary
 
-Este documento proporciona definiciones claras de los términos y conceptos GIS (Geographic Information Systems) utilizados en GeoFinder. Está diseñado para reducir la curva de aprendizaje para usuarios que no están familiarizados con sistemas de información geográfica.
+This document provides clear definitions of GIS (Geographic Information Systems) terms and concepts used in GeoFinder. It is designed to reduce the learning curve for users unfamiliar with geographic information systems.
 
 ---
 
-## Sistemas de Referencia de Coordenadas
+## Coordinate Reference Systems
 
 ### EPSG
-**European Petroleum Survey Group** - Organización que creó y mantiene un registro de códigos numéricos para sistemas de referencia de coordenadas.
+**European Petroleum Survey Group** - Organization that created and maintains a registry of numerical codes for coordinate reference systems.
 
-Cada código EPSG identifica de manera única un sistema de coordenadas específico. Por ejemplo:
-- `EPSG:4326` para WGS84
-- `EPSG:25831` para ETRS89 UTM 31N
+Each EPSG code uniquely identifies a specific coordinate system. For example:
+- `EPSG:4326` for WGS84
+- `EPSG:25831` for ETRS89 UTM 31N
 
-**Uso en GeoFinder:**
+**Usage in GeoFinder:**
 ```python
-# Las coordenadas se pueden especificar con códigos EPSG
+# Coordinates can be specified with EPSG codes
 finder.find_by_coordinates(lat=41.9876, lon=2.8260, epsg=4326)
 ```
 
 ---
 
 ### WGS84 (EPSG:4326)
-**World Geodetic System 1984** - Sistema de coordenadas geográficas global estándar utilizado por GPS.
+**World Geodetic System 1984** - Global standard geographic coordinate system used by GPS.
 
-**Características:**
-- Usa **latitud** y **longitud** en grados decimales
-- Latitud: `-90°` a `+90°` (Sur a Norte)
-- Longitud: `-180°` a `+180°` (Oeste a Este)
-- Es el sistema más común en aplicaciones web y móviles
+**Features:**
+- Uses **latitude** and **longitude** in decimal degrees
+- Latitude: `-90°` to `+90°` (South to North)
+- Longitude: `-180°` to `+180°` (West to East)
+- It is the most common system in web and mobile applications
 
-**Ejemplo:**
+**Example:**
 ```python
-# Coordenadas de Barcelona en WGS84
-lat = 41.3851  # Latitud (grados decimales)
-lon = 2.1734   # Longitud (grados decimales)
+# Barcelona coordinates in WGS84
+lat = 41.3851  # Latitude (decimal degrees)
+lon = 2.1734   # Longitude (decimal degrees)
 
 result = finder.find_reverse(lat=lat, lon=lon)
 ```
 
-**¿Cuándo usar WGS84?**
 - Datos de GPS
 - APIs web (Google Maps, OpenStreetMap)
 - Aplicaciones móviles
