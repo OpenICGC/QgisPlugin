@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+
+## [2.4.0] - 2026-01-12
+
+### Added
+- **Strict Static Typing**: Full type annotations across the entire codebase
+  - Complete mypy strict mode compliance (0 errors)
+  - Type hints in all public APIs, models, and utilities
+  - Pydantic plugin enabled for enhanced model validation
+- **Structured JSON Logging**: New logging utility for better observability
+  - `StructuredJSONFormatter` with robust serialization
+  - Context variable support for `correlation_id` (distributed tracing)
+  - Dynamic detection of LogRecord reserved fields
+  - Configurable via `GEOFINDER_LOG_FORMAT` environment variable
+- **Enhanced MCP Server Tests**: Validation and error handling tests for all tools
+
+### Changed
+- **mypy Configuration**: Enabled strict settings in `pyproject.toml`
+  - `disallow_untyped_defs`, `disallow_incomplete_defs`
+  - `strict_optional`, `no_implicit_optional`
+  - `warn_return_any`, `warn_unreachable`
+
+### Fixed
+- Pydantic v2.11 deprecation warning in models
+- Type inference issues in cache return values
+- Redundant casts and type annotations for cleaner code
+
 ## [2.3.0] - 2025-12-25
 
 ### Added
@@ -102,6 +128,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+[2.4.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/jccamel/geofinder-icgc/compare/v2.0.0...v2.2.0
 [2.0.0]: https://github.com/jccamel/geofinder-icgc/compare/v1.4.0...v2.0.0

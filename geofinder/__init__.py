@@ -48,7 +48,7 @@ from .geofinder import GeoFinder
 from .models import GeoResponse, GeoResult
 from .pelias import PeliasClient, PeliasConnectionError, PeliasError, PeliasTimeoutError
 
-__version__ = "2.3.0"
+__version__ = "2.4.0"
 __author__ = "ICGC / Adapted for standalone use by Goalnefesh"
 __all__ = [
     "GeoFinder",
