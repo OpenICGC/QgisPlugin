@@ -215,7 +215,7 @@ class GeoFinder:
             cached = self._cache.get(cache_key)
             if cached is not None:
                 self.log.info("[CACHE_HIT] find: %s", user_text)
-                return cached
+                return cast(list[GeoResult], cached)
 
         self.log.debug("[CACHE_MISS] find: %s", user_text)
         start_time = time.time()
@@ -325,7 +325,7 @@ class GeoFinder:
             cached = self._cache.get(cache_key)
             if cached is not None:
                 self.log.info("[CACHE_HIT] autocomplete: %s", partial_text)
-                return cached
+                return cast(list[GeoResult], cached)
 
         self.log.debug("[CACHE_MISS] autocomplete: %s", partial_text)
         start_time = time.time()
@@ -824,7 +824,7 @@ class GeoFinder:
             cached = self._cache.get(cache_key)
             if cached is not None:
                 self.log.info("[CACHE_HIT] search_nearby: %s", place_name)
-                return cached
+                return cast(list[GeoResult], cached)
 
         self.log.debug("[CACHE_MISS] search_nearby: %s", place_name)
 
