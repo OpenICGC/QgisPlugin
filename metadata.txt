@@ -28,8 +28,15 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.28
-changelog=v1.1.28 (2025-11-25)
+version=1.1.29
+changelog=v1.1.29 (2026-02-06)
+	- Added new layer territorial elevations
+	- Added new layer coastal elevations
+	- Updated metadata links
+	- Fixed layer coastal shade
+	- Fixed issue loading layers based on QLR files without defining download_folder
+
+	v1.1.28 (2025-11-25)
 	- Modified grouping of products in the menus
 	- Fixed issue searching place names and addresses
 	- Fixed issue downloading products with filenames in uppercase

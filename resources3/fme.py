@@ -18,7 +18,7 @@ from importlib import reload
 from . import http
 reload(http)
 from .http import get_historic_ortho_years, get_historic_local_ortho_years, get_coast_orthophoto_years
-from .http import get_coastline_years
+from .http import get_coastline_years, get_coast_lidar_time, get_dtm_time
 
 # Configure internal library logger (Default is dummy logger)
 import logging
@@ -134,9 +134,6 @@ def get_services_list():
             ("topografia-250000", "Mapa topogràfic 1:250.000", 2500, None, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "topografia-250000.tif", "cat_rect", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=topografia-250000&Format=GEOTIFF&Projecte=topografia-250000&Codi=%s&piramide=True", None),
             ("topografia-1000000", "Mapa topogràfic 1:1.000.000", 10000, None, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "topografia-1000000.tif", "cat_rect", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=topografia-1000000&Format=GEOTIFF&Projecte=topografia-1000000&Codi=%s&piramide=True", None),
             # GROUP topographic maps
-            # Topographics maps vectorial
-            ("mapa-topo/ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
-                ("https://datacloud.icgc.cat/datacloud/ct1m_ETRS89/json_tall/ct1m_id.json", "ct1m_disponible.qml")),
             # Territorial topography vectorial (prefix_id auto group)
             ("mapa-topo/topografia-territorial-gpkg", "Referencial topogràfic territorial GeoPackage", 50, 100000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.gpkg", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
             ("mapa-topo/topografia-territorial-dgn", "Referencial topogràfic territorial DGN", 50, 25000000, None, None, None, None, ["", "pol", "mu"], "topografia-territorial.dgn", "5k_limits", "%s/fmedatastreaming/topografia-territorial/ICGC_topografia-territorial_clip_to_CAD.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&format_cad=DGN&file_name=tt&Codi=%s", None),
@@ -170,14 +167,105 @@ def get_services_list():
                 ("http://datacloud.icgc.cat/datacloud/topografia-local/json/topografia-local-tall.json", "tall-5k.qml")),
             ("mapa-topo/referencial-topografic-local-bim-ifc", "Referencial topogràfic local BIM", None, None, None, None, None, None, ["full"], "topografia-local-bim.ifc-zip", "cat_limits", "%s/fmedatastreaming/topografia-local/ICGC_topografia-local_download.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s&format=ifc&dimension=2d",
                 ("http://datacloud.icgc.cat/datacloud/topografia-local/json/topografia-local-tall.json", "tall-5k.qml")),
+            # Topographics maps vectorial
+            ("mapa-topo/ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
+                ("https://datacloud.icgc.cat/datacloud/ct1m_ETRS89/json_tall/ct1m_id.json", "ct1m_disponible.qml")),
 
             # Ground maps
             ("cobertes-sol-raster", "Mapa de cobertes del sòl", 100, 200000000, None, None, None, None, ["", "pol", "mu", "co", "cat", "tot"], "cobertes-sol.tif", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=mcsc&Format=GEOTIFF&Projecte=cobertes-sol&Codi=%s&piramide=True", None),
             ("cobertes-sol-vector", "Mapa de cobertes del sòl", None, 400000000, None, None, None, None, ["", "pol", "mu", "co"], "cobertes-sol.gpkg", "cat_limits", "%s/fmedatastreaming/cobertes-sol/ICGC_cobertes-sol_gpkg_clip.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s", None),
 
             # DTMs (prefix_id auto group)
-            ("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
-            ("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
+            #("met2", "MET 2m", 200, 800000000, None, None, None, None, ["", "pol", "mu", "co"], "met2.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met2&Format=GEOTIFF&Projecte=met2&Codi=%s&piramide=True", None),
+            #("met5", "MET 5m", 500, 5000000000, None, None, None, None, ["", "pol", "mu", "co"], "met5.tif", "5k_limits", "%s/fmedatastreaming/Descarrega_basica/geotiff2format_clip_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&DEF_NAME=met5m&Format=GEOTIFF&Projecte=met5&Codi=%s&piramide=True", None),
+            # model-elevacions-terreny
+            ("elevacions/met25cm", "MET 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("met25cm"), ["", "pol"], "met25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny&nom=met-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/met50cm", "MET 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("met50cm"), ["", "pol", "mu"], "met50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny&nom=met-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/met1m", "MET 1m", 100, 200000000, None, None, 1, get_dtm_time("met1m"), ["", "pol", "mu"], "met1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny&nom=met-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/met2m", "MET 2m", 200, 800000000, None, None, 2, get_dtm_time("met2m"), ["", "pol", "mu"], "met2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny&nom=met-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/met5m", "MET 5m", 500, 5000000000, None, None, 5, get_dtm_time("met5m"), ["", "pol", "mu", "co"], "met5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny&nom=met-x",
+                (None, "tall-5k.qml")),
+            # # model-elevacions-terreny-edificis
+            # ("elevacions/ed25cm", "MET Ed 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("ed25cm"), ["", "pol"], "mete25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis&nom=met-ed-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/ed50cm", "MET Ed 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("ed50cm"), ["", "pol", "mu"], "mete50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis&nom=met-ed-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/ede1m", "MET Ed 1m", 100, 200000000, None, None, 1, get_dtm_time("ed1m"), ["", "pol", "mu"], "mete1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis&nom=met-ed-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/ed2m", "MET Ed 2m", 200, 800000000, None, None, 2, get_dtm_time("ed2m"), ["", "pol", "mu"], "mete2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis&nom=met-ed-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/ed5m", "MET Ed 5m", 500, 5000000000, None, None, 5, get_dtm_time("ed5m"), ["", "pol", "mu", "co"], "mete5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis&nom=met-ed-x",
+            #     (None, "tall-5k.qml")),
+            # model-superficies
+            ("elevacions/ms25cm", "MS 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("ms25cm"), ["", "pol"], "ms25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies&nom=ms-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/ms50cm", "MS 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("ms50cm"), ["", "pol", "mu"], "ms50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies&nom=ms-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/ms1m", "MS 1m", 100, 200000000, None, None, 1, get_dtm_time("ms1m"), ["", "pol", "mu"], "ms1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies&nom=ms-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/ms2m", "MS 2m", 200, 800000000, None, None, 2, get_dtm_time("ms2m"), ["", "pol", "mu"], "ms2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies&nom=ms-x",
+                (None, "tall-5k.qml")),
+            ("elevacions/ms5m", "MS 5m", 500, 5000000000, None, None, 5, get_dtm_time("ms5m"), ["", "pol", "mu", "co"], "ms5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies&nom=ms-x",
+                (None, "tall-5k.qml")),
+            # # model-orientacions
+            # ("elevacions/mo25cm", "MO 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("mo25cm"), ["", "pol"], "mo25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions&nom=mo-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/mo50cm", "MO 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("mo50cm"), ["", "pol", "mu"], "mo50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions&nom=mo-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/mo1m", "MO 1m", 100, 200000000, None, None, 1, get_dtm_time("mo1m"), ["", "pol", "mu"], "mo1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions&nom=mo-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/mo2m", "MO 2m", 200, 800000000, None, None, 2, get_dtm_time("mo2m"), ["", "pol", "mu"], "mo2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions&nom=mo-x",
+            #     (None, "tall-5k.qml")),
+            # ("elevacions/mo5m", "MO 5m", 500, 5000000000, None, None, 5, get_dtm_time("mo5m"), ["", "pol", "mu", "co"], "mo5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions&nom=mo-x",
+            #     (None, "tall-5k.qml")),
+            # model-elevacions-terreny-litoral
+            ("elevacions-lito/metl25cm", "MET Lito 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("metl25cm"), ["", "pol"], "metl25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-litoral&nom=met-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/metl50cm", "MET Lito 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("metl50cm"), ["", "pol", "mu"], "metl50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-litoral&nom=met-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/metl1m", "MET Lito 1m", 100, 200000000, None, None, 1, get_dtm_time("metl1m"), ["", "pol", "mu"], "metl1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-litoral&nom=met-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/metl2m", "MET Lito 2m", 200, 800000000, None, None, 2, get_dtm_time("metl2m"), ["", "pol", "mu"], "metl2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-litoral&nom=met-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/metl5m", "MET Lito 5m", 500, 5000000000, None, None, 5, get_dtm_time("metl5m"), ["", "pol", "mu", "co"], "metl5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-litoral&nom=met-lito.x",
+                (None, "tall-5k.qml")),
+            # model-elevacions-terreny-edificis-litoral
+            ("elevacions-lito/edl25cm", "MET Ed Lito 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("edl25cm"), ["", "pol"], "metel25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis-litoral&nom=met-ed-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/edl50cm", "MET Ed Lito 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("edl50cm"), ["", "pol", "mu"], "metel50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis-litoral&nom=met-ed-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/edl1m", "MET Ed Lito 1m", 100, 200000000, None, None, 1, get_dtm_time("edl1m"), ["", "pol", "mu"], "metel1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis-litoral&nom=met-ed-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/edl2m", "MET Ed Lito 2m", 200, 800000000, None, None, 2, get_dtm_time("edl2m"), ["", "pol", "mu"], "metel2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis-litoral&nom=met-ed-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/edl5m", "MET Ed Lito 5m", 500, 5000000000, None, None, 5, get_dtm_time("edl5m"), ["", "pol", "mu", "co"], "metel5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-elevacions-terreny-edificis-litoral&nom=met-ed-lito-x",
+                (None, "tall-5k.qml")),
+            # model-superficies-litoral
+            ("elevacions-lito/msl25cm", "MS Lito 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("msl25cm"), ["", "pol"], "msl25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies-litoral&nom=ms-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/msl50cm", "MS Lito 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("msl50cm"), ["", "pol", "mu"], "msl50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies-litoral&nom=ms-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/msl1m", "MS Lito 1m", 100, 200000000, None, None, 1, get_dtm_time("msl1m"), ["", "pol", "mu"], "msl1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies-litoral&nom=ms-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/msl2m", "MS Lito 2m", 200, 800000000, None, None, 2, get_dtm_time("msl2m"), ["", "pol", "mu"], "msl2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies-litoral&nom=ms-lito-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/msl5m", "MS Lito 5m", 500, 5000000000, None, None, 5, get_dtm_time("msl5m"), ["", "pol", "mu", "co"], "msl5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-superficies-litoral&nom=ms-lito-x",
+                (None, "tall-5k.qml")),
+            # model-orientacions-litoral
+            ("elevacions-lito/mol25cm", "MO Lito 25cm", 25, 12500000, None, None, 0.25, get_dtm_time("mol25cm"), ["", "pol"], "mol25cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions-litoral&nom=mol-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/mol50cm", "MO Lito 50cm", 50, 50000000, None, None, 0.5, get_dtm_time("mol50cm"), ["", "pol", "mu"], "mol50cm.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions-litoral&nom=mol-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/mol1m", "MO Lito 1m", 100, 200000000, None, None, 1, get_dtm_time("mol1m"), ["", "pol", "mu"], "mol1m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions-litoral&nom=mol-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/mol2m", "MO Lito 2m", 200, 800000000, None, None, 2, get_dtm_time("mol2m"), ["", "pol", "mu"], "mol2m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions-litoral&nom=mol-x",
+                (None, "tall-5k.qml")),
+            ("elevacions-lito/mol5m", "MO Lito 5m", 500, 5000000000, None, None, 5, get_dtm_time("mol5m"), ["", "pol", "mu", "co"], "mol5m.tif", "5k_limits", "%s/fmedatastreaming/elevacions/ICGC_elevacions_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s&producte=model-orientacions-litoral&nom=mol-x",
+                (None, "tall-5k.qml")),
 
             # GROUP coast
             # Coast data
@@ -211,6 +299,8 @@ def get_services_list():
             # LiDAR data
             ("lidar-territorial", "Lidar Territorial 2021-2023", 10, 200000, None, None, None, ["2021-2023"], ["","full"], "lidar.laz", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&Projecte=lidar&Codi=%s",
                 ("https://datacloud.icgc.cat/datacloud/lidar-territorial/json/lidar-territorial-tall.json", "tall-5k.qml")),
+            ("lidar-litoral", "Lidar Litoral", 10, 200000, None, None, None, get_coast_lidar_time(), ["","full"], "lidar-litoral.laz", "lidar1k_limits", "%s/fmedatastreaming/lidar-litoral/ICGC_lidar-litoral_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&Projecte=lidar-litoral&Codi=%s&tall=%s",
+                (None, "tall-5k.qml")),
 
             # Photo library
             ("photo", "Fotogrames", None, None, 100, 100000000, None, None, ["", "pol", "tot"], "photo.tif", "cat_rect", "%s/fmedatastreaming/Fototeca/ICGC_fototeca_download.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Codi=%s&Any=%s&CodiVol=%s&NomFoto=%s&Nom=%s", None),

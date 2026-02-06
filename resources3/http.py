@@ -67,6 +67,7 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
         log.error("HTTP resources error, exhausted retries")
     return response_data
 
+url_response_dict = {}
 def get_http_files(url, file_regex_pattern, replace_list=[]):
     """ Obté una llista de fitxer d'una pàgina web a partir d'una expressió regular
         Retorna: llista de resultats de la expressió regular
@@ -74,9 +75,20 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
         Gets file list of web page from a regular expression
         Returns: list of regex matches
         """
-    # LLegeixo les dades HTML del directori HTTP
+    global url_response_dict
     t0 = datetime.datetime.now()
-    response_data = get_http_dir(url)
+
+    # Mirem si tenim la URL cachejada, si ja tenim les dades no cal fer res
+    response_data = url_response_dict.get(url, None)
+    if response_data:
+        cached = True
+    else:
+        cached = False
+        # LLegeixo les dades HTML del directori HTTP
+        response_data = get_http_dir(url)
+        if response_data:
+            # Guardem el resultat a la cache
+            url_response_dict[url] = response_data
     if not response_data:
         files_list = []
     else:
@@ -86,13 +98,15 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
         # Obtinc la informació de fitxers a partri de la regex
         http_file_regex_pattern = r'<A HREF="[\/\w-]*%s">' % file_regex_pattern
         files_list = re.findall(http_file_regex_pattern, response_data)
+
     t1 = datetime.datetime.now()
-    log.debug("HTTP resources files find URL: %s pattern: %s found: %s (%s)", url, file_regex_pattern, len(files_list), t1-t0)
+    log.debug("HTTP resources files find URL: %s pattern: %s cached: %s, found: %s (%s)", url, file_regex_pattern, cached, len(files_list), t1-t0)
     return files_list
 
-def get_products(urlbase_list):
+def get_products(urlbase_list, subproduct_separator="\n", subproduct_reverse=True):
     """ Obté les URLs dels arxius d'un producte de l'ICGC d'una carpeta que compleixin una expresió regular
-        Params: [(carpeta, regex), ...]
+        Params:
+        - urlbase_list: [(nom_producte, carpeta, regex), ...]
         Retorna: [(product_name, product_url)]
         ---
         Gets ICGC's available product urls from a folder that match a regular expression
@@ -111,8 +125,9 @@ def get_products(urlbase_list):
             if type(product_info) is str:
                 product_file = product_info
                 product_subname = ""
-            elif len(product_info) == 2:
-                product_file, product_subname = product_info
+            elif len(product_info) > 1:
+                product_file = product_info[0]
+                product_subname = subproduct_separator.join(product_info[1:][::-1 if subproduct_reverse else 1])
             else:
                 continue
             #product_file = sorted(files_list, reverse=True)[0]
@@ -125,7 +140,7 @@ def get_products(urlbase_list):
 # *****************************************************************************
 # Products
 
-def get_dtms(urlbase_list=[
+def get_old_dtms(urlbase_list=[
     ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic", r'(met\w+\.\w+)'),
     ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic", r'(met\w+\.\w+)'),
     ]):
@@ -149,6 +164,137 @@ def get_dtms(urlbase_list=[
         ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic/met2_catalunya_2020.tif"),
         ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic/met5_catalunya_2020.tif"),
     ]
+dtm_list = []
+def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
+    # model-elevacions-terreny
+    ("met25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-25cm-(\d+-\d+)\.json)"),
+    ("met50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-50cm-(\d+-\d+)\.json)"),
+    ("met1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-1m-(\d+-\d+)\.json)"),
+    ("met2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-2m-(\d+-\d+)\.json)"),
+    ("met5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-5m-(\d+-\d+)\.json)"),
+    # model-elevacions-terreny-edificis
+    ("ed25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("ed50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("ed1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("ed2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("ed5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-superficies
+    ("ms25cm-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-25cm-(\d+-\d+)\.json)"),
+    ("ms50cm-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-50cm-(\d+-\d+)\.json)"),
+    ("ms1m-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-1m-(\d+-\d+)\.json)"),
+    ("ms2m-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-2m-(\d+-\d+)\.json)"),
+    ("ms5m-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-5m-(\d+-\d+)\.json)"),
+    # model-orientacions
+    ("mo25cm-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("mo50cm-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("mo1m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("mo2m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("mo5m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-elevacions-terreny-litoral
+    ("metl25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("metl50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("metl1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("metl2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("metl5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-elevacions-terreny-edificis-litoral
+    ("edl25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-litoral/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("edl50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-litoral/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("edl1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-litoral/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("edl2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-litoral/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("edl5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-litoral/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-superficies-litoral
+    ("msl25cm-", "https://datacloud.icgc.cat/datacloud/model-superficies-litoral/json_unzip", r"(model-superficies-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("msl50cm-", "https://datacloud.icgc.cat/datacloud/model-superficies-litoral/json_unzip", r"(model-superficies-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("msl1m-", "https://datacloud.icgc.cat/datacloud/model-superficies-litoral/json_unzip", r"(model-superficies-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("msl2m-", "https://datacloud.icgc.cat/datacloud/model-superficies-litoral/json_unzip", r"(model-superficies-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("msl5m-", "https://datacloud.icgc.cat/datacloud/model-superficies-litoral/json_unzip", r"(model-superficies-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-orientacions-litoral
+    ("mol25cm-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("mol50cm-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("mol1m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("mol2m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("mol5m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    ], json_not_tiff=True, remove_prefix=False, sort_by_key=False):
+    """ Obté les URLs dels arxius de MET disponibles de l'ICGC
+        Retorna: [(dtm_name, dtm_url)]
+        ---
+        Gets ICGC's available DTM urls
+        Returns: [(dtm_name, dtm_url)]
+        """
+    # Detectem si tenim les dades catxejades i si no les llegim remotament segons
+    # els filtres indicats
+    global dtm_list
+    if not dtm_list:
+        dtm_list = get_products(urlbase_list)
+    print("ZZZ", dtm_list)
+
+    if group_by_product_not_gsd:
+        # Si ens demanen agrupar per producte, juntem tots productes iguals de diferent GSD
+        final_dtm_list = []
+        for dtm_name_gsd, dtm_url in dtm_list:
+            dtm_id = "".join(re.split(r"\d+c*m", dtm_name_gsd))
+            final_dtm_list.append((dtm_id, dtm_url))
+    else:
+        final_dtm_list = dtm_list
+    if dtm_name:
+        final_dtm_list = [(dtm_id, dtm_url) \
+            for dtm_id, dtm_url in final_dtm_list if dtm_id.split("-")[0] == dtm_name]
+    if remove_prefix:
+        final_dtm_list = [("-".join(dtm_id.split("-")[1:]), dtm_url) \
+            for dtm_id, dtm_url in final_dtm_list]
+    if not json_not_tiff:
+        final_dtm_list = [(dtm_id, dtm_url.replace("json_unzip", "tif_unzip").replace(".json", ".tif")) \
+            for dtm_id, dtm_url in final_dtm_list]
+    return sorted(final_dtm_list) if sort_by_key else final_dtm_list
+
+def get_dtm_time(dtm_name, group_by_product_not_gsd=False):
+    """ Retorna les franjes temporals disponibles de mets
+        ---
+        Gets available dtm time ranges
+    """
+    dtm_prefix = dtm_name + "-"
+    time_list = [time_code.replace(dtm_prefix, "") \
+        for time_code, _url in get_dtms(dtm_name, group_by_product_not_gsd)]
+    return sorted(time_list)
+
+def get_dtm_time_layers(dtm_name, group_by_product_not_gsd=False):
+    """ Retorna les franjes temporals disponibles de mets i la capa WMS associada
+        ---
+        Gets available dtm time ranges and associated WMS layer
+    """
+    dtm_prefix = dtm_name + "-"
+    time_list = [
+        (time_code.replace(dtm_prefix, ""), os.path.splitext(url.split("/")[-1])[0]) \
+        for time_code, url in get_dtms(dtm_name, group_by_product_not_gsd)]
+    return sorted(time_list)
+
+def get_dtm_ref(dtm_name_gsd, time_code):
+    """ Retorna l'arxiu de referència (URL) d'un MET
+        ---
+        Gets dtm refernce file (URL)
+    """
+    dtm_gsd_time = "%s-%s" % (dtm_name_gsd, time_code)
+    ref_file = dict(get_dtms(dtm_name_gsd, group_by_product_not_gsd=False)).get(dtm_gsd_time)
+    return ref_file
+
+def get_dtm_image(dtm_name, time_code):
+    """ Retorna l'arxiu imatge (URL) d'un MET
+        ---
+        Gets dtm image file (URL)
+    """
+    dtm_time = "%s-%s" % (dtm_name, time_code)
+    ref_file = dict(get_dtms(dtm_name, group_by_product_not_gsd=True)).get(dtm_time)
+    image_file = ref_file.replace(".json", ".tif").replace("/json_unzip", "/tif_unzip")
+    return image_file
+
+def get_dtm_filename(dtm_name, time_code):
+    """ Retorna el nom l'arxiu de referència d'un MET
+        ---
+        Gets dtm reference file name
+    """
+    url = get_dtm_ref(dtm_name, time_code)
+    filename = os.path.splitext(url.split("/")[-1])[0]
+    return filename
 
 coastline_list = None # Cached data
 def get_coastlines(urlbase_list = [
@@ -501,16 +647,6 @@ def get_decentralized_municipal_entities(urlbase="https://datacloud.icgc.cat/dat
     url = urlbase + "/" + "entitats-municipals-descentralitzades.gpkg|layername=entitats-municipals-descentralitzades"
     return url
 
-def get_bathimetric_elevations(urlbase="https://datacloud.icgc.cat/datacloud/batimetria/vigent/tif_unzip"):
-    """ Obté la URL del producte elevacions batimètriques
-        Retorna: url
-        ---
-        Gets ICGC's available bathimetric elevations product URL
-        Returns: url
-    """
-    url = urlbase + "/" + "batimetria-elevacions.tif"
-    return url
-
 def get_population_zones(urlbase="https://datacloud.icgc.cat/datacloud/arees-poblament/vigent/gpkg_unzip"):
     """ Obté la URL del producte àrees de població
         Retorna: url
@@ -520,3 +656,40 @@ def get_population_zones(urlbase="https://datacloud.icgc.cat/datacloud/arees-pob
     """
     url = urlbase + "/" + "arees-poblament.gpkg|layername=arees-poblament"
     return url
+
+coast_lidar_list = None # Cached data
+def get_coast_lidar(urlbase_list = [
+    ("", "https://datacloud.icgc.cat/datacloud/lidar-litoral/json/", r"(lidar-litoral-tall-\dkm-(\d{6}-\d{6})\.json)")
+    ]):
+    """ Obté les URLs dels arxius de lidar de costa disponibles de l'ICGC
+        Retorna: [(coast_name, coast_url)]
+        ---
+        Gets ICGC's available lidar coast urls
+        Returns: [(coast_name, coast_url)]
+        """
+    global coast_lidar_list
+    if not coast_lidar_list:
+        coast_lidar_list = get_products(urlbase_list)
+    return coast_lidar_list
+
+def get_coast_lidar_filename_dict():
+    """ Retorna els arxius disponibles de lidar de costa
+        ---
+        Returns available lidar coast files
+        """
+    return {time: os.path.splitext(url.split("/")[-1])[0] for time, url in get_coast_lidar()}
+
+def get_coast_lidar_ref(time_code):
+    """ Retorna els arxius de referència disponibles de lidar de costa
+        ---
+        Returns available reference lidar coast files
+        """
+    return {time: url for time, url in get_coast_lidar()}[time_code]
+
+def get_coast_lidar_time():
+    """ Retorna les franjes temporals disponibles de lidar de costa
+        ---
+        Gets available lidar coast time ranges
+    """
+    coast_lidar_list = get_coast_lidar()
+    return sorted([time for time, url in coast_lidar_list])

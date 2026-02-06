@@ -4335,7 +4335,6 @@ class LayersBase(object):
             ---
             Update WMS layer to read
             """
-
         def wms_datetime_to_qdatetime(wms_text):
             """ Funció auxiliar per convertir una data text en QDateTime """
             # Parsegem el format ISO 8601, si funciona ja hem acabat
@@ -4430,7 +4429,7 @@ class LayersBase(object):
         default_time = None
         root = ElementTree.fromstring(capabilities_xml)
         layers = root.find('Capability').find("Layer")
-        for layer in layers.findall('Layer'):
+        for layer in layers.findall('.//Layer'):
             # Si tenim un identificador de capa, cerquem aquella capa i obtenim les seves marques temporals
             if layer_id:
                 if layer.find("Name").text != layer_id:
@@ -4585,6 +4584,10 @@ class LayersBase(object):
             layer.dataProvider().reloadData()
             layer.reload()
             layer.triggerRepaint()
+
+        if not url or not current_layer:
+            # Si tenim un fals WMS-T amb link a arxius raster, cal actualitzar la expansió de colors
+            self.enable_color_expansion(layer, True)
 
     def add_xyz_layer(self, layer_name, url, min=0, max=20, epsg=3857, interpolation=None, tile_pixel_ratio=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
         """

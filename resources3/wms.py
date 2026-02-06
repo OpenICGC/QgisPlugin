@@ -299,3 +299,16 @@ def get_coast_ortho_ref(time_code):
     if not coast_ortho_time_dict:
         coast_ortho_time_dict = {date_tag: layer_id for layer_id, layer_name, color_type, date_tag in get_coast_orthos()[1]}
     return coast_ortho_time_dict.get(time_code, None)
+
+topo_ltr_layers = None # Cached data
+def get_topo_ltr_layers(url="https://geoserveis.icgc.cat/servei/catalunya/topografia-local/wms",
+    reg_ex_filter=r"<Name>(\w+)</Name>\s+<Title>.+</Title>"):
+    """ Obté la llista de capes disponibles del servei WMS de topografia local de l'ICGC
+        ---
+        Gets the list of available layers from the ICGC local topography WMS service
+        """
+    global topo_ltr_layers
+    if topo_ltr_layers is None:
+        wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+        topo_ltr_layers = [layer_id for layer_id in wms_list if layer_id != "default"]
+    return topo_ltr_layers

@@ -63,15 +63,16 @@ if is_import_relative:
     from .qlib3.downloaddialog.downloaddialog import DownloadDialog
     # Import wms resources access functions
     from .resources3.wms import get_full_ortho, get_coastlines, get_coast_orthos, get_coast_ortho_ref
-    from .resources3.wms import get_full_local_ortho
+    from .resources3.wms import get_full_local_ortho, get_topo_ltr_layers
     from .resources3.fme import get_clip_data_url, get_services, get_data_filters, FME_MAX_ASPECT_RATIO
     from .resources3.fme import get_regex_styles as get_fme_regex_styles, FME_DOWNLOAD_EPSG, FME_MAX_POLYGON_POINTS
     from .resources3.http import get_historic_ortho_code, get_historic_ortho_ref, get_lidar_ortho
     from .resources3.http import get_coastline_filename_dict, get_coast_orthophoto_filename_dict
     from .resources3.http import get_historic_local_ortho_ref, get_historic_local_ortho_code
-    from .resources3.http import get_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
+    from .resources3.http import get_old_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
     from .resources3.http import get_ndvis, get_topographic_5k, get_decentralized_municipal_entities
-    from .resources3.http import get_bathimetric_elevations, get_population_zones
+    from .resources3.http import get_population_zones, get_coast_lidar_ref, get_coast_lidar_filename_dict
+    from .resources3.http import get_dtm_ref, get_dtm_filename, get_dtms
     from .resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 else:
     # Import basic plugin functionalities
@@ -103,7 +104,7 @@ else:
     import resources3.wms
     reload(resources3.wms)
     from resources3.wms import get_full_ortho, get_coastlines, get_coast_orthos, get_coast_ortho_ref
-    from resources3.wms import get_full_local_ortho
+    from resources3.wms import get_full_local_ortho, get_topo_ltr_layers
     import resources3.fme
     reload(resources3.fme)
     from resources3.fme import get_clip_data_url, get_services, get_data_filters, FME_MAX_ASPECT_RATIO
@@ -113,9 +114,10 @@ else:
     from resources3.http import get_historic_ortho_code, get_historic_ortho_ref, get_lidar_ortho
     from resources3.http import get_coastline_filename_dict, get_coast_orthophoto_filename_dict
     from resources3.http import get_historic_local_ortho_ref, get_historic_local_ortho_code
-    from resources3.http import get_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
+    from resources3.http import get_old_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
     from resources3.http import get_ndvis, get_topographic_5k, get_decentralized_municipal_entities
-    from resources3.http import get_bathimetric_elevations, get_population_zones
+    from resources3.http import get_population_zones, get_coast_lidar_ref, get_coast_lidar_filename_dict
+    from resources3.http import get_dtm_ref, get_dtm_filename, get_dtms
     from resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 
 # Global function to set HTML tags to apply fontsize to QInputDialog text
@@ -479,8 +481,50 @@ class OpenICGC(PluginBase):
             "cobertes-sol-raster": self.tr("Land cover map"),
             "cobertes-sol-vector": self.tr("Land cover map"),
 
-            "met2": self.tr("Digital terrain model 2m 2008-2011"),
-            "met5": self.tr("Digital terrain model 5m 2020"),
+            #"met2": self.tr("Digital terrain model 2m 2008-2011"),
+            #"met5": self.tr("Digital terrain model 5m 2020"),
+            "elevacions": self.tr("Elevations"),
+            "met25cm": self.tr("Digital terrain model"),
+            "met50cm": self.tr("Digital terrain model"),
+            "met1m": self.tr("Digital terrain model"),
+            "met2m": self.tr("Digital terrain model"),
+            "met5m": self.tr("Digital terrain model"),
+            "ed25cm": self.tr("Digital terrain model buildings"),
+            "ed50cm": self.tr("Digital terrain model buildings"),
+            "ed1m": self.tr("Digital terrain model buildings"),
+            "ed2m": self.tr("Digital terrain model buildings"),
+            "ed5m": self.tr("Digital terrain model buildings"),
+            "ms25cm": self.tr("Surface model"),
+            "ms50cm": self.tr("Surface model"),
+            "ms1m": self.tr("Surface model"),
+            "ms2m": self.tr("Surface model"),
+            "ms5m": self.tr("Surface model"),
+            "mo25cm": self.tr("Orientations model"),
+            "mo50cm": self.tr("Orientations model"),
+            "mo1m": self.tr("Orientations model"),
+            "mo2m": self.tr("Orientations model"),
+            "mo5m": self.tr("Orientations model"),
+            "elevacions-lito": self.tr("Coastal elevations"),
+            "metl25cm": self.tr("Coastal digital terrain model"),
+            "metl50cm": self.tr("Coastal digital terrain model"),
+            "metl1m": self.tr("Coastal digital terrain model"),
+            "metl2m": self.tr("Coastal digital terrain model"),
+            "metl5m": self.tr("Coastal digital terrain model"),
+            "edl25cm": self.tr("Coastal digital terrain model buildings"),
+            "edl50cm": self.tr("Coastal digital terrain model buildings"),
+            "edl1m": self.tr("Coastal digital terrain model buildings"),
+            "edl2m": self.tr("Coastal digital terrain model buildings"),
+            "edl5m": self.tr("Coastal digital terrain model buildings"),
+            "msl25cm": self.tr("Coastal surface model"),
+            "msl50cm": self.tr("Coastal surface model"),
+            "msl1m": self.tr("Coastal surface model"),
+            "msl2m": self.tr("Coastal surface model"),
+            "msl5m": self.tr("Coastal surface model"),
+            "mol25cm": self.tr("Coastal orientations model"),
+            "mol50cm": self.tr("Coastal orientations model"),
+            "mol1m": self.tr("Coastal orientations model"),
+            "mol2m": self.tr("Coastal orientations model"),
+            "mol5m": self.tr("Coastal orientations model"),
 
             "costa": self.tr("Coast"),
             "elevacions-franja-litoral": self.tr("Topobathymetric elevation model"),
@@ -502,6 +546,7 @@ class OpenICGC(PluginBase):
             #"mah250m": self.tr("Map of hydrogeological Areas 1:250,000"),
 
             "lidar-territorial": self.tr("Territorial Lidar"),
+            "lidar-litoral": self.tr("Coastal Lidar"),
             "of-lidar-territorial": self.tr("Territorial Lidar Color Orthophoto"),
             "oi-lidar-territorial": self.tr("Territorial Lidar Infrared Orthophoto"),
 
@@ -527,8 +572,31 @@ class OpenICGC(PluginBase):
             "hli10cm": "cat_ortho5ki.png",
             "mt": "cat_topo5k.png",
             "co": "cat_landcover.png",
-            "me": "cat_dtm.png",
-            #"gt": "cat_geo250k.png",
+            "me": "cat_dtm.png", # Elevacions
+            "ed": "cat_dtm.png",
+            "ms": "cat_dtm.png",
+            "mo": "cat_dtm.png",
+            "metl25cm": "cat_coast.png", # Elevacions litoral
+            "metl50cm": "cat_coast.png",
+            "metl1m": "cat_coast.png",
+            "metl2m": "cat_coast.png",
+            "metl5m": "cat_coast.png",
+            "edl25cm": "cat_coast.png",
+            "edl50cm": "cat_coast.png",
+            "edl1m": "cat_coast.png",
+            "edl2cm": "cat_coast.png",
+            "edl5m": "cat_coast.png",
+            "msl25cm": "cat_coast.png",
+            "msl50cm": "cat_coast.png",
+            "msl1m": "cat_coast.png",
+            "msl2m": "cat_coast.png",
+            "msl5m": "cat_coast.png",
+            "mol25cm": "cat_coast.png",
+            "mol50cm": "cat_coast.png",
+            "mol1m": "cat_coast.png",
+            "mol2m": "cat_coast.png",
+            "mol5m": "cat_coast.png",
+            #"gt": "cat_geo250k.png", # Geològic
             "mg": "cat_geo250k.png",
             "ma": "cat_geo250k.png",
             "lc": "cat_coast.png",
@@ -587,8 +655,49 @@ class OpenICGC(PluginBase):
             "cobertes-sol-raster": "Land cover map",
             "cobertes-sol-vector": "Land cover map",
 
-            "met2": "Digital Terrain Model 2m 2008-2011",
-            "met5": "Digital Terrain Model 5m 2020",
+            #"met2": "Digital Terrain Model 2m 2008-2011",
+            #"met5": "Digital Terrain Model 5m 2020",
+            "met25cm": "Digital terrain model",
+            "met50cm": "Digital terrain model",
+            "met1m": "Digital terrain model",
+            "met2m": "Digital terrain model",
+            "met5m": "Digital terrain model",
+            "ed25cm": "Digital terrain model buildings",
+            "ed50cm": "Digital terrain model buildings",
+            "ed1m": "Digital terrain model buildings",
+            "ed2m": "Digital terrain model buildings",
+            "ed5m": "Digital terrain model buildings",
+            "ms25cm": "Surface model",
+            "ms50cm": "Surface model",
+            "ms1m": "Surface model",
+            "ms2m": "Surface model",
+            "ms5m": "Surface model",
+            "mo25cm": "Orientations model",
+            "mo50cm": "Orientations model",
+            "mo1m": "Orientations model",
+            "mo2m": "Orientations model",
+            "mo5m": "Orientations model",
+            "metl25cm": "Coastal digital terrain model",
+            "metl50cm": "Coastal digital terrain model",
+            "metl1m": "Coastal digital terrain model",
+            "metl2m": "Coastal digital terrain model",
+            "metl5m": "Coastal digital terrain model",
+            "edl25cm": "Coastal digital terrain model buildings",
+            "edl50cm": "Coastal digital terrain model buildings",
+            "edl1m": "Coastal digital terrain model buildings",
+            "edl2m": "Coastal digital terrain model buildings",
+            "edl5m": "Coastal digital terrain model buildings",
+            "msl25cm": "Coastal surface model",
+            "msl50cm": "Coastal surface model",
+            "msl1m": "Coastal surface model",
+            "msl2m": "Coastal surface model",
+            "msl5m": "Coastal surface model",
+            "mol25cm": "Coastal orientations model",
+            "mol50cm": "Coastal orientations model",
+            "mol1m": "Coastal orientations model",
+            "mol2m": "Coastal orientations model",
+            "mol5m": "Coastal orientations model",
+
             "elevacions-franja-litoral": "Topobathymetric elevation model (-50m) 1m 2022-2024",
             "batimetria": "Bathymetric chart 2021-2024",
 
@@ -609,6 +718,7 @@ class OpenICGC(PluginBase):
             #"mah250m": "Map of hydrogeological Areas 1:250,000",
 
             "lidar-territorial": "Territorial Lidar",
+            "lidar-litoral": "Coastal Lidar",
             "of-lidar-territorial": "Territorial Lidar Color Orthophoto",
             "oi-lidar-territorial": "Territorial Lidar Infrared Orthophoto",
 
@@ -647,11 +757,6 @@ class OpenICGC(PluginBase):
         # Gets available Sheets and Grids
         self.sheets_list = [(name, "/vsicurl/%s" % url, style_file) for name, url, style_file in get_sheets()]
         self.grids_list = [(name, "/vsicurl/%s" % url, style_file) for name, url, style_file in get_grids()]
-
-        # Gets available DTMs and Coast elevations
-        self.dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms()]
-        self.height_highlighting_url = self.dtm_list[0][1] if self.dtm_list else None
-        self.bathimetric_elevations_url = "/vsicurl/%s" % get_bathimetric_elevations()
 
         # Get download services regex styles and filters
         self.fme_regex_styles_list = get_fme_regex_styles()
@@ -786,6 +891,18 @@ class OpenICGC(PluginBase):
         if empty:
             # Gets available Topo5k files to simulate WMS-T service
             self.topo5k_time_series_list = []
+            # Get availabre topo LTR layers
+            self.topo_ltr_layers = []
+
+            # Gets available DTMs
+            self.dtm_list = []
+            self.height_highlighting_url = None
+            # Gets available DTMs with buildings
+            self.dtmb_list = []
+            # Gets available Surface models
+            self.sm_list = []
+            # Gets available Orientation models
+            self.om_list = []
 
             # Gets available Coast
             self.coastline_url, self.coastline_list = (None, [])
@@ -843,6 +960,18 @@ class OpenICGC(PluginBase):
 
             # Gets available Topo5k files to simulate WMS-T service
             self.topo5k_time_series_list = [(time_year, "/vsicurl/%s" % url) for time_year, url in get_topographic_5k()]
+            # Get availabre topo LTR layers
+            self.topo_ltr_layers = get_topo_ltr_layers()
+
+            # Gets available DTMs
+            self.dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("met", json_not_tiff=False, remove_prefix=True, sort_by_key=True)]
+            self.height_highlighting_url = self.dtm_list[0][1] if self.dtm_list else None
+            # Gets available DTMs with buildings
+            self.dtmb_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ed", json_not_tiff=False, remove_prefix=True, sort_by_key=True)]
+            # Gets available Surface models
+            self.sm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ms", json_not_tiff=False, remove_prefix=True, sort_by_key=True)]
+            # Gets available Orientation models
+            self.om_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("mo", json_not_tiff=False, remove_prefix=True, sort_by_key=True)]
 
             # Gets available Coast
             self.coastline_url, self.coastline_list = get_coastlines()
@@ -954,17 +1083,6 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button(product_metadata_url=BASE_MAPS_INFO_URL), True) \
                     for layer_name, (product_name, icon_file) in self.BASE_MAP_DICT.items()]),
                 "---",
-                (self.tr("Territorial topographic referential"), None, "cat_topo5k.png", \
-                    self.enable_http_files and len(self.topo5k_time_series_list) > 0, [
-                    (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
-                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(
-                        self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png",
-                        self.topo5k_time_series_list[::-1], None, 25831,
-                        self.request_referrer_param + "&bgcolor=0x000000",
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                        "cat_topo5k.png",
-                        self.manage_metadata_button("Territorial topographic referential %s (temporal serie)" % topo5k_year), True)
-                    for topo5k_year, _url in self.topo5k_time_series_list]),
                 (self.tr("Topographic map"), None, "cat_topo1m", [
                     (self.tr("Topographic map 1:250,000"),
                         lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"),
@@ -981,13 +1099,24 @@ class OpenICGC(PluginBase):
                         "cat_topo1m.png",
                         self.manage_metadata_button("Topographic map 1:1,000,000"), True),
                     ]),
+                (self.tr("Territorial topographic referential"), None, "cat_topo5k.png", \
+                    self.enable_http_files and len(self.topo5k_time_series_list) > 0, [
+                    (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
+                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(
+                        self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png",
+                        self.topo5k_time_series_list[::-1], None, 25831,
+                        self.request_referrer_param + "&bgcolor=0x000000",
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_topo5k.png",
+                        self.manage_metadata_button("Territorial topographic referential (temporal serie)"), True)
+                    for topo5k_year, _url in self.topo5k_time_series_list]),
                 (self.tr("Local topographic referential"),
                     lambda _checked:self.layers.add_wms_layer(self.tr("Local topographic referential"),
                         "https://geoserveis.icgc.cat/servei/catalunya/topografia-local/wms",
-                        ['210_noms_geografics_n', '200_noms_geografics_l', '190_energia_serveis_n', '180_hidrografia_n', '170_cobertes_sol_n', '160_relleu_n', '150_construccions_l', '140_energia_serveis_l', '130_transports_eixos_de_vials_l', '120_transports_l', '110_hidrografia_eixos_l', '100_hidrografia_l', '090_cobertes_sol_l', '080_energia_serveis_p', '070_hidrografia_p', '060_transports_p', '050_construccions_p', '040_relleu_l', '030_construccions_illa-urbana_p', '020_construccions_recinte_p', '010_cobertes_sol_p', '000_ambits_p'],
+                        self.topo_ltr_layers, ##['210_noms_geografics_n', '200_noms_geografics_l', '190_energia_serveis_n', '180_hidrografia_n', '170_cobertes_sol_n', '160_relleu_n', '150_construccions_l', '140_energia_serveis_l', '130_transports_eixos_de_vials_l', '120_transports_l', '110_hidrografia_eixos_l', '100_hidrografia_l', '090_cobertes_sol_l', '080_energia_serveis_p', '070_hidrografia_p', '060_transports_p', '050_construccions_p', '040_relleu_l', '030_construccions_illa-urbana_p', '020_construccions_recinte_p', '010_cobertes_sol_p', '000_ambits_p'],
                         ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
-                    "cat_topo5k.png",
+                    "cat_topo5k.png", len(self.topo_ltr_layers) > 0,
                     self.manage_metadata_button("Local topographic referential"), True),
                 "---",
                 (self.tr("Administrative divisions"), None, "cat_vector.png", self.enable_http_files, [
@@ -996,6 +1125,7 @@ class OpenICGC(PluginBase):
                             "https://datacloud.icgc.cat/datacloud/divisions-administratives/vigent/fgb_unzip_EPSG25831/divisions-administratives.qlr",
                             group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_visible_map_on_group=True,
                             create_qlr_group=False, rename_group_dict={"divisions-administratives":self.tr("Administrative divisions (vector pyramid)")},
+                            select_folder_text=self.tr("Select download folder"),
                             title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")),
                         "cat_vector.png", self.enable_qlr_files,
                         self.manage_metadata_button("Administrative divisions"), True),
@@ -1087,36 +1217,129 @@ class OpenICGC(PluginBase):
                     "cat_landcover.png",
                     self.manage_metadata_button("Land cover map (temporal serie)"), True),
                 "---",
-                (self.tr("Digital Terrain Model %s") % "", None, "cat_dtm.png", [
-                    (self.tr("Digital Terrain Model %s") % dtm_name,
-                        # Force EPSG:25831 by problems with QGIS 3.10 version
-                        lambda _checked, dtm_name=dtm_name, dtm_url=dtm_url:self.layers.add_raster_layer(
-                            self.tr("Digital Terrain Model %s") % dtm_name,
-                            dtm_url, group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, epsg=25831,
-                            only_one_map_on_group=False, set_current=True, color_default_expansion=True, resampling_bilinear=True),
-                        "cat_dtm.png", self.enable_http_files,
-                        self.manage_metadata_button("Digital Terrain Model %s" % dtm_name), True
-                        ) for dtm_name, dtm_url in self.dtm_list
-                    ]),
-                "---",
+                (self.tr("Elevations"), None, "cat_dtm.png", [
+                    # DTM From DataCloud
+                    (self.tr("Digital terrain model (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Digital terrain model"),
+                            None, None, None, "default", "image/png",
+                            self.dtm_list, None,
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
+                        self.manage_metadata_button("Digital terrain model"), True),
+                    # (self.tr("Digital terrain model buildings (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Digital terrain model buildings"),
+                    #         None, None, None, "default", "image/png",
+                    #         self.dtmb_list, None,
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png", self.enable_http_files and len(self.dtmb_list) > 0,
+                    #     self.manage_metadata_button("Digital terrain model buildings"), True),
+                    (self.tr("Surface model (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Surface model"),
+                            None, None, None, "default", "image/png",
+                            self.sm_list, None,
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.sm_list) > 0,
+                        self.manage_metadata_button("Surface model"), True),
+                    # (self.tr("Orientation model (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Orientation model"),
+                    #         None, None, None, "default", "image/png",
+                    #         self.om_list, None,
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png", self.enable_http_files and len(self.om_list) > 0,
+                    #     self.manage_metadata_button("Orientation model"), True),
+                    "---",
+                    # DTM From WMS
+                    # (self.tr("Digital terrain model (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Digital terrain model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-\w+-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png",
+                    #     self.manage_metadata_button("Digital terrain model"), True),
+                    # (self.tr("Digital terrain model buildings (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Digital terrain model buildings"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-edificis-\w+-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png",
+                    #     self.manage_metadata_button("Digital terrain model buildings"), True),
+                    # (self.tr("Surface model (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Surface model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-superficies-\w+-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png",
+                    #     self.manage_metadata_button("Surface model"), True),
+                    # (self.tr("Orientations model (temporal serie)"),
+                    #     lambda _checked:self.add_wms_t_layer(
+                    #         self.tr("[TS] Orientations model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-orientacions-\w+-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #     "cat_dtm.png",
+                    #     self.manage_metadata_button("Orientations model"), True),
+                    "---",
+                    (self.tr("Coastal digital terrain model (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Coastal digital terrain model"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                            None, None, "default", "image/png",
+                            None, r"model-elevacions-terreny-\w+-\w+-\d+c*m-(\d+-\d+)",
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_coast.png",
+                        self.manage_metadata_button("Coastal digital terrain model"), True),
+                    (self.tr("Coastal digital terrain model buildings (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Coastal digital terrain model buildings"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                            None, None, "default", "image/png",
+                            None, r"model-elevacions-terreny-edificis-\w+-\w+-\d+c*m-(\d+-\d+)",
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_coast.png",
+                        self.manage_metadata_button("Coastal digital terrain model buildings"), True),
+                    (self.tr("Coastal surface model (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Coastal surface model"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                            None, None, "default", "image/png",
+                            None, r"model-superficies-\w+-\w+-\d+c*m-(\d+-\d+)",
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_coast.png",
+                        self.manage_metadata_button("Coastal surface model"), True),
+                    (self.tr("Coastal orientations model (temporal serie)"),
+                        lambda _checked:self.add_wms_t_layer(
+                            self.tr("[TS] Coastal orientations model"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                            None, None, "default", "image/png",
+                            None, r"model-orientacions-\w+-\w+-\d+c*m-(\d+-\d+)",
+                            25831, self.request_referrer_param + "&bgcolor=0x000000",
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                        "cat_coast.png",
+                        self.manage_metadata_button("Coastal orientations model"), True),
+                ]),
                 (self.tr("Coast"), None, "cat_coast.png", [
-                    (self.tr("Bathymetric chart"),
-                        lambda _checked: self.layers.add_wms_layer(
-                            self.tr("Bathymetric chart"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms",
-                            ["isobates_2500000","isobates_600000","isobates_300000","isobates_100000","isobates_5000","elevacions_franja_litoral"],
-                            ["default"] * 6, "image/png", 25831, self.request_referrer_param,
-                            group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
-                            set_current=True, resampling_bilinear=True),
-                        "cat_coast.png", True, self.manage_metadata_button("Bathymetric chart 2021-2024"), True),
-                    (self.tr("Coastal shade"),
-                        lambda _checked: self.layers.add_raster_layer(
-                            self.tr("Coastal shade"),
-                            self.bathimetric_elevations_url,
-                            group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
-                            set_current=True, color_default_expansion=True, resampling_bilinear=True),
-                        "cat_coast.png", self.enable_http_files,
-                        self.manage_metadata_button("Bathymetric chart 2021-2024"), True),
                     (self.tr("Coastline"), None, "cat_coast.png", [
                         (self.tr("Coastline (temporal serie)"),
                             lambda _checked: self.add_wms_t_layer(
@@ -1143,6 +1366,34 @@ class OpenICGC(PluginBase):
                             self.manage_metadata_button("coastline_temporal_serie"), True
                         ) for coastline_layer, coastline_name, coastline_date_tag in reversed(self.coastline_list)
                         ]),
+                    "---",
+                    (self.tr("Bathymetric chart"),
+                        lambda _checked: self.layers.add_wms_layer(
+                            self.tr("Bathymetric chart"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms",
+                            ["isobates_2500000","isobates_600000","isobates_300000","isobates_100000","isobates_5000","elevacions_franja_litoral"],
+                            ["default"] * 6, "image/png", 25831, self.request_referrer_param,
+                            group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
+                            set_current=True, resampling_bilinear=True),
+                        "cat_coast.png", True, self.manage_metadata_button("Bathymetric chart 2021-2024"), True),
+                    (self.tr("Coastal elevations"),
+                        lambda _checked: self.layers.add_wms_layer(
+                            self.tr("Coastal elevations"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms",
+                            ["elevacions_franja_litoral"],
+                            ["default"], "image/png", 25831, self.request_referrer_param,
+                            group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
+                            set_current=True, resampling_bilinear=True),
+                        "cat_coast.png", True, self.manage_metadata_button("Bathymetric chart 2021-2024"), True),
+                    (self.tr("Coastal shade"),
+                        lambda _checked: self.layers.add_wms_layer(
+                            self.tr("Coastal shade"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms",
+                            ["elevacions_franja_litoral_ombrejat"],
+                            ["default"], "image/png", 25831, self.request_referrer_param,
+                            group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
+                            set_current=True, resampling_bilinear=True),
+                        "cat_coast.png", True, self.manage_metadata_button("Bathymetric chart 2021-2024"), True),
                     (self.tr("Coast orthophoto"), None, "cat_coast.png", [
                         (self.tr("Coast orthophoto (temporal serie)"),
                             lambda _checked: self.add_wms_t_layer(
@@ -2110,6 +2361,8 @@ class OpenICGC(PluginBase):
         is_historic_ortho = (data_type.startswith("hc") or data_type.startswith("hi"))
         is_coast_ortho = data_type.startswith("oc")
         is_local_ortho = data_type.startswith("hl")
+        is_lidar_litoral = data_type.startswith("lidar-litoral")
+        is_dtm = (len([prefix for prefix in ["me", "ed", "ms", "mo"] if data_type.startswith(prefix)]) > 0)
 
         # Check photo search warning
         gsd = None
@@ -2195,6 +2448,14 @@ class OpenICGC(PluginBase):
                 ref_file = get_historic_local_ortho_ref(color_not_irc, gsd, time_code or "vigent")
                 url_ref_or_wms_tuple = (ref_file, symbol_file) if ref_file else None
                 name += " %s" % time_code
+            if is_lidar_litoral:
+                ref_file, symbol_file = url_ref_or_wms_tuple
+                ref_file = get_coast_lidar_ref(time_code)
+                url_ref_or_wms_tuple = (ref_file, symbol_file)
+            if is_dtm:
+                ref_file, symbol_file = url_ref_or_wms_tuple
+                ref_file = get_dtm_ref(data_type, time_code)
+                url_ref_or_wms_tuple = (ref_file, symbol_file)
 
             self.load_last_ref_layer = lambda:self.load_ref_layer(url_ref_or_wms_tuple, name)
             self.load_last_ref_layer()
@@ -2259,6 +2520,8 @@ class OpenICGC(PluginBase):
         is_local_ortho = data_type.startswith("hl")
         is_coastline = (data_type == "lcosta")
         is_coast_orthophoto = (data_type == "ocosta")
+        is_coast_lidar = (data_type == "lidar-litoral")
+        is_dtm = (len([prefix for prefix in ["me", "ed", "ms", "mo"] if data_type.startswith(prefix)]) > 0)
         is_sheet = self.download_type == "dt_sheet"
         data_name = self.FME_NAMES_DICT.get(data_type, data_type)
         download_epsg = FME_DOWNLOAD_EPSG
@@ -2287,6 +2550,14 @@ class OpenICGC(PluginBase):
         elif is_coast_orthophoto:
             # If is time coast download, add extra param with filename
             filename = get_coast_orthophoto_filename_dict()[time_code]
+            extra_params = [filename]
+        elif is_coast_lidar:
+            # If is time coast lidar download, add extra param with filename
+            filename = get_coast_lidar_filename_dict()[time_code]
+            extra_params = [filename]
+        elif is_dtm:
+            # If is dtm download, add extra param with filename
+            filename = get_dtm_filename(data_type, time_code)
             extra_params = [filename]
         elif is_sheet:
             # If download a sheet, gets sheet name from reference layer if exists
@@ -2383,7 +2654,10 @@ class OpenICGC(PluginBase):
                     local_filename = local_filename_list[0] if local_filename_list else None
                 else:
                     # We suppose that compressed file contains a QLR file, this process uncompress downloaded file
-                    download_layer = self.layers.add_remote_layer_definition_file(url, local_filename, group_name=self.DOWNLOAD_GROUP_NAME, group_pos=0, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
+                    download_layer = self.layers.add_remote_layer_definition_file(url, local_filename,
+                        group_name=self.DOWNLOAD_GROUP_NAME, group_pos=0,
+                        select_folder_text=self.tr("Select download folder"),
+                        title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
                     if not download_layer:
                         # If can't load QLR, we suppose that compressed file contains Shapefiles
                         download_layer = self.layers.add_vector_files([os.path.join(download_folder, local_filename)],
@@ -2413,8 +2687,9 @@ class OpenICGC(PluginBase):
                         cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")) is not None
                 # Force EPSG:25831 or photo EPSG by problems with QGIS 3.10 version in auto detection EPSG
                 if geometry_ok and reference_system_ok:
-                    color_expansion = data_type.lower().startswith("met") or \
-                        data_type.lower().startswith("ele")
+                    color_expansion = data_type.lower().startswith("met") \
+                        or data_type.lower().startswith("ele") or data_type.lower().startswith("ms") \
+                        or data_type.lower().startswith("mo") or data_type.lower().startswith("ed")
                     download_layer = self.layers.add_remote_raster_file(url, local_filename,
                         group_name=self.DOWNLOAD_GROUP_NAME, group_pos=0, epsg=download_epsg,
                         only_one_visible_map_on_group=False,
