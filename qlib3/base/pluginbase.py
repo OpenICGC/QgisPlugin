@@ -215,14 +215,15 @@ class GuiBase(object):
             # Set menú icon
             self.label_icon = QLabel()
             if icon:
-                self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size))) # Factor escala aplicat (self.devicePixelRatioF())
+                self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
 
             # Set menu text
             self.label_text = QLabel(text)
-            self.label_text.setStyleSheet("QLabel {font-size: %spt;}" % parent.font().pointSize())
+            self.label_text.setStyleSheet("QLabel {font-size: %spt;}" % (parent.font().pointSize() * self.devicePixelRatioF()))
 
             # Set menu options (buttons)
+            icon_size = int(icon_size * self.devicePixelRatioF())
             self.push_button_list = []
             for button_text, button_callback, button_icon in buttons_list:
                 push_button = QPushButton()
@@ -1309,7 +1310,7 @@ class LayersBase(object):
         self.iface = parent.iface
         self.root = QgsProject.instance().layerTreeRoot()
 
-        self.time_series_dict = {}
+        self.time_series_dict = {} # tuple: (<time_list>, <color_expansion>)
 
         self.download_manager = DownloadManager()
 
@@ -4249,7 +4250,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, use_qgis_time_controller=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False, use_qgis_time_controller=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -4303,12 +4304,12 @@ class LayersBase(object):
                 collapsed, visible, transparency, saturation, set_current)
         else:
             layer = self.add_raster_layer(time_layer_name, url_time, group_name, group_pos, epsg,
-                color_default_expansion=True, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation,
+                color_default_expansion=color_default_expansion, visible=visible, expanded=not collapsed, transparency=transparency, saturation=saturation,
                 resampling_bilinear=resampling_bilinear, resampling_cubic=resampling_cubic,
                 set_current=set_current, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
 
-        # Registrem les capes temporals de la url i refresquem la capa activa
-        self.time_series_dict[layer] = time_series_list
+        # Registrem les capes temporals de la url, si cal expandir colors i refresquem la capa activa
+        self.time_series_dict[layer] = (time_series_list, color_default_expansion)
         self.iface.layerTreeView().currentLayerChanged.emit(layer)
 
         return layer
@@ -4327,7 +4328,7 @@ class LayersBase(object):
 
     def is_wms_t_layer(self, layer):
         # Obtenim el nom de la capa associada al temps escollit
-        time_series_list = self.time_series_dict.get(layer, [])
+        time_series_list, _color_expansion = self.time_series_dict.get(layer, ([], False))
         return len(time_series_list) > 0
 
     def update_wms_t_layer_current_time(self, layer, wms_time):
@@ -4355,11 +4356,10 @@ class LayersBase(object):
             return wms_datetime
 
         # Obtenim el nom de la capa associada al temps escollit
-        time_series_list = self.time_series_dict.get(layer, [])
+        time_series_list, color_expansion = self.time_series_dict.get(layer, ([], False))
         if not time_series_list:
             return
         layer_id = dict(time_series_list)[wms_time]
-        #print("update wms-t time", layer_id, wms_time)
 
         # Actualitzem el control temporal de QGIS per que pugui fer GetFeatureInfo amb el paràmetre TIME
         # si QGIS l'ha detectat com a capa amb capacitats temporals...
@@ -4381,7 +4381,7 @@ class LayersBase(object):
                     temporal_controller.setTemporalExtents(QgsDateTimeRange(wms_datetime, wms_datetime))
 
         # Actualitzem el pintat de la capa
-        self.update_wms_layer(layer, layer_id, wms_time)
+        self.update_wms_layer(layer, layer_id, wms_time, color_expansion=color_expansion)
 
         # Canviem el nom de la capa
         base_name = layer.name().split(' [')[0]
@@ -4474,10 +4474,11 @@ class LayersBase(object):
                 layer_id = layer.find("Name").text
                 found = re.findall(ts_regex, layer_id)
                 if found:
-                    time = found[0]
+                    time = "-".join(found[0]) if type(found[0]) is tuple else found[0]
                     time_series_list.append((time, layer_id))
                 layer_id = None
 
+        time_series_list.sort()
         return time_series_list, default_time
 
     def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
@@ -4544,14 +4545,13 @@ class LayersBase(object):
             uri += "&IgnoreGetMapUrl=1"
         return self.add_raster_uri_layer(layer_name, uri, "wms", group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, set_current)
 
-    def update_wms_layer(self, layer, wms_layer=None, wms_time=None, wms_style=None):
+    def update_wms_layer(self, layer, wms_layer=None, wms_time=None, wms_style=None, color_expansion=False):
         """ Actualitza la capa a llegir d'un servidor WMS
             ---
             Update WMS layer to read
             """
         # Obtenim la capa actual carregada
         url, current_layer, current_time = self.parse_wms_t_layer(layer)
-        current_style = None
 
         if url and current_layer:
             # Actualitzem la capa a WMS carregar (pot ser un canvi de capa (fals WMS-T) o un canvi de temps)
@@ -4585,8 +4585,8 @@ class LayersBase(object):
             layer.reload()
             layer.triggerRepaint()
 
-        if not url or not current_layer:
-            # Si tenim un fals WMS-T amb link a arxius raster, cal actualitzar la expansió de colors
+        # Si tenim un fals WMS-T amb link a arxius raster, cal actualitzar la expansió de colors
+        if (not url or not current_layer) and color_expansion:
             self.enable_color_expansion(layer, True)
 
     def add_xyz_layer(self, layer_name, url, min=0, max=20, epsg=3857, interpolation=None, tile_pixel_ratio=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
@@ -5883,6 +5883,10 @@ class DebugBase(object):
         if ini_console:
             self.ini_console()
 
+    def is_debug_mode(self):
+        """ Indica si estem executant l'appQ des del repositori de desenvolupament """
+        return __file__.find("pyrepo") >= 0
+
     ###########################################################################
     # Gestió de consola QGIS
     #
@@ -6372,11 +6376,11 @@ class ToolsBase(object):
         # Mostrem o ocultem el diàleg de sèries temporals
         if show:
             # Obtenim la llista de capes temporal del diccionari de sèries temporals
-            time_series_tuple_list = self.parent.layers.time_series_dict.get(layer, [])
+            time_series_tuple_list, _color_expansion = self.parent.layers.time_series_dict.get(layer, ([], False))
             if not time_series_tuple_list:
                 return
             # Obtenim la url de la capa i la capa seleccionada
-            url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
+            _url, current_layer, current_time = self.parent.layers.parse_wms_t_layer(layer)
             # Obtenim el nom de la capa actual (per wms-t fake tipus arxiu http)
             if not current_layer:
                 if layer.dataProvider():
@@ -6386,7 +6390,7 @@ class ToolsBase(object):
             # Obtenim el nom de la capa actual dins de la time serie (per wms-t fake tipus wms)
             if not current_time:
                 current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
-            time_series_list = [name for name, layer_id in time_series_tuple_list]
+            time_series_list = [name for name, _layer_id in time_series_tuple_list]
 
             update_callback = lambda current_time: self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
             if not self.time_series_dialog:
@@ -6489,7 +6493,7 @@ class ToolsBase(object):
 
     def on_layer_removed(self, layer):
         if self.parent and self.parent.layers and self.parent.layers.time_series_dict:
-            time_series_list = self.parent.layers.time_series_dict.get(layer, [])
+            time_series_list, _color_expansion = self.parent.layers.time_series_dict.get(layer, ([], False))
             if time_series_list:
                 self.parent.layers.time_series_dict.pop(layer)
 

@@ -82,11 +82,12 @@ def get_services_list():
             ("orto-color/olc10cm", "Ortofoto local color vigent 10cm 1:1.000", 10, 2000000, None, None, 0.1, None, ["", "pol"], "orto-local-color-10cm.tif", "cat_limits", \
                 "%s/fmedatastreaming/orto-local/ICGC_orto-local_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=rgb_10cm_vigent", \
                 ("https://datacloud.icgc.cat/datacloud/orto-local/json_unzip/orto-local-rgb-10cm-vigent.json", "tall-5k.qml")),
-            ("orto-color/hlc10cm", "Ortofoto local color històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_local_ortho_years(True, 0.1), ["", "pol"], "orto-local-color-10cm.tif", "cat_limits", \
+            ("orto-color/hlc10cm", "Ortofoto local color històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_local_ortho_years(True, 0.1), ["", "pol"], "orto-local-color-historica-10cm.tif", "cat_limits", \
                 "%s/fmedatastreaming/orto-local/ICGC_orto-local_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s", \
                 (None, "tall-5k.qml")),
             # LiDAR orthophoto color
-            ("orto-color/of-lidar-territorial", "Lidar territorial ortofoto color 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "lidar_rgb.tif", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-rgb-15cm", None),
+            ("orto-color/of-lidar-territorial", "Lidar territorial ortofoto color 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "orto_lidar_rgb.tif", "lidar1k_limits",
+                "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-rgb-15cm", None),
 
             # GROUP orthophoto infrared
             # Current orthophoto infrared (gsd auto group)
@@ -113,11 +114,12 @@ def get_services_list():
             ("orto-irc/oli10cm", "Ortofoto local infraroja vigent 10cm 1:1.000", 10, 2000000, None, None, 0.1, None, ["", "pol"], "orto-local-irc-10cm.tif", "cat_limits", \
                 "%s/fmedatastreaming/orto-local/ICGC_orto-local_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=irc_10cm_vigent", \
                 ("https://datacloud.icgc.cat/datacloud/orto-local/json_unzip/orto-local-irc-10cm-vigent.json", "tall-5k.qml")),
-            ("orto-irc/hli10cm", "Ortofoto local infraroja històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_local_ortho_years(False, 0.1), ["", "pol"], "orto-local-color-10cm.tif", "cat_limits", \
+            ("orto-irc/hli10cm", "Ortofoto local infraroja històrica 10cm 1:1.000", 10, 2000000, None, None, 0.1, get_historic_local_ortho_years(False, 0.1), ["", "pol"], "orto-local-irc-historica-10cm.tif", "cat_limits", \
                 "%s/fmedatastreaming/orto-local/ICGC_orto-local_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=%s", \
                 (None, "tall-5k.qml")),
             # LiDAR orthopho infrared
-            ("orto-irc/oi-lidar-territorial", "Lidar territorial ortofoto infraroja 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "lidar_irc.tif", "lidar1k_limits", "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-irc-15cm", None),
+            ("orto-irc/oi-lidar-territorial", "Lidar territorial ortofoto infraroja 15cm 2021-2023", 100, 4500000, None, None, 0.15, ["2021-2023"], ["", "pol"], "orto_lidar_irc.tif", "lidar1k_limits",
+                "%s/fmedatastreaming/lidar-territorial/ICGC_lidar-territorial-ortofoto_download.fmw?x_min=%s&y_min=%s&x_max=%s&y_max=%s&poligon=%s&codi=%s&projecte=lidar-territorial-ortofoto-irc-15cm", None),
 
             # GROUP administrative divisions
             # Administrative divisions (prefix_id auto group)
@@ -168,7 +170,7 @@ def get_services_list():
             ("mapa-topo/referencial-topografic-local-bim-ifc", "Referencial topogràfic local BIM", None, None, None, None, None, None, ["full"], "topografia-local-bim.ifc-zip", "cat_limits", "%s/fmedatastreaming/topografia-local/ICGC_topografia-local_download.fmw?xMin=%s&yMin=%s&xMax=%s&yMax=%s&poligon=%s&Codi=%s&format=ifc&dimension=2d",
                 ("http://datacloud.icgc.cat/datacloud/topografia-local/json/topografia-local-tall.json", "tall-5k.qml")),
             # Topographics maps vectorial
-            ("mapa-topo/ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "pol", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
+            ("mapa-topo/ct1m", "Cartografia topogràfica 1:1.000", None, 2000000, None, None, None, None, ["", "mu"], "ct1m.shp-zip", "cat_limits", "%s/fmedatastreaming/Descarrega_basica/descarrega_shape_coor.fmw?SW_X=%s&SW_Y=%s&NE_X=%s&NE_Y=%s&poligon=%s&Projecte=ct1m&Codi=%s",
                 ("https://datacloud.icgc.cat/datacloud/ct1m_ETRS89/json_tall/ct1m_id.json", "ct1m_disponible.qml")),
 
             # Ground maps

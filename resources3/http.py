@@ -164,6 +164,7 @@ def get_old_dtms(urlbase_list=[
         ("2m 2008-2011", "https://datacloud.icgc.cat/datacloud/met2_ETRS89/mosaic/met2_catalunya_2020.tif"),
         ("5m 2020", "https://datacloud.icgc.cat/datacloud/met5_ETRS89/mosaic/met5_catalunya_2020.tif"),
     ]
+
 dtm_list = []
 def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     # model-elevacions-terreny
@@ -226,8 +227,6 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     global dtm_list
     if not dtm_list:
         dtm_list = get_products(urlbase_list)
-    print("ZZZ", dtm_list)
-
     if group_by_product_not_gsd:
         # Si ens demanen agrupar per producte, juntem tots productes iguals de diferent GSD
         final_dtm_list = []
@@ -245,7 +244,12 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     if not json_not_tiff:
         final_dtm_list = [(dtm_id, dtm_url.replace("json_unzip", "tif_unzip").replace(".json", ".tif")) \
             for dtm_id, dtm_url in final_dtm_list]
-    return sorted(final_dtm_list) if sort_by_key else final_dtm_list
+
+    # ATENCIÓ el nom dels DTMS [(nom, url), ...] té la forma: <data0>-<data1>[\nlloc]
+    # i volem ordenar per la segona data
+    return sorted(final_dtm_list,
+        key=lambda dtm_info: dtm_info[0].split("\n")[0].split("-")[1] ) \
+        if sort_by_key else final_dtm_list
 
 def get_dtm_time(dtm_name, group_by_product_not_gsd=False):
     """ Retorna les franjes temporals disponibles de mets
@@ -255,7 +259,8 @@ def get_dtm_time(dtm_name, group_by_product_not_gsd=False):
     dtm_prefix = dtm_name + "-"
     time_list = [time_code.replace(dtm_prefix, "") \
         for time_code, _url in get_dtms(dtm_name, group_by_product_not_gsd)]
-    return sorted(time_list)
+    # En cas de tenir rang de dates ordenem per últim valor de rang
+    return sorted(time_list, key=lambda t: t.split("-")[-1] if str(t).find("-") >=0 else t)
 
 def get_dtm_time_layers(dtm_name, group_by_product_not_gsd=False):
     """ Retorna les franjes temporals disponibles de mets i la capa WMS associada

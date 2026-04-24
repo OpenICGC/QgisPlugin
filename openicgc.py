@@ -401,6 +401,7 @@ class OpenICGC(PluginBase):
             "orto": (self.tr("Orthophoto base map"), "cat_ortho.png"),
             "orto-gris": (self.tr("Gray orthophoto base map"), "cat_orthogray.png"),
             "orto-hibrida": (self.tr("Hybrid orthophoto base map"), "cat_orthohybrid.png"),
+            "geologic": (self.tr("Geological base map"), "cat_geo50k.png"),
             }
 
         # Initialize references names (with translation)
@@ -1191,6 +1192,13 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("UTM (MGRS) grids"), True
                         ) for grid_name, grid_url, grid_style_file in self.grids_list
                     ]),
+                (self.tr("Addresses"),
+                    lambda _checked:self.layers.add_wms_layer(self.tr("Addresses"),
+                        "https://geoserveis.icgc.cat/servei/catalunya/adreces/wms",
+                        ["noms-carrer", "adreces"], ["default", "default"], "image/png", 25831, self.request_referrer_param,
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                    "addresses.png",
+                    self.manage_metadata_button("Addresses"), True),
                 "---",
                 (self.tr("Geological map"), None, "cat_geo250k.png", [
                     (self.tr("Geological map 1:50,000"),
@@ -1225,7 +1233,7 @@ class OpenICGC(PluginBase):
                             None, None, None, "default", "image/png",
                             self.dtm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
                         "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Digital terrain model"), True),
                     # (self.tr("Digital terrain model buildings (temporal serie)"),
@@ -1234,7 +1242,7 @@ class OpenICGC(PluginBase):
                     #         None, None, None, "default", "image/png",
                     #         self.dtmb_list, None,
                     #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
                     #     "cat_dtm.png", self.enable_http_files and len(self.dtmb_list) > 0,
                     #     self.manage_metadata_button("Digital terrain model buildings"), True),
                     (self.tr("Surface model (temporal serie)"),
@@ -1243,7 +1251,7 @@ class OpenICGC(PluginBase):
                             None, None, None, "default", "image/png",
                             self.sm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
                         "cat_dtm.png", self.enable_http_files and len(self.sm_list) > 0,
                         self.manage_metadata_button("Surface model"), True),
                     # (self.tr("Orientation model (temporal serie)"),
@@ -1255,7 +1263,7 @@ class OpenICGC(PluginBase):
                     #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
                     #     "cat_dtm.png", self.enable_http_files and len(self.om_list) > 0,
                     #     self.manage_metadata_button("Orientation model"), True),
-                    "---",
+                    # "---",
                     # DTM From WMS
                     # (self.tr("Digital terrain model (temporal serie)"),
                     #     lambda _checked:self.add_wms_t_layer(
@@ -1436,9 +1444,18 @@ class OpenICGC(PluginBase):
                         lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"),
                             None, self.ndvi_current_time, None, "default", "image/png", self.ndvi_time_series_list, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                            self.BACKGROUND_MAP_GROUP_NAME, color_default_expansion=True, only_one_map_on_group=False, set_current=True),
                         "cat_shadows.png", self.enable_http_files and len(self.ndvi_time_series_list) > 0,
                         self.manage_metadata_button("NDVI (temporal serie)"), True),
+                    (self.tr("Satellite NDVI (monthly serie)"),
+                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite NDVI"),
+                            "https://geoserveis.icgc.cat/servei/catalunya/ndvi-satellit/wms",
+                            None, None, "default", "image/png", None,
+                            r"ndvi-satellit-sentinel2-10m-(\d{4})(\d{2})",
+                            25831, self.request_referrer_param,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        "cat_shadows.png",
+                        self.manage_metadata_button("Satellite NDVI (temporal serie)"), True),
                 ]),
                 "---",
                 (self.tr("Color orthophoto"), None, "cat_ortho5k.png", [
@@ -1488,7 +1505,7 @@ class OpenICGC(PluginBase):
                             self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
                             use_qgis_time_controller=False),
-                            "cat_ortho5k.png",
+                            "cat_ortho5k.png", True, False, "annual_color_orthophoto",
                             self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
                         ]),
                     # Ortofoto color local
@@ -2202,10 +2219,10 @@ class OpenICGC(PluginBase):
         searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, set_current=False, use_qgis_time_controller=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False, use_qgis_time_controller=False):
         """ Add WMS-T layer and enable timeseries dialog """
         # Add WMS-T
-        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, set_current, use_qgis_time_controller)
+        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, color_default_expansion, set_current, use_qgis_time_controller)
         if layer:
             if type(layer) in [QgsRasterLayer, QgsVectorLayer]:
                 # Show timeseries dialog
@@ -2387,8 +2404,10 @@ class OpenICGC(PluginBase):
 
         if gsd_dict:
             # With GSD dictionari, integrates all GSD years
+            # If have a date range use end range date to sort
             time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled in gsd_dict.values()]
-            time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])))
+            time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])),
+                key=lambda t: t.split("-")[-1] if str(t).find("-") >=0 else t)
             if not time_list:
                 time_list = [None]
             data_dict = {year: {gsd: {"download": {description: id \

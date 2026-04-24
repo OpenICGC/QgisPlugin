@@ -28,8 +28,16 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=3.99
-version=1.1.29
-changelog=v1.1.29 (2026-02-06)
+version=1.1.30
+changelog=v1.1.30 (2026-04-23)
+	- Added geological base map
+	- Added addresses product
+	- Added NDVI satellit product
+	- DTM time series reordered by second date
+	- Fixed TRL product colors
+	- Fixed menu items size on scaled screens
+
+	v1.1.29 (2026-02-06)
 	- Added new layer territorial elevations
 	- Added new layer coastal elevations
 	- Updated metadata links

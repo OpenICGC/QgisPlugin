@@ -1,5 +1,12 @@
 [
    {
+      "Producte": "Adreces municipals",
+      "Cobertura": "Vigent",
+      "Carpeta": "Addresses",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&title=Adreces%20municipals"
+   },
+   {
       "Producte": "Batimetria",
       "Cobertura": "Vigent - elevacions",
       "Carpeta": "Topobathymetric elevation model (-50m) 1m 2022-2024",
@@ -25,7 +32,7 @@
       "Cobertura": "Vigent",
       "Carpeta": "Administrative divisions",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?title=Divisions%20administratives&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&facet.q=category%2FrccState"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=type%2Fdataset&resultType=details&title=Divisions%20administratives&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
       "Producte": "Entitats municipals descentralitzades",
@@ -187,6 +194,13 @@
       "Carpeta": "NDVI (temporal serie)",
       "Formats de fitxer": "",
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2Fdatasets%26type%2Fdataset&resultType=details&sortBy=title&from=1&to=20&fast=index&_content_type=json&title=NDVI"
+   },
+   {
+      "Producte": "NDVI satèl·lit",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Satellite NDVI (temporal serie)",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&fast=index&_content_type=json&from=1&to=20&title=NDVI%20sat%C3%A8l%C2%B7lit"
    },
    {
       "Producte": "Ortofoto 25 cm",
