@@ -10,29 +10,27 @@ Module with functions to recover data to make WMS connections to ICGC resources
 *******************************************************************************
 """
 
-import urllib
-import urllib.request
-import html
 import socket
 import re
 import os
 import datetime
+import logging
+import requests
 
 # Configure internal library logger (Default is dummy logger)
-import logging
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
-
+# Initialize global variables
 styles_path = os.path.join(os.path.dirname(__file__), "symbols")
 style_dict = {
-    "capmunicipi": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"), 
-    "capcomarca": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"), 
-    "municipis": os.path.join(styles_path, "divisions-administratives-municipis-ref.qml"), 
-    "comarques": os.path.join(styles_path, "divisions-administratives-comarques-ref.qml"), 
-    "vegueries": os.path.join(styles_path, "divisions-administratives-vegueries-ref.qml"), 
-    "provincies": os.path.join(styles_path, "divisions-administratives-provincies-ref.qml"), 
-    "catalunya": os.path.join(styles_path, "divisions-administratives-catalunya-ref.qml"), 
+    "capmunicipi": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"),
+    "capcomarca": os.path.join(styles_path, "divisions-administratives-caps-municipi-ref.qml"),
+    "municipis": os.path.join(styles_path, "divisions-administratives-municipis-ref.qml"),
+    "comarques": os.path.join(styles_path, "divisions-administratives-comarques-ref.qml"),
+    "vegueries": os.path.join(styles_path, "divisions-administratives-vegueries-ref.qml"),
+    "provincies": os.path.join(styles_path, "divisions-administratives-provincies-ref.qml"),
+    "catalunya": os.path.join(styles_path, "divisions-administratives-catalunya-ref.qml"),
     }
 order_dict = {
     "capmunicipi": 1,
@@ -44,6 +42,7 @@ order_dict = {
     "catalunya": 7
     }
 
+
 def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3):
     """ Obté el text del capabilities d'un servei WFS
         ---
@@ -52,8 +51,7 @@ def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3):
     capabilities_url = "%s?REQUEST=GetCapabilities&SERVICE=WFS&VERSION=%s" % (url, version)
     while retries:
         try:
-            response = None
-            response = urllib.request.urlopen(capabilities_url, timeout=timeout_seconds)
+            response_data = requests.get(capabilities_url, verify=True, timeout=timeout_seconds).text
             retries = 0
         except socket.timeout:
             retries -= 1
@@ -61,12 +59,8 @@ def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3):
         except Exception as e:
             retries -= 1
             log.exception("WFS resources error (%s), retries: %s, URL: %s", retries, e, capabilities_url)
-    if not response:
-        response_data = ""
-        log.error("WFS resources error, exhausted retries")      
-    else:
-        response_data = response.read()
-        response_data = response_data.decode('utf-8')
+    if not response_data:
+        log.error("WFS resources error, exhausted retries")
     return response_data
 
 def get_wfs_capabilities_info(url, reg_ex_filter):
@@ -97,7 +91,7 @@ def get_delimitations(url="https://geoserveis.icgc.cat/servei/catalunya/division
         int(layer_id.split("_")[-1]) if layer_id.split("_")[-1].isdigit() else None,
         layer_id \
         ) \
-        for layer_id in delimitations_id_list]           
+        for layer_id in delimitations_id_list]
     # Agrupem les escales de cada producte
     delimitations_dict = {}
     for product_name, scale, layer_id in delimitations_info_list:

@@ -8,18 +8,17 @@ import re
 import logging
 import math
 from importlib import reload
-from osgeo import ogr, osr
-
-# Support to SOAP connections
-import suds
-from suds import null
-from suds.client import Client
+from osgeo import osr
 
 # Support to Pelias connections
 from . import pelias
 reload(pelias)
 from .pelias import PeliasClient
 
+# Support to Catastro connections
+from . import catastro
+reload(catastro)
+from .catastro import CatastroClient
 
 
 class GeoFinder(object):
@@ -31,28 +30,16 @@ class GeoFinder(object):
     geoencoder_epsg = 4326
     cadastral_epsg = 25381
 
-    ## Web Service Cadastre (alternative)
-    #cadastral_streets_client = None
-    #def get_cadastral_streets_client(self):
-    #    if not self.cadastral_streets_client:
-    #        # SOAP client configuration
-    #        # Available functions: [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
-    #        self.cadastral_streets_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx?wsdl") # [Consulta_DNPPP, ObtenerNumerero, ObtenerMunicipios, Consulta_DNPLOC, ObtenerCallejero, Consulta_DNPRC, ObtenerProvincias]
-    #    return self.cadastral_streets_client
-
-    # Web Service Cadastre. Available functions to call: client.wsdl.services[0].ports[0].methods.keys()
     cadastral_coordinates_client = None
     def get_cadastral_coordinates_client(self):
+        """ Gets API rest Catastro client """
         if not self.cadastral_coordinates_client:
-            # SOAP client configuration
-            # Available functions: [Consulta_CPMRC, Consulta_RCCOOR_Distancia, Consulta_RCCOOR]
-            self.cadastral_coordinates_client = Client("http://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx?wsdl", timeout=self.timeout)
+            self.cadastral_coordinates_client = CatastroClient(timeout=self.timeout)
         return self.cadastral_coordinates_client
 
-    # ICGC geocodificador Pelias. Documentació:
-    # https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC
     icgc_geoencoder_client = None
     def get_icgc_geoencoder_client(self):
+        """ Gets API rest ICGC's GeoEncoder (Pelias) client """
         if not self.icgc_geoencoder_client:
             self.icgc_geoencoder_client = PeliasClient(
                 "https://eines.icgc.cat/geocodificador", self.timeout, \
@@ -83,7 +70,7 @@ class GeoFinder(object):
         self.log.debug("Geoencoder found %d: %s %s", len(dict_list), ", ".join([data_dict['nom'] for data_dict in dict_list[:10]]), "..." if len(dict_list) > 10 else "")
         return dict_list
 
-    def find_data(self, text, default_epsg, find_all=False):
+    def find_data(self, text, default_epsg):
         """ Returns a list of dictionaries with the sites found from the indicated text """
 
         # Let's see if we pass a ground rectangle
@@ -107,9 +94,9 @@ class GeoFinder(object):
         #     return self.find_crossing(municipality, type1, name1, type2, name2, find_all)
 
 	    # Let's see if we pass an address
-        municipality, type, name, number = self.get_address(text)
+        municipality, adress_type, name, number = self.get_address(text)
         if municipality and name and number:
-            return self.find_adress(municipality, type, name, number, find_all)
+            return self.find_address(municipality, adress_type, name, number)
 
 	    # We detect if we pass a cadastral reference
         cadastral_ref = self.get_cadastral_ref(text)
@@ -306,7 +293,7 @@ class GeoFinder(object):
             # Second generic placements
             dict_list += self.find_point_coordinate_icgc(x, y, epsg, \
                 layers="tops", search_radious_km=None, size=9)
-        
+
             # Search cadastral ref on point
         if search_cadastral_ref:
             dict_list += self.find_point_coordinate_catastro(x, y, epsg)
@@ -334,7 +321,7 @@ class GeoFinder(object):
         """ Returns a list of dictionaries with the sites found at the indicated point """
 
         # We convert the coordinates to geoencoder EPSG to do the query
-        nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
+        # nom = "Point: %s %s (EPSG:%s)" % (x, y, epsg),
         query_x, query_y = self.transform_point(x, y, epsg, self.geoencoder_epsg)
         if query_x is None or query_y is None:
             self.log.exception("Coordinates error: %s %s EPSG:%s", x, y, epsg)
@@ -359,23 +346,20 @@ class GeoFinder(object):
         """ Returns a list of dictionaries with cadastral reference at the indicated point """
 
         # We execute the query
-        self.log.debug("Geoencoder URL: %s", self.get_cadastral_coordinates_client().wsdl.url)
+        self.log.debug("Geoencoder URL: %s", self.get_cadastral_coordinates_client().url)
         try:
-            res_dict = self.get_cadastral_coordinates_client().service.Consulta_RCCOOR(
-                CoorX = x,
-                CoorY = y,
-                SRS = "EPSG:%s" % epsg)
+            res_dict = self.get_cadastral_coordinates_client().Consulta_RCCOOR(
+                x, y, SRS=f"EPSG:{epsg}")
         except Exception as e:
-            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_cadastral_coordinates_client().last_sent())
+            self.log.exception("Geoencoder error: %s REST Request: %s", e, self.get_cadastral_coordinates_client().last_sent())
             raise e
-        if res_dict['control']['cuerr'] != '0':
-            error_text = str(res_dict['lerr']['err']['des'])
-            self.log.exception("Geoencoder error: %s SOAP Request: %s", error_text, self.get_cadastral_coordinates_client().last_sent())
+        if res_dict['control'].get('cuerr', '0') != '0':
+            error_text = str(res_dict['lerr'][0]['des'])
+            self.log.exception("Geoencoder error: %s REST Request: %s", error_text, self.get_cadastral_coordinates_client().last_sent())
             return []
 
         # We evaluate the result
-        dict_list = self.get_catastro_generalized_response(res_dict)
-        return dict_list
+        return self.get_catastro_generalized_response(res_dict)
 
     def transform_point(self, x, y, source_epsg, destination_epsg):
         """ Converteix un punt d'un EPSG a un altre """
@@ -436,10 +420,10 @@ class GeoFinder(object):
     #     # We convert the result to a unique format
     #     return self.get_icgc_generalized_response(res_dict)
 
-    def find_adress(self, municipality, type, street, number, find_all):
+    def find_address(self, municipality, address_type, street, number):
         """ Returns a list of dictionaries with the addresses found with the indicated nomenclature """
 
-        self.log.info("Geoencoder find adress: %s, %s %s %s", municipality, type, street, number)
+        self.log.info("Geoencoder find adress: %s, %s %s %s", municipality, address_type, street, number)
 
         # We execute the query
         self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().url)
@@ -464,23 +448,20 @@ class GeoFinder(object):
         # 13077A018000390000FP
 
         # We execute the query
-        self.log.debug("Geoencoder URL: %s", self.get_cadastral_coordinates_client().wsdl.url)
-        clean_cadastra_ref = cadastral_ref.replace(' ', '')[:14]
+        self.log.debug("Catastro URL: %s", self.get_icgc_geoencoder_client().url)
         try:
-            res_dict = self.get_cadastral_coordinates_client().service.Consulta_CPMRC(
-                Provincia = "",
-                Municipio = "",
-                SRS = "EPSG:%s" % self.cadastral_epsg,
-                RefCat = clean_cadastra_ref) ##Provincia, municipio, srs, ref catastral
+            res_dict = self.get_cadastral_coordinates_client().Consulta_CPMRC(cadastral_ref)
         except Exception as e:
-            self.log.exception("Geoencoder error: %s SOAP Request: %s", e, self.get_cadastral_coordinates_client().last_sent())
+            self.log.exception("Catastro error: %s REST Request: %s", e, self.get_icgc_geoencoder_client().last_sent())
             raise e
-        if res_dict['control']['cuerr'] != '0': # Error code
-            raise Exception(str(res_dict['lerr']['err']['des'])) # Error text
+        self.log.debug("Catastro Request: %s", self.get_icgc_geoencoder_client().last_sent())
+        if res_dict['control'].get('cuerr', '0') != '0':
+            error_text = str(res_dict['lerr'][0]['des'])
+            self.log.exception("Geoencoder error: %s REST Request: %s", error_text, self.get_cadastral_coordinates_client().last_sent())
+            return []
 
-        # We evaluate the result
-        dict_list = self.get_catastro_generalized_response(res_dict)
-        return dict_list
+        # We convert the result to a unique format
+        return self.get_catastro_generalized_response(res_dict)
 
     def get_catastro_generalized_response(self, res_dict):
         """ Returns standard response for Catastro geocoder queries """

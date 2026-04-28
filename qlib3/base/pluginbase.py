@@ -24,23 +24,21 @@ import datetime
 import codecs
 import fnmatch
 import pathlib
-import urllib
-import urllib.request
-import urllib.parse
 import socket
 import configparser
 import subprocess
-import base64
 import zipfile
 import io
 import tempfile
 import shutil
-from xml.etree import ElementTree
+import lxml.etree
+import requests
+from urllib.parse import quote, unquote
 from importlib import reload
 try:
-    from osgeo import ogr, osr
+    from osgeo import ogr
 except:
-    import ogr, osr
+    import ogr
 import unittest
 reload(unittest)
 
@@ -132,10 +130,6 @@ def showPluginHelp(packageName: str = None, filename: str = "index", section: st
     if not os.path.exists(helpfile):
         helpfile = os.path.join(path, filename + ".html")
     if os.path.exists(helpfile):
-        #url = "file://" + helpfile
-        #if section != "":
-        #    url = url + "#" + section
-        #QDesktopServices.openUrl(QUrl(url))
         url = QUrl.fromLocalFile(helpfile)
         if section != "":
             url.setFragment(section)
@@ -4318,7 +4312,7 @@ class LayersBase(object):
         # Obté la URL base i la capa / temps de la URL d'una capa
         if not layer or not layer.dataProvider():
             return None, None, None
-        layer_uri = urllib.parse.unquote(layer.dataProvider().dataSourceUri())
+        layer_uri = unquote(layer.dataProvider().dataSourceUri())
         reg_ex = r"(?:.*layers=([\w\d\-_]+))*.*url=([\w\d\-_:./=]+)(?:[\&\?]time=([\d\-/:]+))*(?:.*layers=([\w\d\-_]+))*"
         found = re.search(reg_ex, layer_uri)
         if not found:
@@ -4411,8 +4405,8 @@ class LayersBase(object):
         capabilities_xml = None
         while retries:
             try:
-                response = urllib.request.urlopen(capabilities_request, timeout=timeout_seconds)
-                capabilities_xml = response.read()
+                capabilities_xml = requests.get(capabilities_request, \
+                    verify=True, timeout=timeout_seconds).text
                 retries = 0
             except socket.timeout:
                 retries -= 1
@@ -4427,7 +4421,7 @@ class LayersBase(object):
         # Cerquem les capes amb el camp "Dimension" tipus "time" o "Dimension" + "Extent" tipus "time"
         time_series_list = []
         default_time = None
-        root = ElementTree.fromstring(capabilities_xml)
+        root = lxml.etree.fromstring(capabilities_xml.encode())
         layers = root.find('Capability').find("Layer")
         for layer in layers.findall('.//Layer'):
             # Si tenim un identificador de capa, cerquem aquella capa i obtenim les seves marques temporals
@@ -4560,7 +4554,7 @@ class LayersBase(object):
                 new_uri = layer.source()
             else:
                 new_uri = layer.dataProvider().dataSourceUri()
-            new_uri = urllib.parse.unquote(new_uri)
+            new_uri = unquote(new_uri)
             if wms_layer:
                 new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
             if wms_time:
@@ -4576,14 +4570,15 @@ class LayersBase(object):
             # Si tenim un fals WMS-T amb link a arxius raster, cal fer més refrescos...
             new_uri = wms_layer
 
-        if self.parent.check_qgis_version(31600):
-            # Incompatible with version 3.4 and 3.10 (not updated)
-            layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
-        else:
-            layer.dataProvider().setDataSourceUri(new_uri)
-            layer.dataProvider().reloadData()
-            layer.reload()
-            layer.triggerRepaint()
+        if layer.dataProvider():
+            if self.parent.check_qgis_version(31600):
+                # Incompatible with version 3.4 and 3.10 (not updated)
+                    layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
+            else:
+                layer.dataProvider().setDataSourceUri(new_uri)
+                layer.dataProvider().reloadData()
+                layer.reload()
+                layer.triggerRepaint()
 
         # Si tenim un fals WMS-T amb link a arxius raster, cal actualitzar la expansió de colors
         if (not url or not current_layer) and color_expansion:
@@ -6577,7 +6572,7 @@ class ToolsBase(object):
         mail_url = "mailto:%s?subject=%s%s%s%s" % (
             mail_to,
             subject or " ",
-            ("&body=%s" % urllib.parse.quote(body, safe="")) if body else "",
+            ("&body=%s" % quote(body, safe="")) if body else "",
             ("&cc=%s" % copy_to) if copy_to else "",
             ("&bcc=%s" % hidden_copy_to) if hidden_copy_to else "")
         return self.parent.show_url(mail_url)
@@ -6744,10 +6739,8 @@ class MetadataBase(object):
             plugin_tag=self.get_name().replace(" ", "")
         repository_plugin_url = repository_plugin_template % plugin_tag
         try:
-            hdr = { 'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)' }
-            req = urllib.request.Request(repository_plugin_url, headers=hdr)
-            response = urllib.request.urlopen(req, timeout=timeout_seconds)
-            html = response.read().decode('utf-8')
+            html = requests.get(repository_plugin_url, verify=True, \
+                timeout=timeout_seconds).text
         except socket.timeout:
             return None
         except Exception as e:

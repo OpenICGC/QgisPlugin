@@ -28,7 +28,7 @@ import zipfile
 import io
 import logging
 import json
-from urllib.request import urlopen, Request
+import requests
 from urllib.parse import urljoin, quote
 from importlib import reload
 
@@ -1196,7 +1196,8 @@ class OpenICGC(PluginBase):
                     lambda _checked:self.layers.add_wms_layer(self.tr("Addresses"),
                         "https://geoserveis.icgc.cat/servei/catalunya/adreces/wms",
                         ["noms-carrer", "adreces"], ["default", "default"], "image/png", 25831, self.request_referrer_param,
-                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
+                        self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False,
+                        only_one_visible_map_on_group=False, set_current=True),
                     "addresses.png",
                     self.manage_metadata_button("Addresses"), True),
                 "---",
@@ -3146,8 +3147,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             remote_url = found.group(1)
             # Read remote help file metadata tag "last-modified"
             try:
-                fin = urlopen(remote_url, timeout=timeout)
-                remote_data = fin.read().decode()
+                remote_data = requests.get(remote_url, verify=True, timeout=timeout).text
             except:
                 fin = None
             if not fin:
@@ -3174,8 +3174,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         # Copy image files of all help files (witout repetitions)
         for local_image_pathname, remote_image_url in sync_images_dict.items():
             try:
-                fin = urlopen(remote_image_url, timeout=timeout)
-                remote_image_data = fin.read()
+                remote_image_data = requests.get(remote_image_url, verify=True,
+                    timeout=timeout).content
             except:
                 fin = None
             if not fin:
@@ -3206,10 +3206,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         else:
             # Download plugin to gets version
             try:
-                hdr = { 'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)' }
-                req = Request(remote_url, headers=hdr)
-                response = urlopen(req, timeout=timeout)
-                remote_data = response.read().decode()
+                remote_data = requests.get(remote_url, verify=True, \
+                    timeout=timeout).text
             except Exception as e:
                 remote_data = None
         if not remote_data:

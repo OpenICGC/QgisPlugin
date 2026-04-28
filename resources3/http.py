@@ -10,10 +10,8 @@ Module with functions to recover data to make WMS connections to ICGC resources
 *******************************************************************************
 """
 
-import urllib
-import urllib.request
+import requests
 import socket
-import ssl
 import re
 import os
 import datetime
@@ -40,30 +38,21 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
         Gets HTML code of web page with files
         Returns: string
         """
-    # Codi per ignorar errors de certificats...
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-
     # Llegeixo la pàgina HTTP que informa dels arxius disponibles
     response_data = ""
     remaining_retries = retries
     while remaining_retries:
         try:
-            response = urllib.request.urlopen(url, timeout=timeout_seconds, context=context)
-            if response:
-                response_data = response.read()
-                if response_data:
-                    remaining_retries = 0
+            response_data = requests.get(url, verify=True, timeout=timeout_seconds).text
+            if response_data:
+                remaining_retries = 0
         except socket.timeout:
             remaining_retries -= 1
             log.warning("HTTP resources timeout, retries: %s, URL: %s", retries, url)
         except Exception as e:
             remaining_retries -= 1
             log.exception("HTTP resources error (%s), retries: %s, URL: %s", e, retries, url)
-    if response_data:
-        response_data = response_data.decode('utf-8')
-    else:
+    if not response_data:
         log.error("HTTP resources error, exhausted retries")
     return response_data
 

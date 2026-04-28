@@ -4,9 +4,9 @@
 OpenICGC
                                  A QGIS plugin
 
-Plugin for accessing open data published by the Cartographic and Geological 
+Plugin for accessing open data published by the Cartographic and Geological
 Institute of Catalonia (Catalan mapping agency).
-Includes spatial toponymic searches, streets, roads, coordinates in different 
+Includes spatial toponymic searches, streets, roads, coordinates in different
 reference systems and load of WMS base layers of Catalonia.
 
                              -------------------

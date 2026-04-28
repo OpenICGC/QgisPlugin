@@ -10,15 +10,13 @@ Module with functions to recover data to make WMS connections to ICGC resources
 *******************************************************************************
 """
 
-import urllib
-import urllib.request
-import html
 import socket
 import re
 import datetime
+import logging
+import requests
 
 # Configure internal library logger (Default is dummy logger)
-import logging
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
@@ -31,8 +29,7 @@ def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
     capabilities_url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, version)
     while retries:
         try:
-            response = None
-            response = urllib.request.urlopen(capabilities_url, timeout=timeout_seconds)
+            response_data = requests.get(capabilities_url, verify=True, timeout=timeout_seconds).text
             retries = 0
         except socket.timeout:
             retries -= 1
@@ -40,12 +37,8 @@ def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
         except Exception as e:
             retries -= 1
             log.exception("WMS resources error (%s), retries: %s, URL: %s", retries, e, capabilities_url)
-    if not response:
-        response_data = ""
+    if not response_data:
         log.error("WMS resources error, exhausted retries")
-    else:
-        response_data = response.read()
-        response_data = response_data.decode('utf-8')
     return response_data
 
 def get_wms_capabilities_info(url, reg_ex_filter):

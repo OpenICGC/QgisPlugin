@@ -26,10 +26,10 @@ reload(logging)
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
-# Set server URL
-#FME_URL = "https://qgis:qgis@sefme2022dev" # A linux no va bé el DNS, ca posar la IP (desenvolupament)
-#FME_URL = "https://qgis:qgis@sefme2022prod.icgc.local" # Test alies de descarreges.icgc.cat
-FME_URL = "https://qgis:qgis@descarregues.icgc.cat" # Servidor extern / adreça externa (producció)
+# Set downloads server URL
+FME_URL = "https://descarregues.icgc.cat"
+# Add Basic Auth user for statistics purpose only
+FME_URL = FME_URL.replace("//", "//qgis:qgis@")
 
 # Set server properties
 FME_DOWNLOAD_EPSG = 25831

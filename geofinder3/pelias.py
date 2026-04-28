@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-from urllib.request import urlopen, Request
 from urllib.parse import quote_plus
 import json
+import requests
 
 
 class PeliasClient:
-    """ Pelias servers generic client class """
+    """ Pelias servers generic client class
+        Doc: https://eines.icgc.cat/geocodificador/api-docs/#/geocodificador/cercappp
+             https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC
+        """
     def __init__(self, url, default_timeout=5, \
         default_search_call="/v1/search", default_reverse_call="/v1/reverse", \
         default_autocomplete_call="/v1/autocomplete"):
@@ -23,8 +26,8 @@ class PeliasClient:
             size=n """
         params_dict = {"text": query_string}
         params_dict.update(extra_params_dict)
-        json = self.call(self.search_call, **params_dict)
-        return json
+        json_data = self.call(self.search_call, **params_dict)
+        return json_data
 
     def autocomplete(self, query_string, **extra_params_dict):
         """ Returns dict location of query string. Extra params:
@@ -32,8 +35,8 @@ class PeliasClient:
             size=n """
         params_dict = {"text": query_string}
         params_dict.update(extra_params_dict)
-        json = self.call(self.autocomplete_call, **params_dict)
-        return json
+        json_data = self.call(self.autocomplete_call, **params_dict)
+        return json_data
 
     def reverse(self, lat, lon, **extra_params_dict):
         """ Return dict with place names on coordinates.
@@ -41,8 +44,8 @@ class PeliasClient:
             size=n """
         params_dict = {"lon": lon, "lat": lat}
         params_dict.update(extra_params_dict)
-        json = self.call(self.reverse_call, value_encode=False, **params_dict)
-        return json
+        json_data = self.call(self.reverse_call, value_encode=False, **params_dict)
+        return json_data
 
     def call(self, call_name, value_encode=True, **params_dict):
         """ Execute any Pelias's function with specified parameters """
@@ -50,10 +53,11 @@ class PeliasClient:
         # Atenció en alguns equips dóna error de certificat al fer la consulta!!
         # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
-            "&".join([f"{key}={quote_plus(value) if value_encode else value}" for key, value in params_dict.items() if value is not None])
+            "&".join([f"{key}={quote_plus(value) if value_encode else value}" \
+            for key, value in params_dict.items() if value is not None])
         try:
-            response = urlopen(self.last_request, timeout=self.timeout)
-            response_json = json.loads(response.read())
+            response_data = requests.get(self.last_request, verify=True, timeout=self.timeout).text
+            response_json = json.loads(response_data)
         except Exception as e:
             response_json = None
             raise e
