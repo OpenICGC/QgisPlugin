@@ -32,7 +32,7 @@ version=1.1.30
 changelog=v1.1.30 (2026-04-28)
 	- Added geological base map
 	- Added addresses product
-	- Added NDVI satellit product
+	- Added NDVI satellite product
 	- DTM time series reordered by second date
 	- Fixed TRL product colors
 	- Fixed menu items size on scaled screens
