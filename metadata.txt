@@ -29,7 +29,7 @@ email=qgis.openicgc@icgc.cat
 qgisMinimumVersion=2.99
 qgisMaximumVersion=4.99
 version=1.2.0
-changelog=v1.2.0 (2026-05-28)
+changelog=v1.2.0 (2026-06-09)
 	- QGIS 3/4 compatibility
 
 	v1.1.30 (2026-04-28)
