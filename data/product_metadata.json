@@ -140,20 +140,6 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Model%20d'elevacions%20del%20terreny&without=litoral"
    },
    {
-      "Producte": "Model d'elevacions del terreny 2x2m (MET2)",
-      "Cobertura": "Vigent",
-      "Carpeta": "Digital Terrain Model 2m 2008-2011",
-      "Formats de fitxer": "gtiff",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&fast=index&_content_type=json&from=1&to=20&any=model-digital-terreny-2x2"
-   },
-   {
-      "Producte": "Model d'elevacions del terreny 5x5m (MET5)",
-      "Cobertura": "Vigent",
-      "Carpeta": "Digital Terrain Model 5m 2020",
-      "Formats de fitxer": "gtiff",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&any=model-digital-terreny-5x5"
-   },
-   {
       "Producte": "Model d'elevacions del terreny amb edificis del litoral",
       "Cobertura": "Sèrie temporal",
       "Carpeta": "Coastal digital terrain model buildings",

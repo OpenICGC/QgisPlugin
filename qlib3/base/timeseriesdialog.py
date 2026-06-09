@@ -14,10 +14,10 @@ Module with a dialog class to manage temporal series
 
 import os
 
-from PyQt5 import uic
-from PyQt5.QtGui import QPainter, QPen, QFont
-from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QStyleFactory
+from qgis.PyQt import uic
+from qgis.PyQt.QtGui import QPainter, QPen, QFont
+from qgis.PyQt.QtCore import Qt, QPoint, QTimer
+from qgis.PyQt.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QStyleFactory
 
 from .qtextra import QtExtra
 

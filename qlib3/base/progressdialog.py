@@ -17,8 +17,8 @@ import time
 import threading
 import operator
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QProgressDialog, QProgressBar, QApplication
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QProgressDialog, QProgressBar, QApplication
 
 
 def get_main_window():

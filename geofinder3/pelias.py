@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
 from urllib.parse import quote_plus
 import json
 import requests
+
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
 
 class PeliasClient:
@@ -9,12 +12,13 @@ class PeliasClient:
         Doc: https://eines.icgc.cat/geocodificador/api-docs/#/geocodificador/cercappp
              https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC
         """
-    def __init__(self, url, default_timeout=5, \
+    def __init__(self, url, timeout=5, check_ssl=CHECK_SSL, \
         default_search_call="/v1/search", default_reverse_call="/v1/reverse", \
         default_autocomplete_call="/v1/autocomplete"):
         """ Configure server connection and calls """
         self.url = url + ("" if url.endswith("/") else "/")
-        self.timeout = default_timeout # Segons
+        self.check_ssl = check_ssl
+        self.timeout = timeout # Segons
         self.search_call = default_search_call
         self.reverse_call = default_reverse_call
         self.autocomplete_call = default_autocomplete_call
@@ -56,7 +60,7 @@ class PeliasClient:
             "&".join([f"{key}={quote_plus(value) if value_encode else value}" \
             for key, value in params_dict.items() if value is not None])
         try:
-            response_data = requests.get(self.last_request, verify=True, timeout=self.timeout).text
+            response_data = requests.get(self.last_request, verify=self.check_ssl, timeout=self.timeout).text
             response_json = json.loads(response_data)
         except Exception as e:
             response_json = None

@@ -10,9 +10,9 @@ Mòdul amb una classe diàleg per mostrar una pàgina web
 *******************************************************************************
 """
 
-from PyQt5.QtCore import QUrl
-from PyQt5.QtWebKitWidgets import QWebView, QWebPage
-from PyQt5.QtWebKit import QWebSettings
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
+from qgis.PyQt.QtWebKit import QWebSettings
 
 class MiniWebBrowser(QWebView):
     def __init__(self):

@@ -15,10 +15,10 @@ Module with a dialog class to display basic information of plugin and ICGC logo
 import os
 import sys
 
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette, QColor, QFontMetrics, QPixmap
-from PyQt5.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPalette, QColor, QFontMetrics, QPixmap
+from qgis.PyQt.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication
 
 ui_about, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_about.ui'))
 
@@ -41,18 +41,22 @@ class AboutDialog(QDialog, ui_about):
             - parent: Especifica la finestra pare del diàleg
             ---
             Initialization of the "about" dialog, you need to report:
-             - app_name: Title of the dialog
-             - app_icon: Icon of the dialog
-             - app_info: Information to show
-             - title: Window title
-             Optionally:
-             - autoshow: Show the dialog automatically when you create it
-             - new_line: Characters to be replaced by a change of line
-             - parent: Specifies the parent window of the dialog
+            - app_name: Title of the dialog
+            - app_icon: Icon of the dialog
+            - app_info: Information to show
+            - title: Window title
+            Optionally:
+            - autoshow: Show the dialog automatically when you create it
+            - new_line: Characters to be replaced by a change of line
+            - parent: Specifies the parent window of the dialog
             """
         QDialog.__init__(self, parent)
         self.setupUi(self)
         self.ui = self # Per compatibilitat QGIS2/3
+
+        # Carreguem el logo de l'ICGC
+        logo = QPixmap(os.path.dirname(__file__) + "/images/icgc_banner.png")
+        self.ui.label_banner.setPixmap(logo)
 
         # Canviem el títol i la icona
         if not title:
@@ -63,14 +67,14 @@ class AboutDialog(QDialog, ui_about):
 
         # Escalem la imatge de logo mantenint proporcions
         self.label_banner.setScaledContents(False)
-        self.label_banner.setAlignment(Qt.AlignCenter)
+        self.label_banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if not app_pixmap:
             app_pixmap = QPixmap(self.label_banner.pixmap())
         self.pixmap_banner = app_pixmap
         self.resize_banner()
 
         # Carreguem la informació
-        self.label_info.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+        self.label_info.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
         self.label_info.setWordWrap(True);
         self.label_info.setText("\n" + app_info.replace(new_line, "\n"))
 
@@ -90,7 +94,7 @@ class AboutDialog(QDialog, ui_about):
             ---
             Resize banner (logo ICGC) to dialog size
             """
-        self.label_banner.setPixmap(self.pixmap_banner.scaled(self.label_banner.width(), self.label_banner.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.label_banner.setPixmap(self.pixmap_banner.scaled(self.label_banner.width(), self.label_banner.height(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
 
     def do_modal(self):
         """ Mostra el diàleg en mode modal
@@ -98,5 +102,5 @@ class AboutDialog(QDialog, ui_about):
             Show dialog on modal mode
             """
         self.show()
-        self.return_value = self.exec_()
+        self.return_value = self.exec()
         return self.return_value

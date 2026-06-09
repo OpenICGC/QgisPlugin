@@ -14,9 +14,9 @@ Module with a dialog class  with multiple input
 
 from datetime import date, time, datetime
 
-from PyQt5.QtCore import Qt, QTime, QDate, QDateTime
-from PyQt5.QtWidgets import QApplication, QLineEdit, QCheckBox, QComboBox, QDialogButtonBox
-from PyQt5.QtWidgets import QFormLayout, QDialog, QMessageBox, QLabel, QTimeEdit, QDateEdit, QDateTimeEdit
+from qgis.PyQt.QtCore import Qt, QTime, QDate, QDateTime
+from qgis.PyQt.QtWidgets import QApplication, QLineEdit, QCheckBox, QComboBox, QDialogButtonBox
+from qgis.PyQt.QtWidgets import QFormLayout, QDialog, QMessageBox, QLabel, QTimeEdit, QDateEdit, QDateTimeEdit
 
 
 class MultipleInputDialog(QDialog):
@@ -135,7 +135,7 @@ class MultipleInputDialog(QDialog):
             elif label_type is bool:
                 item = QCheckBox(self)
                 if not label_required:
-                    item.setCheckState(Qt.PartiallyChecked)
+                    item.setCheckState(Qt.CheckState.PartiallyChecked)
                 if label_default_value is not None:
                     item.setChecked(label_default_value)
             elif label_type is date:
@@ -166,7 +166,7 @@ class MultipleInputDialog(QDialog):
             item_list.append(item)
         
         # Afegim els botons d'acceptar/cancel·lar
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         layout.addWidget(buttonBox)        
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -187,7 +187,7 @@ class MultipleInputDialog(QDialog):
                 if label_type is str:
                     value = item.text()
                 elif label_type is bool:
-                    value = None if item.checkState() == Qt.PartiallyChecked else item.isChecked()
+                    value = None if item.checkState() == Qt.CheckState.PartiallyChecked else item.isChecked()
                 elif label_type is int:
                     value = item.text()
                     try:
@@ -253,7 +253,7 @@ class MultipleInputDialog(QDialog):
     def do_modal(self):
         """ Mostra el diàleg i retorna True/False segons s'ha acceptat o cancel·lat """
         self.show()
-        return self.exec() == QDialog.Accepted
+        return self.exec() == QDialog.DialogCode.Accepted
 
     def get_values(self):
         """ Retorna una llista amb els valors introduits """

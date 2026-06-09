@@ -4,6 +4,7 @@
 *******************************************************************************
 """
 
+import os
 import re
 import logging
 import math
@@ -20,13 +21,14 @@ from . import catastro
 reload(catastro)
 from .catastro import CatastroClient
 
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
+
 
 class GeoFinder(object):
     """ Plugin for accessing open data published by ICGC """
 
     ###########################################################################
     # Service management
-    timeout = 5 # seconds
     geoencoder_epsg = 4326
     cadastral_epsg = 25381
 
@@ -34,7 +36,8 @@ class GeoFinder(object):
     def get_cadastral_coordinates_client(self):
         """ Gets API rest Catastro client """
         if not self.cadastral_coordinates_client:
-            self.cadastral_coordinates_client = CatastroClient(timeout=self.timeout)
+            self.cadastral_coordinates_client = CatastroClient(
+                timeout=self.timeout, check_ssl=self.check_ssl)
         return self.cadastral_coordinates_client
 
     icgc_geoencoder_client = None
@@ -42,13 +45,17 @@ class GeoFinder(object):
         """ Gets API rest ICGC's GeoEncoder (Pelias) client """
         if not self.icgc_geoencoder_client:
             self.icgc_geoencoder_client = PeliasClient(
-                "https://eines.icgc.cat/geocodificador", self.timeout, \
-                default_search_call="cerca", default_reverse_call="invers", \
+                "https://eines.icgc.cat/geocodificador",
+                timeout=self.timeout, check_ssl=self.check_ssl,
+                default_search_call="cerca", default_reverse_call="invers",
                 default_autocomplete_call="autocompletar")
         return self.icgc_geoencoder_client
 
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, timeout=5, check_ssl=CHECK_SSL):
+        # Initialize connection defaults
+        self.timeout = timeout # seconds
+        self.check_ssl = check_ssl
         # Initializer class logger
         if logger:
             self.log = logger

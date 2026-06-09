@@ -42,13 +42,13 @@ except:
 import unittest
 reload(unittest)
 
-from PyQt5.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from PyQt5.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread
-from PyQt5.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
-from PyQt5.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
-from PyQt5.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
-from PyQt5.QtXml import QDomDocument
+from qgis.PyQt.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
+from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread, QEvent
+from qgis.PyQt.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
+from qgis.PyQt.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
+from qgis.PyQt.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
+from qgis.PyQt.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
+from qgis.PyQt.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
 from qgis.core import QgsCoordinateReferenceSystem, QgsGeometry, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
@@ -60,7 +60,7 @@ from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, Qgs
 from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression, QgsDateTimeRange
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
-from . import resources_rc
+# from . import resources_rc
 
 from . import progressdialog
 reload(progressdialog)
@@ -97,6 +97,8 @@ from .download import DownloadManager
 from . import log
 reload(log)
 from .log import PluginLogger
+
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
 
 ###############################################################################
@@ -197,7 +199,12 @@ class GuiBase(object):
             ---
             SubClass to creates menu items with buttons
             """
-        def __init__(self, text, icon, buttons_list, parent, icon_size=16):
+
+        # Stlye constants
+        highlight_style = "QWidget {background: palette(highlight); color: white}"
+        normal_style = "QWidget:hover {background: palette(highlight); color: white}"
+
+        def __init__(self, text, icon, buttons_list, parent, font_size=9, icon_size=15):
             """ Crea una entrada de menú amb text, icona i botons extra
                 buttons_list = [(name, callback, icon), ...]
                 ---
@@ -205,16 +212,18 @@ class GuiBase(object):
                 buttons_list = [(name, callback, icon), ...]
                 """
             super().__init__(parent)
+            self.parent = parent
 
             # Set menú icon
             self.label_icon = QLabel()
             if icon:
                 self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
+            self.label_icon.setFocusPolicy(Qt.NoFocus)
 
             # Set menu text
             self.label_text = QLabel(text)
-            self.label_text.setStyleSheet("QLabel {font-size: %spt;}" % (parent.font().pointSize() * self.devicePixelRatioF()))
+            self.label_text.setStyleSheet("QLabel {font-size: %spt;}" % (font_size))
 
             # Set menu options (buttons)
             icon_size = int(icon_size * self.devicePixelRatioF())
@@ -237,7 +246,6 @@ class GuiBase(object):
             for push_button in self.push_button_list:
                 self.layout.addWidget(push_button)
             self.layout.setContentsMargins(7, 3, 7, 3)
-            self.layout.setSpacing(6)
 
             # Create a new container with a new layout without margins
             # to make a full available space selection
@@ -249,10 +257,47 @@ class GuiBase(object):
 
             # Assign final layout to this QWidget
             self.setLayout(self.container_layout)
-            self.setStyleSheet("QWidget:hover {background: palette(highlight);}")
+            # Enables keyboard cursors focus event
+            self.setFocusPolicy(Qt.StrongFocus)
+            # Enables hover mouse event
+            self.setStyleSheet(self.normal_style)
+
+            # Enables signals capture
+            self.installEventFilter(self)
+
+        def eventFilter(self, object, event):
+            # Changes style when inFocus or outFocus by cursors
+            if event.type()== QEvent.FocusIn:
+                #print("widget has gained keyboard focus", event)
+                self.setStyleSheet(self.highlight_style)
+            elif event.type()== QEvent.FocusOut:
+                #print("widget has lost keyboard focus")
+                self.setStyleSheet(self.normal_style)
+
+            # Set focus when move over and change style when leaves
+            elif event.type()== QEvent.HoverEnter:
+                #print("hover enter")
+                #self.setStyleSheet(self.highlight_style)
+                self.setFocus()
+            elif event.type() == QEvent.HoverLeave:
+                #print("hover leave", event)
+                #self.setStyleSheet(self.normal_style)
+                self.parent.setFocus()
+
+            # Lost focus when accept a menu entry by mouse click or enter key
+            elif event.type() == QEvent.MouseButtonRelease:
+                #print("mouse button release")
+                self.parent.setFocus()
+            elif event.type() == QEvent.KeyPress and event.key() in [Qt.Key_Enter, Qt.Key_Return]:
+                #print("enter")
+                self.parent.setFocus()
+
+            return False
 
         def text(self):
-            """ Retorna el text de l'element """
+            """ Retorna el text de l'element
+                ---
+                Returns element text """
             return self.label_text.text()
 
 
@@ -465,6 +510,10 @@ class GuiBase(object):
                         for _eseparator, _elabel, _eaction, _econtrol, name, callback, _toggle_callback, icon, _enabled, _checkable, _id, _tooltip, _subentries_list, _subentries_as_buttons \
                         in [self.__parse_entry(entry) for entry in subentries_list]]
                     # Creem el control d'entrada de menú amb els botons extra
+
+#            font_size = parent.font().pointSize() * (1 if parent.check_qgis_version(40000) else self.devicePixelRatioF())
+
+
                     menu_item = self.MenuItemWidget(name, icon, buttons_list, menu_or_toolbar)
                     self.widget_actions_set.add(menu_item)
                     # Inserim el control
@@ -497,7 +546,7 @@ class GuiBase(object):
                     if type(menu_or_toolbar) == QToolBar:
                         toolButton = QToolButton()
                         toolButton.setMenu(submenu)
-                        toolButton.setPopupMode(QToolButton.MenuButtonPopup)
+                        toolButton.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
                         if checkable:
                             action.setCheckable(True)
                         toolButton.setDefaultAction(action)
@@ -2956,7 +3005,7 @@ class LayersBase(object):
             Return all group's children or only children type layer by group name
             """
         group = self.root.findGroup(group_id)
-        if not group:
+        if group is None:
             return []
         return [c.layer() if type(c) == QgsLayerTreeLayer else c for c in group.children() \
             if (type(c) == QgsLayerTreeLayer or not only_layers) and (type(c) == QgsLayerTreeGroup or not only_groups)]
@@ -3341,7 +3390,7 @@ class LayersBase(object):
         # Vellugem la capa dins un grup si cal
         if group_name:
             group = self.parent.legend.get_group_by_name(group_name)
-            if group:
+            if group is not None:
                 self.parent.legend.set_group_visible(group)
                 if only_one_map_on_group:
                     self.parent.legend.empty_group_by_name(group_name, exclude_list=[layer])
@@ -3405,7 +3454,7 @@ class LayersBase(object):
         # Obtenim la referència del grup on carregar l'arxiu QLR (el creem si cal)
         if group_name:
             group = self.parent.legend.get_group_by_name(group_name)
-            if not group:
+            if group is None:
                 group = self.parent.legend.add_group(group_name, group_pos=group_pos)
         else:
             group = QgsProject.instance().layerTreeRoot()
@@ -3683,7 +3732,7 @@ class LayersBase(object):
 
         # Preguntem la nova carpeta de descàrregues
         download_folder = QFileDialog.getExistingDirectory(self.iface.mainWindow(),
-            select_folder_text, default_folder, QFileDialog.ShowDirsOnly)
+            select_folder_text, default_folder, QFileDialog.Option.ShowDirsOnly)
         if not download_folder:
             return None
 
@@ -4384,7 +4433,7 @@ class LayersBase(object):
 
         return new_name
 
-    def get_wms_t_time_series(self, url, layer_id, ts_regex=None, version="1.1.1", timeout_seconds=5, retries=3):
+    def get_wms_t_time_series(self, url, layer_id, ts_regex=None, version="1.1.1", timeout_seconds=5, retries=3, check_ssl=CHECK_SSL):
         """ Obté informació temporal d'una capa d'un servidor WMS-T o d'un grup de capes (via expresió regular)
             Retona:
             - llista de tuples [(<name>, <layer_id>), ...]
@@ -4406,7 +4455,7 @@ class LayersBase(object):
         while retries:
             try:
                 capabilities_xml = requests.get(capabilities_request, \
-                    verify=True, timeout=timeout_seconds).text
+                    verify=check_ssl, timeout=timeout_seconds).text
                 retries = 0
             except socket.timeout:
                 retries -= 1
@@ -5076,7 +5125,7 @@ class LegendBase(object):
             Get a group based on name
             """
         group = self.root.findGroup(group_name)
-        if not group or not self.is_group(group):
+        if not self.is_group(group):
             return None
         return group
 
@@ -5129,7 +5178,7 @@ class LegendBase(object):
             ---
             Verify that an item is group type
             """
-        return type(item) == QgsLayerTreeGroup
+        return item is not None and type(item) == QgsLayerTreeGroup
 
     def is_group_by_name(self, group_name):
         """ Indica si el nom de grup correspon realment a un grup existent
@@ -5176,11 +5225,11 @@ class LegendBase(object):
             - group_pos: insert group position
             """
         group_parent = self.get_group_by_name(group_parent_name) if group_parent_name else None
-        if group_pos is not None and not group_parent:
+        if group_pos is not None and group_parent is None:
             group = self.root.insertGroup(group_pos, group_name)
         else:
             group = self.root.addGroup(group_name)
-            if group_parent:
+            if group_parent is not None:
                 group = self.move_group_to_group(group, group_parent, group_pos)
         if layer_list:
             self.move_layers_to_group(group, layer_list, visible_layer=visible_items)
@@ -5234,7 +5283,7 @@ class LegendBase(object):
             Clear the content of a group by name
             """
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         self.empty_group(group, exclude_list)
         return True
@@ -5275,9 +5324,9 @@ class LegendBase(object):
             """
         # Obtenim el grup
         group = self.get_group_by_name(group_name)
-        if not group and autocreate_group:
+        if group is None and autocreate_group:
             group = self.add_group(group_name, True, True, group_pos=group_pos)
-        if group:
+        if group is not None:
             # Movem les capes
             self.move_layers_to_group(group, layers_list, visible_layer, pos, remove_repeated_layers)
         return group
@@ -5338,13 +5387,13 @@ class LegendBase(object):
         # Obtenim el grup
         group = self.get_group_by_name(group_name)
         parent_group = self.get_group_by_name(parent_group_name)
-        if not group:
+        if group is None:
             return None
-        if not parent_group:
+        if parent_group is None:
             if not autocreate_parent_group:
                 return None
             parent_group = self.add_group(parent_group_name, group_pos=parent_group_pos)
-            if not parent_group:
+            if parent_group is None:
                return None
         return self.move_group_to_group(group, parent_group)
 
@@ -5367,7 +5416,7 @@ class LegendBase(object):
             """
         # Obtenim el grup
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         self.set_group_visible(group, enable)
         return True
@@ -5388,7 +5437,7 @@ class LegendBase(object):
             """
         # Obtenim el grup
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         self.set_group_items_visible(group, enable)
         return True
@@ -5407,7 +5456,7 @@ class LegendBase(object):
             Report if the group is visible by name
             """
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         return self.is_group_visible(group)
 
@@ -5438,7 +5487,7 @@ class LegendBase(object):
             Expand or collapse a group by name
             """
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is not None:
             return False
         self.expand_group(group, expand)
         return True
@@ -5456,7 +5505,7 @@ class LegendBase(object):
             Informs if a group is expanded by name
             """
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         return self.is_group_expanded(group)
 
@@ -5483,7 +5532,7 @@ class LegendBase(object):
             Adjusts the map view to display the elements of a group by name
             """
         group = self.get_group_by_name(group_name)
-        if not group:
+        if group is None:
             return False
         self.zoom_to_full_extent_group(group, buffer, refresh)
         return True
@@ -5754,7 +5803,7 @@ class CrsToolsBase(object):
             Get an epsg code to choose from the standard QGIS dialog
             """
         ps = QgsProjectionSelectionDialog()
-        ps.exec_()
+        ps.exec()
         crs = ps.crs()
         if crs:
             return self.format_epsg(crs.authid(), asPrefixedText)
@@ -6358,8 +6407,7 @@ class ToolsBase(object):
                     self.transparency_dialog.setWindowTitle(title)
                 if transparency:
                     self.transparency_dialog.set_transparency(transparency)
-                if layer:
-                    self.transparency_dialog.set_layer(layer)
+                self.transparency_dialog.set_layer(layer)
                 self.transparency_dialog.show()
             else:
                 self.transparency_dialog.hide()
@@ -6729,7 +6777,7 @@ class MetadataBase(object):
         info = "%s v%s\n%s\n\n%s\n\n%s" % (self.get_name(), self.get_version(), self.get_description(), self.get_about(), self.get_author())
         return info
 
-    def get_repository_plugin_version(self, plugin_tag, repository_plugin_template, regex_version_template, timeout_seconds=1):
+    def get_repository_plugin_version(self, plugin_tag, repository_plugin_template, regex_version_template, timeout_seconds=1, check_ssl=CHECK_SSL):
         """ Retorna la versió del plugin hostajat en el repositori de software
             ---
             Returns plugin version hosted in software repository
@@ -6739,7 +6787,7 @@ class MetadataBase(object):
             plugin_tag=self.get_name().replace(" ", "")
         repository_plugin_url = repository_plugin_template % plugin_tag
         try:
-            html = requests.get(repository_plugin_url, verify=True, \
+            html = requests.get(repository_plugin_url, verify=check_ssl, \
                 timeout=timeout_seconds).text
         except socket.timeout:
             return None
@@ -6986,7 +7034,7 @@ class PluginBase(QObject):
         else:
             self.gui.open_file_folder(pathname)
 
-    def show_url(self, url, parse_mode=QUrl.TolerantMode):
+    def show_url(self, url, parse_mode=QUrl.ParsingMode.TolerantMode):
         """ Mostra una URL en el navegador per defecte
             ---
             Show URL in default web navigator

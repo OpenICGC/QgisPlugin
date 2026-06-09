@@ -42,8 +42,10 @@ order_dict = {
     "catalunya": 7
     }
 
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
-def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3):
+
+def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3, check_ssl=CHECK_SSL):
     """ Obté el text del capabilities d'un servei WFS
         ---
         Gets capabilities text from WFS service
@@ -51,7 +53,7 @@ def get_wfs_capabilities(url, version="2.0.0", timeout_seconds=10, retries=3):
     capabilities_url = "%s?REQUEST=GetCapabilities&SERVICE=WFS&VERSION=%s" % (url, version)
     while retries:
         try:
-            response_data = requests.get(capabilities_url, verify=True, timeout=timeout_seconds).text
+            response_data = requests.get(capabilities_url, verify=check_ssl, timeout=timeout_seconds).text
             retries = 0
         except socket.timeout:
             retries -= 1

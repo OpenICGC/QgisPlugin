@@ -104,9 +104,9 @@
   </connection>
   <connection>
    <sender>comboBox</sender>
-   <signal>currentIndexChanged(QString)</signal>
+   <signal>currentTextChanged(QString)</signal>
    <receiver>Styles</receiver>
-   <slot>global_styles_currentIndexChanged()</slot>
+   <slot>global_styles_currentIndexChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>295</x>

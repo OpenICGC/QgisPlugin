@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox, QDateTimeEdit, QDateEdit, QLabel
-from PyQt5.QtCore import Qt, QDateTime
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox, QDateTimeEdit, QDateEdit, QLabel
+from qgis.PyQt.QtCore import Qt, QDateTime
 
 
 class DateDialog(QDialog):
@@ -25,8 +25,8 @@ class DateDialog(QDialog):
 
         # OK and Cancel buttons
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            Qt.Horizontal, self)
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            Qt.Orientation.Horizontal, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -45,17 +45,17 @@ class DateDialog(QDialog):
     @staticmethod
     def getDateTime(description=None, title=None, parent=None):
         dialog = DateDialog(description, title, parent)
-        status_ok = (dialog.exec_() == QDialog.Accepted)
+        status_ok = (dialog.exec() == QDialog.DialogCode.Accepted)
         return (dialog.date() if status_ok else None, dialog.time() if status_ok else None, status_ok)
 
     @staticmethod
     def getDateTimeInOne(description=None, title=None, parent=None):
         dialog = DateDialog(description, title, parent)
-        status_ok = (dialog.exec_() == QDialog.Accepted)
+        status_ok = (dialog.exec() == QDialog.DialogCode.Accepted)
         return (dialog.dateTime() if status_ok else None, status_ok)
 
     @staticmethod
     def getDate(description=None, title=None, parent=None):
         dialog = DateDialog(description, title, parent, False)
-        status_ok = (dialog.exec_() == QDialog.Accepted)
+        status_ok = (dialog.exec() == QDialog.DialogCode.Accepted)
         return (dialog.date() if status_ok else None, status_ok)

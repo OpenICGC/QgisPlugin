@@ -14,8 +14,8 @@ Module with a dialog class to manage layer transparency
 
 import os
 
-from PyQt5 import uic
-from PyQt5.QtWidgets import QDockWidget
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDockWidget
 
 from .qtextra import QtExtra
 
@@ -40,15 +40,15 @@ class TransparencyDialog(QDockWidget, Ui_Transparency):
             - parent: Especifica la finestra pare del diàleg
             ---
             Initialization of the "transparency" dialog, you need to report:
-             - title: Title of the dialog
-             - layer: layer to modify
-             - transparency: current transparency layer value
-             Optionally:
-             - autoshow: Show the dialog automatically when you create it
-             - parent: Specifies the parent window of the dialog
+            - title: Title of the dialog
+            - layer: layer to modify
+            - transparency: current transparency layer value
+            Optionally:
+            - autoshow: Show the dialog automatically when you create it
+            - parent: Specifies the parent window of the dialog
             """
         super().__init__(parent)
-        self.setupUi(self)        
+        self.setupUi(self)
         # Canviem l'estil del QSlider per fer que surti la "fletxeta"
         QtExtra.forceQSliderArrowStyle(self.horizontalSlider)
 
@@ -59,8 +59,7 @@ class TransparencyDialog(QDockWidget, Ui_Transparency):
         if transparency:
             self.set_transparency(transparency)
         # Assignem la capa
-        if layer:
-            self.set_layer(layer)
+        self.set_layer(layer)
 
         # Mostrem el diàleg
         if autoshow:
@@ -73,25 +72,34 @@ class TransparencyDialog(QDockWidget, Ui_Transparency):
             if self.layer.type() == 0: # Si es vectorial
                self.layer.setOpacity(opacity)
             else:
-                self.layer.renderer().setOpacity(opacity) 
+                self.layer.renderer().setOpacity(opacity)
             self.layer.triggerRepaint()
 
     def get_transparency(self):
         return self.horizontalSlider.value()
-    
+
     def set_transparency(self, transparency):
+        transparency = int(transparency)
         if self.get_transparency() != transparency:
             return self.horizontalSlider.setValue(transparency)
 
     def set_layer(self, layer):
-        self.layer = layer
+        self.set_enabled(layer is not None)
+        if layer:
+            self.layer = layer
 
-        title = self.windowTitle().split(":")[0]
-        self.setWindowTitle("%s: %s" % (title, layer.name()))
+            title = self.windowTitle().split(":")[0]
+            self.setWindowTitle("%s: %s" % (title, layer.name()))
 
-        if self.layer.type() == 0:
-            transparency = 100 - (self.layer.opacity() * 100)
-        else:
-            transparency = 100 - (self.layer.renderer().opacity() * 100)
-        self.set_transparency(transparency)
+            if self.layer.type() == 0:
+                transparency = 100 - (self.layer.opacity() * 100)
+            else:
+                transparency = 100 - (self.layer.renderer().opacity() * 100)
+            self.set_transparency(transparency)
 
+    def set_enabled(self, enable=True):
+        # Activa o desactiva la barra temporal
+        self.horizontalSlider.setEnabled(enable)
+        # Canviem el color de la barra del slider i el títol del diàleg quan està desactivat
+        self.horizontalSlider.setStyleSheet("" if enable else "selection-background-color: gray")
+        self.setStyleSheet("" if enable else "color: gray")

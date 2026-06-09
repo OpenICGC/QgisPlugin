@@ -14,18 +14,16 @@ Module with a dialog class to manage photo library searches
 
 import os
 
-from PyQt5 import uic
-from PyQt5.QtCore import QDateTime
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QDockWidget, QTableWidgetItem, QHeaderView, QStyle, QMenu
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QDateTime
+from qgis.PyQt.QtGui import QIcon, QColor
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QDockWidget, QTableWidgetItem, QHeaderView, QStyle, QMenu
 
 # No cal fer import, està definit en el mateix arxiu ui_photosearchselection.ui
 #from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
 
 from ..base.qtextra import QtExtra
-
-from . import resources_rc
 
 # En MAC/OS antics amb QGIS3.8 peta la càrrega de QtRangeSlider, ho protegim i informem
 # de l'estat a la variable photo_search_selection_dialog_ok
@@ -50,6 +48,25 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
     photo_list = []
     preview_type = PreviewType.NOMINAL
 
+    # Colors for different photo status
+    DEFAULT_PHOTO_COLOR = QColor(255, 255, 255)
+    UNPUBLISHABLE_PHOTO_COLOR = QColor(220, 220, 220)
+    UNSCANNED_PHOTO_COLOR = QColor(255, 255, 200)
+    UNAVAILABLE_PHOTO_COLOR = QColor(255, 200, 200)
+
+    # Icons for differents photo status
+    DEFAULT_PHOTO_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_preview.png")
+    DIGITAL_PHOTO_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_digital_preview.png")
+    UNPUBLISHABLE_PHOTO_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_forbidden.png")
+    UNSCANNED_PHOTO_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_scan.png")
+    UNAVAILABLE_PHOTO_ICON = QIcon(os.path.dirname(__file__) + "/images/bug.png")
+    INFO_ICON = None # S'instancia al constructor
+    DOWNLOAD_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_download.png")
+    CERTIFICATE_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_certificate.png")
+    BRIGHTNES_ICON = QIcon(os.path.dirname(__file__) + "/images/photo_brightness.png")
+    RECTIFIED_PREVIEW_ICON = QIcon(os.path.dirname(__file__) + "/images/rectified_preview.png")
+    STEREO_PREVIEW_ICON = QIcon(os.path.dirname(__file__) + "/images/stereo_preview.png")
+
     def __init__(self, photo_layer, time_series_list, current_time,
         update_callback=None, photo_selection_callback=None, show_info_callback=None,
         preview_callback=None, rectified_preview_callback=None, stereo_preview_callback=None, adjust_callback=None,
@@ -60,6 +77,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Initialize time range and refresh / action callbacks """
         super().__init__(parent)
         self.setupUi(self)
+        self.INFO_ICON = self.style().standardIcon(QStyle.SP_MessageBoxInformation)
 
         # Connectem l'event de QRangeSlider.valueChanged (no funciona des del QtDesigner perquè rep dos paràmetres en lloc d'un)
         self.horizontalSlider_range.valueChanged.connect(self.on_range_value_changed)
@@ -79,10 +97,10 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.analog_field_name = analog_field_name
 
         # Set table widget properties
-        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch) # col(0) és autoescalable
-        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch) # col(0) és autoescalable
+        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         self.tableWidget_photos.setColumnWidth(1, 130)
-        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.tableWidget_photos.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         self.tableWidget_photos.setColumnWidth(2, 60)
         self.tableWidget_photos.keyPressEvent = self.on_table_key_press
 
@@ -91,28 +109,28 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.horizontalSlider_range.keyPressEvent = lambda event:self.on_slider_key_press(event, self.horizontalSlider_range)
 
         # Load button icons
-        self.pushButton_report_bug.setIcon(QIcon(":/lib/qlib3/base/images/bug.png"))
-        self.pushButton_show_info.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
-        self.pushButton_link_preview.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png"))
-        self.pushButton_download_hd.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_download.png"))
-        self.pushButton_request_certificate.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_certificate.png"))
-        self.pushButton_request_scan.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_scan.png"))
-        self.pushButton_adjust_brightness.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_brightness.png"))
+        self.pushButton_report_bug.setIcon(self.UNAVAILABLE_PHOTO_ICON)
+        self.pushButton_show_info.setIcon(self.INFO_ICON)
+        self.pushButton_link_preview.setIcon(self.DEFAULT_PHOTO_ICON)
+        self.pushButton_download_hd.setIcon(self.DOWNLOAD_ICON)
+        self.pushButton_request_certificate.setIcon(self.CERTIFICATE_ICON)
+        self.pushButton_request_scan.setIcon(self.UNSCANNED_PHOTO_ICON)
+        self.pushButton_adjust_brightness.setIcon(self.BRIGHTNES_ICON)
         # Add preview options (submenu) to preview button
         preview_menu = QMenu(self);
         if preview_callback:
             photo_preview_action = preview_menu.addAction(self.tr("Photogram nominal orientation"))
-            photo_preview_action.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png"))
+            photo_preview_action.setIcon(self.DEFAULT_PHOTO_ICON)
             photo_preview_action.triggered.connect(lambda:self.update_preview_button(\
                 self.preview, photo_preview_action.text(), photo_preview_action.icon()))
         if rectified_preview_callback:
             rectified_preview_action = preview_menu.addAction(self.tr('Rectified photogram "on the fly"'))
-            rectified_preview_action.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/rectified_preview.png"))
+            rectified_preview_action.setIcon(self.RECTIFIED_PREVIEW_ICON)
             rectified_preview_action.triggered.connect(lambda:self.update_preview_button(\
                 self.rectified_preview, rectified_preview_action.text(), rectified_preview_action.icon()))
         if stereo_preview_callback:
             stereo_preview_action = preview_menu.addAction(self.tr('Anaglyph photogram "on the fly"'))
-            stereo_preview_action.setIcon(QIcon(":/lib/qlib3/photosearchselectiondialog/images/stereo_preview.png"))
+            stereo_preview_action.setIcon(self.STEREO_PREVIEW_ICON)
             stereo_preview_action.triggered.connect(lambda:self.update_preview_button(\
                 self.stereo_preview, stereo_preview_action.text(), stereo_preview_action.icon()))
         self.pushButton_link_preview_type.setMenu(preview_menu);
@@ -260,7 +278,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         datetime = get_field(feature, self.date_field_name, None)
         if datetime:
             if type(datetime) is QDateTime:
-                year, datetime_text = datetime.date().year(), datetime.toString(Qt.SystemLocaleShortDate)
+                year, datetime_text = datetime.date().year(), datetime.toString("dd-MM-yyyy HH:mm:ss")
             else:
                 year, datetime_text = int(datetime.split("-")[0]), datetime
         else:
@@ -282,18 +300,6 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         # Hide dialog
         if hide:
             self.hide()
-
-    # Colors for different photo status
-    DEFAULT_PHOTO_COLOR = QColor(255, 255, 255)
-    UNPUBLISHABLE_PHOTO_COLOR = QColor(220, 220, 220)
-    UNSCANNED_PHOTO_COLOR = QColor(255, 255, 200)
-    UNAVAILABLE_PHOTO_COLOR = QColor(255, 200, 200)
-    # Icons for differents photo status
-    DEFAULT_PHOTO_ICON = QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_preview.png")
-    DIGITAL_PHOTO_ICON = QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_digital_preview.png")
-    UNPUBLISHABLE_PHOTO_ICON = QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_forbidden.png")
-    UNSCANNED_PHOTO_ICON = QIcon(":/lib/qlib3/photosearchselectiondialog/images/photo_scan.png")
-    UNAVAILABLE_PHOTO_ICON = QIcon(":/lib/qlib3/base/images/bug.png")
 
     def update_photos(self):
         """ Update tableWidget photo infomation """

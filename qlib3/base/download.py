@@ -12,9 +12,9 @@ bars
 *******************************************************************************
 """
 
-from PyQt5 import QtNetwork
-from PyQt5.QtCore import QUrl, QTimer
-from PyQt5.QtWidgets import QApplication
+from qgis.PyQt import QtNetwork
+from qgis.PyQt.QtCore import QUrl, QTimer
+from qgis.PyQt.QtWidgets import QApplication
 
 import os
 from importlib import reload
@@ -114,7 +114,7 @@ class DownloadManager(object):
         download_key = reply.request().url().url()
         _reply, progress, local_file, callback, running, status_ok, error_msg = self.queries_dict[download_key]
         filename = local_file.name
-        status_ok = (reply.error() == QtNetwork.QNetworkReply.NoError)
+        status_ok = (reply.error() == QtNetwork.QNetworkReply.NetworkError.NoError)
 
         # Alliberem recursos
         local_file.close()

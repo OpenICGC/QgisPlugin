@@ -20,7 +20,7 @@ import qgis # Accés a QGIS
 from qgis.core import Qgis, QgsMessageLog
 from importlib import reload
 
-from PyQt5.QtWidgets import QApplication, QPushButton
+from qgis.PyQt.QtWidgets import QApplication, QPushButton
 
 from . import loginfodialog
 reload(loginfodialog)
@@ -234,7 +234,7 @@ class QgisError(Exception):
             level: segons la gravetat (Qgis.Info, Qgis.Warning, Qgis.Critical)
             duration: temps que es mostra el missatge en segons. Per defecte no expira (0)
     """
-    def __init__(self, message, level=Qgis.Critical, duration=0):
+    def __init__(self, message, level=Qgis.MessageLevel.Critical, duration=0):
         self._message = message
         self._level = level
         self._duration = duration
@@ -255,22 +255,22 @@ class QgisError(Exception):
 class CancelError(QgisError):
     """ L'usuari ha abortat intencionadament """
     def __init__(self, message="Operació cancel·lada per l'usuari."):
-        super().__init__(message, level=Qgis.Info, duration=2)
+        super().__init__(message, level=Qgis.MessageLevel.Info, duration=2)
 
 class InputError(QgisError):
     """ L'usuari ha entrat dades invàlides """
     def __init__(self, message="Error de les dades d'entrada."):
-        super().__init__(message, level=Qgis.Critical, duration=5)
+        super().__init__(message, level=Qgis.MessageLevel.Critical, duration=5)
 
 class ProcessError(QgisError):
     """ Algun procés ha acabat malament (scripts gdal, qgis processing, subprocess...)"""
     def __init__(self, message="Error de procés."):
-        super().__init__(message, level=Qgis.Critical, duration=0)
+        super().__init__(message, level=Qgis.MessageLevel.Critical, duration=0)
 
 class DatabaseError(QgisError):
     """ Error llegint/escrivint a base de dades """
     def __init__(self, message="Error de base de dades."):
-        super().__init__(message, level=Qgis.Critical, duration=0)
+        super().__init__(message, level=Qgis.MessageLevel.Critical, duration=0)
 
 
 def qgis_show_traceback(parent, function, error_message, traceback_info):
@@ -292,7 +292,7 @@ def qgis_show_traceback(parent, function, error_message, traceback_info):
     widget.layout().addWidget(button)
 
     # Mostra la barra
-    parent.iface.messageBar().pushWidget(widget, Qgis.Critical)
+    parent.iface.messageBar().pushWidget(widget, Qgis.MessageLevel.Critical)
 
 
 def qgis_handle_error(function):
@@ -301,19 +301,19 @@ def qgis_handle_error(function):
     @functools.wraps(function)
     def handle_error(*args, **kwargs):
         try:
-            QgsMessageLog.logMessage('', 'Missatges', level=Qgis.Info)
-            QgsMessageLog.logMessage(f"{function.__name__}: Procés iniciat", 'Missatges', level=Qgis.Info)
+            QgsMessageLog.logMessage('', 'Missatges', level=Qgis.MessageLevel.Info)
+            QgsMessageLog.logMessage(f"{function.__name__}: Procés iniciat", 'Missatges', level=Qgis.MessageLevel.Info)
             result = function(*args, **kwargs)
             message = "Procés finalitzat amb èxit."
             return result
         except CancelError as e:
             # L'usuari ha cancel·lat intencionadament
-            title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')
+            title = 'Info' if e.level==Qgis.MessageLevel.Info else ('Atenció' if e.level==Qgis.MessageLevel.Warning else 'Error')
             args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
             message = "Procés cancel·lat."
         except QgisError as e:
             # Error controlat (InputError, ProcessError...)
-            title = 'Info' if e.level==Qgis.Info else ('Atenció' if e.level==Qgis.Warning else 'Error')
+            title = 'Info' if e.level==Qgis.MessageLevel.Info else ('Atenció' if e.level==Qgis.MessageLevel.Warning else 'Error')
             args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
             message = "Procés finalitzat amb errors."
         except Exception as e:
@@ -322,7 +322,7 @@ def qgis_handle_error(function):
             message = "Procés finalitzat amb errors no controlats."
         finally:
             # Informem que el procés ha acabat
-            QgsMessageLog.logMessage(f"{function.__name__}: {message}", 'Missatges', level=Qgis.Info)
+            QgsMessageLog.logMessage(f"{function.__name__}: {message}", 'Missatges', level=Qgis.MessageLevel.Info)
             args[0].iface.statusBarIface().showMessage(message)
 
     return handle_error

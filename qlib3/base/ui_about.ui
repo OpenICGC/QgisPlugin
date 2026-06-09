@@ -64,9 +64,6 @@
      <property name="text">
       <string/>
      </property>
-     <property name="pixmap">
-      <pixmap>:/lib/qlib3/base/images/icgc_banner.png</pixmap>
-     </property>
      <property name="scaledContents">
       <bool>true</bool>
      </property>

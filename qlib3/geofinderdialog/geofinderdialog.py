@@ -14,13 +14,10 @@ import os
 from importlib import reload
 
 # Import the PyQt and QGIS libraries
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QTableWidgetItem, QApplication
-
-# Initialize Qt resources from file resources_rc.py
-from . import resources_rc
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QIcon, QCursor
+from qgis.PyQt.QtWidgets import QDialog, QAbstractItemView, QHeaderView, QTableWidgetItem, QApplication
 
 # Load a .ui file without pre-compiling it
 ui_geofinder, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_geofinder.ui'))
@@ -78,12 +75,12 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.setWindowTitle(title)
 
         # We initialize dialog items
-        self.tableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableWidget.setShowGrid(False)
-        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tableWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tableWidget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tableWidget.verticalHeader().setVisible(False)
-        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
         # Setup column names
         if columns_list:
@@ -115,7 +112,9 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         # topodata_list example:
         # [{"nom":"Barcelona","x":"431300","y":"4581740","idMunicipi":"080193","nomMunicipi":"Barcelona","idComarca":"13","nomComarca":"Barcelonès","idTipus":"1","nomTipus":"Cap de municipi","municipis":{"080193":"Barcelona"},"comarques":{"13":"Barcelonès"}},
         for i, topodata in enumerate(topodata_list):
-            self.tableWidget.setItem(i, 0, QTableWidgetItem(QIcon(":/lib/qlib3/geofinderdialog/images/%s" % self.TOPOICONS_DICT.get(topodata['idTipus'], "geofinder.png")), topodata['nom']))
+            self.tableWidget.setItem(i, 0, QTableWidgetItem(QIcon(
+                os.path.dirname(__file__) + "/images/%s" %
+                self.TOPOICONS_DICT.get(topodata['idTipus'], "geofinder.png")), topodata['nom']))
             self.tableWidget.setItem(i, 1, QTableWidgetItem(topodata['nomTipus'])) ## + " (" + topodata['idTipus'] + ")"))
             self.tableWidget.setItem(i, 2, QTableWidgetItem(topodata['nomMunicipi']))
             self.tableWidget.setItem(i, 3, QTableWidgetItem(topodata['nomComarca']))
@@ -136,7 +135,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.status = 1
         else:
             self.show()
-            self.status = self.exec_()
+            self.status = self.exec()
         return self.status
 
     def get_selection_index(self):

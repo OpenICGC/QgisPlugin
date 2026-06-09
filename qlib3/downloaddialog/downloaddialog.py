@@ -13,8 +13,8 @@ of the spatial searches
 import os
 
 # Import the PyQt libraries
-from PyQt5 import uic
-from PyQt5.QtWidgets import QDialog
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDialog
 
 
 # Load a .ui file without pre-compiling it
@@ -183,7 +183,7 @@ class DownloadDialog(QDialog, ui_download):
         """ Show GeoFinder dialog and makes it modal """
         self.show()
         self.adjustSize() # Adjust dialog size to visible children
-        self.status = self.exec_()
+        self.status = self.exec()
         return self.status
 
     def get_year(self):

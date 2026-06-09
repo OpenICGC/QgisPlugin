@@ -23,6 +23,7 @@ reload(logging)
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
 # Gets style files path
 styles_path = os.path.join(os.path.dirname(__file__), "symbols")
@@ -31,7 +32,7 @@ styles_path = os.path.join(os.path.dirname(__file__), "symbols")
 # *****************************************************************************
 # Auxiliar functions
 
-def get_http_dir(url, timeout_seconds=0.5, retries=3):
+def get_http_dir(url, timeout_seconds=0.5, retries=3, check_ssl=CHECK_SSL):
     """ Obté el codi HTML d'una pàgina web amb fitxers
         Retorna: string
         ---
@@ -43,7 +44,7 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
     remaining_retries = retries
     while remaining_retries:
         try:
-            response_data = requests.get(url, verify=True, timeout=timeout_seconds).text
+            response_data = requests.get(url, verify=check_ssl, timeout=timeout_seconds).text
             if response_data:
                 remaining_retries = 0
         except socket.timeout:
@@ -57,7 +58,7 @@ def get_http_dir(url, timeout_seconds=0.5, retries=3):
     return response_data
 
 url_response_dict = {}
-def get_http_files(url, file_regex_pattern, replace_list=[]):
+def get_http_files(url, file_regex_pattern, replace_list=[], timeout_seconds=0.5, retries=3, check_ssl=CHECK_SSL):
     """ Obté una llista de fitxer d'una pàgina web a partir d'una expressió regular
         Retorna: llista de resultats de la expressió regular
         ---
@@ -74,7 +75,7 @@ def get_http_files(url, file_regex_pattern, replace_list=[]):
     else:
         cached = False
         # LLegeixo les dades HTML del directori HTTP
-        response_data = get_http_dir(url)
+        response_data = get_http_dir(url, timeout_seconds=timeout_seconds, retries=retries, check_ssl=check_ssl)
         if response_data:
             # Guardem el resultat a la cache
             url_response_dict[url] = response_data

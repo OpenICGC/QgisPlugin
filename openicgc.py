@@ -37,13 +37,11 @@ from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsRectangle, 
 from qgis.core import Qgis, QgsProject, QgsWkbTypes, QgsField, QgsFeature
 from qgis.gui import QgsMapTool, QgsRubberBand
 # Import the PyQt and QGIS libraries
-from PyQt5.QtCore import QSize, Qt, QPoint, QDateTime, QVariant, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInputDialog
-from PyQt5.QtWidgets import QLineEdit, QFileDialog, QWidgetAction
+from qgis.PyQt.QtCore import QSize, Qt, QPoint, QDateTime, QVariant, pyqtSignal
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import QApplication, QComboBox, QMessageBox, QStyle, QInputDialog
+from qgis.PyQt.QtWidgets import QLineEdit, QFileDialog, QWidgetAction
 
-# Initialize Qt resources from file resources_rc.py
-from . import resources_rc
 
 # Detect import relative mode (for release) or global import mode (for debug)
 is_import_relative = os.path.exists(os.path.join(os.path.dirname(__file__), "qlib3"))
@@ -129,6 +127,8 @@ PHOTOLIB_WMS = PHOTOLIB_WFS
 
 BASE_MAPS_INFO_URL = "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/mapa-base-wms"
 
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
+
 
 class QgsMapToolSubScene(QgsMapTool):
     """ Tool class to manage rectangular selections """
@@ -171,7 +171,7 @@ class QgsMapToolSubScene(QgsMapTool):
 
     def canvasPressEvent(self, event):
         #click
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.pressed = True
             self.top_left = self.toMapCoordinates(QPoint(event.pos().x(), event.pos().y()))
 
@@ -198,7 +198,7 @@ class QgsMapToolSubScene(QgsMapTool):
 
         self.rubberBand.reset()
 
-        self.rubberBand.setLineStyle(Qt.DashLine)
+        self.rubberBand.setLineStyle(Qt.PenStyle.DashLine)
         self.rubberBand.setColor(color)
         self.rubberBand.setWidth(self.line_width)
 
@@ -209,7 +209,7 @@ class QgsMapToolSubScene(QgsMapTool):
         self.rubberBand.addPoint(self.top_left, True)
 
     def canvasReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.subscene(event.pos().x(), event.pos().y())
 
     def subscene(self, x=None, y=None):
@@ -246,7 +246,7 @@ class QgsMapToolPhotoSearch(QgsMapTool):
         # Action to check / uncheck tools
         self.setAction(action)
         # Assign tool cursor
-        self.setCursor(Qt.CrossCursor)
+        self.setCursor(Qt.CursorShape.CrossCursor)
 
     def canvasReleaseEvent(self, event):
         cpos = self.toMapCoordinates(QPoint(event.pos().x(), event.pos().y()))
@@ -277,6 +277,9 @@ class OpenICGC(PluginBase):
     # Custom signal to know when plugin resources are loaded
     resourcesLoadingFinished = pyqtSignal()
 
+    # Uses cache icon with plugin variable self.info_icon:
+    info_icon = None
+
     ###########################################################################
     # Plugin initialization
 
@@ -303,6 +306,14 @@ class OpenICGC(PluginBase):
         wms_resources.log = self.log
         fme_resources.log = self.log
 
+        # Check QGIS version problems
+        self.enable_http_files = self.check_qgis_version(31004)
+        self.enable_qlr_files = self.check_qgis_version(32800)
+        self.qgis_version_ok = self.check_qgis_version(32800)
+        self.can_show_point_cloud_files = self.check_qgis_version(31800)
+        self.can_filter_point_cloud = self.check_qgis_version(32600)
+        self.enable_photo_search = self.check_qgis_version(30800) # QtRangeSlider fails on old MAC/OS with QGIS3.8
+
         ## Initialize default download variables
         self.download_type = "dt_area"
         self.cat_limits_dict = {} # Delayed initialization: key: (geometry, epsg)
@@ -326,14 +337,6 @@ class OpenICGC(PluginBase):
         # Configure referrer string to use on url requests
         self.request_referrer = "%s_v%s" % (self.metadata.get_name().replace(" ", ""), self.metadata.get_version())
         self.request_referrer_param = "referrer=%s" % self.request_referrer
-
-        # Check QGIS version problems
-        self.enable_http_files = self.check_qgis_version(31004)
-        self.enable_qlr_files = self.check_qgis_version(32800)
-        self.qgis_version_ok = self.check_qgis_version(32800)
-        self.can_show_point_cloud_files = self.check_qgis_version(31800)
-        self.can_filter_point_cloud = self.check_qgis_version(32600)
-        self.enable_photo_search = self.check_qgis_version(30800) # QtRangeSlider fails on old MAC/OS with QGIS3.8
 
         # Load translation constants
         self.init_static_translations_and_constants()
@@ -814,9 +817,9 @@ class OpenICGC(PluginBase):
         self.resourcesLoadingFinished.connect(self.reload_toolbar)
         self.run_async(self.init_resources, self.resourcesLoadingFinished)
         # Debug:
-        # self.init_local_resources()
-        # self.init_online_resources()
-        # self.reload_toolbar()
+        #self.init_local_resources()
+        #self.init_online_resources()
+        #self.reload_toolbar()
 
         # Log plugin time
         t1 = datetime.datetime.now()
@@ -1037,7 +1040,6 @@ class OpenICGC(PluginBase):
         self.gui.remove_toolbars_and_menus()
         # Reload toolbar with resources loaded
         self.init_toolbar()
-
         # Log plugin end
         t1 = datetime.datetime.now()
         self.log.info("Full GUI initialization (%s)" % (t1-self.t0))
@@ -1049,7 +1051,7 @@ class OpenICGC(PluginBase):
         self.combobox = QComboBox()
         self.combobox.setFixedSize(QSize(250,24))
         self.combobox.setEditable(True)
-        self.combobox.setInsertPolicy(QComboBox.InsertAtTop)
+        self.combobox.setInsertPolicy(QComboBox.InsertPolicy.InsertAtTop)
         self.combobox.setToolTip(self.TOOLTIP_HELP)
         self.combobox.addItems(self.get_setting_value("last_searches", []))
         self.combobox.setCurrentText("")
@@ -1237,15 +1239,6 @@ class OpenICGC(PluginBase):
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
                         "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Digital terrain model"), True),
-                    # (self.tr("Digital terrain model buildings (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Digital terrain model buildings"),
-                    #         None, None, None, "default", "image/png",
-                    #         self.dtmb_list, None,
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
-                    #     "cat_dtm.png", self.enable_http_files and len(self.dtmb_list) > 0,
-                    #     self.manage_metadata_button("Digital terrain model buildings"), True),
                     (self.tr("Surface model (temporal serie)"),
                         lambda _checked:self.add_wms_t_layer(
                             self.tr("[TS] Surface model"),
@@ -1255,57 +1248,6 @@ class OpenICGC(PluginBase):
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True),
                         "cat_dtm.png", self.enable_http_files and len(self.sm_list) > 0,
                         self.manage_metadata_button("Surface model"), True),
-                    # (self.tr("Orientation model (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Orientation model"),
-                    #         None, None, None, "default", "image/png",
-                    #         self.om_list, None,
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                    #     "cat_dtm.png", self.enable_http_files and len(self.om_list) > 0,
-                    #     self.manage_metadata_button("Orientation model"), True),
-                    # "---",
-                    # DTM From WMS
-                    # (self.tr("Digital terrain model (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Digital terrain model"),
-                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                    #         None, None, "default", "image/png",
-                    #         None, r"model-elevacions-terreny-\w+-\w+-\d+c*m-(\d+-\d+)",
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                    #     "cat_dtm.png",
-                    #     self.manage_metadata_button("Digital terrain model"), True),
-                    # (self.tr("Digital terrain model buildings (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Digital terrain model buildings"),
-                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                    #         None, None, "default", "image/png",
-                    #         None, r"model-elevacions-terreny-edificis-\w+-\w+-\d+c*m-(\d+-\d+)",
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                    #     "cat_dtm.png",
-                    #     self.manage_metadata_button("Digital terrain model buildings"), True),
-                    # (self.tr("Surface model (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Surface model"),
-                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                    #         None, None, "default", "image/png",
-                    #         None, r"model-superficies-\w+-\w+-\d+c*m-(\d+-\d+)",
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                    #     "cat_dtm.png",
-                    #     self.manage_metadata_button("Surface model"), True),
-                    # (self.tr("Orientations model (temporal serie)"),
-                    #     lambda _checked:self.add_wms_t_layer(
-                    #         self.tr("[TS] Orientations model"),
-                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                    #         None, None, "default", "image/png",
-                    #         None, r"model-orientacions-\w+-\w+-\d+c*m-(\d+-\d+)",
-                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
-                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True),
-                    #     "cat_dtm.png",
-                    #     self.manage_metadata_button("Orientations model"), True),
                     "---",
                     (self.tr("Coastal digital terrain model (temporal serie)"),
                         lambda _checked:self.add_wms_t_layer(
@@ -1783,7 +1725,7 @@ class OpenICGC(PluginBase):
                     (self.tr("Select download folder"), self.set_download_folder,
                         "download_folder.png", True, False, "select_download_folder"),
                     (self.tr("Open download folder"), self.open_download_folder,
-                        style.standardIcon(QStyle.SP_DirIcon), True, False, "open_download_folder"),
+                        style.standardIcon(QStyle.StandardPixmap.SP_DirIcon), True, False, "open_download_folder"),
                     "---",
                     ] + self.get_download_menu(self.fme_services_list, raster_not_vector=False) + [
                     "---"
@@ -1798,7 +1740,7 @@ class OpenICGC(PluginBase):
             (self.tr("Paint styles for selected layers"), None,
                 "style.png", [
                 (self.tr("Transparence"),
-                    lambda _checked:self.tools.show_transparency_dialog(self.tr("Transparence"), self.iface.mapCanvas().currentLayer()) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None,
+                    lambda _checked:self.tools.show_transparency_dialog(self.tr("Transparence"), self.iface.mapCanvas().currentLayer()),
                     "transparency.png"),
                 (self.tr("Desaturate raster layer"),
                     lambda _checked:self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
@@ -1826,10 +1768,10 @@ class OpenICGC(PluginBase):
                 (self.tr("Help"), self.show_help, "help.png"),
                 "---",
                 (self.tr("Available products list"), self.show_available_products,
-                    style.standardIcon(QStyle.SP_FileDialogDetailedView)),
+                    style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 (self.tr("Deprecated products list"),
                     lambda _checked:self.show_url("https://www.icgc.cat/ca/Geoinformacio-i-mapes/Obsolescencia-daplicacions-productes-i-serveis"),
-                    style.standardIcon(QStyle.SP_FileDialogDetailedView)),
+                    style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 "---",
                 (self.tr("Cartographic and Geological Institute of Catalonia web"),
                     lambda _checked:self.show_help_file("icgc"), "icgc.png"),
@@ -1852,10 +1794,10 @@ class OpenICGC(PluginBase):
                         "bug_target.png", True, True, "enable_debug_log"),
                     (self.tr("Open debug log file"),
                         lambda _checked:self.gui.open_file_folder(self.log.getLogFilename()),
-                        style.standardIcon(QStyle.SP_FileIcon), self.log.getLogFilename() is not None),
+                        style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), self.log.getLogFilename() is not None),
                     (self.tr("Open plugin installation folder"),
                         lambda _checked:self.gui.open_file_folder(self.plugin_path),
-                        style.standardIcon(QStyle.SP_DirIcon)),
+                        style.standardIcon(QStyle.StandardPixmap.SP_DirIcon)),
                     (self.tr("Send us an email with debug information"),
                         lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(debug=True, new_plugin_version=new_plugin_version),
                         "send_email_red.png"),
@@ -1875,7 +1817,7 @@ class OpenICGC(PluginBase):
                 self.tr("Warning:"),
                 (self.tr("QGIS version warnings"),
                     self.show_qgis_version_warnings,
-                    style.standardIcon(QStyle.SP_MessageBoxWarning)),
+                    style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)),
             ]))
 
         # Add plugin reload and test buttons (debug purpose)
@@ -1952,12 +1894,15 @@ class OpenICGC(PluginBase):
 
     def manage_metadata_button(self, product_access=None, product_metadata_url=None):
         """ Returns buttons list for product metadata """
-        style = self.iface.mainWindow().style()
+        # Uses cache icon with plugin variable self.info_icon:
+        if not self.info_icon:
+            self.info_icon = self.iface.mainWindow().style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+        # Gets metadata url
         if not product_metadata_url:
             product_metadata_url = self.product_metadata_dict.get(product_access, None)
         return [(self.tr("Product metadatas"), \
             lambda: self.show_url(product_metadata_url), \
-            style.standardIcon(QStyle.SP_MessageBoxInformation), \
+            self.info_icon \
             )] if product_metadata_url else []
 
     def get_download_menu(self, fme_services_list, raster_not_vector=None, nested_download_submenu=True):
@@ -2182,8 +2127,11 @@ class OpenICGC(PluginBase):
         if self.download_action:
             self.download_action.setChecked(status)
 
-    def enable_last_download(self):
+    def enable_last_download(self, checked=False):
         """ Undo the change on button state we make when clicking on the Download button """
+        if not checked:
+            self.gui.enable_tool(None)
+            return
         # Undo last check change and if previous download action is enabled, exit
         if self.download_action:
             self.download_action.setChecked(not self.download_action.isChecked())
@@ -2238,14 +2186,15 @@ class OpenICGC(PluginBase):
             # Show "on the fly" central photogram rendering layers warning
             if layer_id and layer_id.lower().endswith("_central"):
                 message = self.tr("This layer renders only the most centered photogram in the map view, you can zoom in for continuous navigation. Please note that current year may not have full photogram coverage")
-                self.iface.messageBar().pushMessage(layer_name, message, level=Qgis.Info, duration=10)
+                self.iface.messageBar().pushMessage(layer_name, message, level=Qgis.MessageLevel.Info, duration=10)
 
         return layer
 
     def enable_search_geocoder(self, checked=False):
         """ Enables search photos interactive tool """
-        self.gui.enable_tool(self.tool_geocoder_search)
-        self.iface.messageBar().pushMessage(self.tr("Reverse geocoding"), self.tr("Select a point"), level=Qgis.Info, duration=5)
+        self.gui.enable_tool(self.tool_geocoder_search if checked else None)
+        if checked:
+            self.iface.messageBar().pushMessage(self.tr("Reverse geocoding"), self.tr("Select a point"), level=Qgis.MessageLevel.Info, duration=5)
 
     def find(self, user_text, x=None, y=None):
         """ Performs a geo-spatial query and shows the results to the user so he can choose the one he wants to visualize """
@@ -2400,7 +2349,7 @@ class OpenICGC(PluginBase):
             if QMessageBox.warning(self.iface.mainWindow(), title, \
                 self.tr("ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.\n\nDo you want change the project coordinate system to EPSG 25831?") % self.project.get_epsg(), \
                 #"Els productes ICGC estan generats en EPSG 25831, carregar-los en un projecte amb EPSG %s podria provocar problemes de visualització, descàrrega o augment del temps de càrrega.\n\nVols canviar el sistema de coordenades del projecte a EPSG 25831?"
-                QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
                 self.project.set_epsg(25831)
 
         if gsd_dict:
@@ -2515,7 +2464,7 @@ class OpenICGC(PluginBase):
                     message = self.tr("Select a zone")
                 message += self.tr(" with available information")
             if message:
-                self.iface.messageBar().pushMessage(title, message, level=Qgis.Info, duration=5)
+                self.iface.messageBar().pushMessage(title, message, level=Qgis.MessageLevel.Info, duration=5)
             # Interactive point or rect is required, enable tool
             self.gui.enable_tool(self.tool_subscene)
             self.download_action.setChecked(True)
@@ -2626,7 +2575,7 @@ class OpenICGC(PluginBase):
             confirmation_text = self.tr("Data type:\n   %s (%s)\nZone:\n   %s\n\nDownload folder:\n   %s\nFilename (%s):") % (data_name, type_info, zone, download_folder, download_ext[1:])
         # User confirmation
         filename, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
-            set_html_font_size(confirmation_text), QLineEdit.Normal, filename)
+            set_html_font_size(confirmation_text), QLineEdit.EchoMode.Normal, filename)
         if not ok_pressed or not local_filename:
             self.log.debug("User filename input cancelled")
             return
@@ -2647,12 +2596,12 @@ class OpenICGC(PluginBase):
             if is_points and not self.can_show_point_cloud_files:
                 if QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("File type %s is not supported by the current version of QGIS.\nIt will be downloaded but not displayed") % ext,
-                    QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok) != QMessageBox.Ok:
+                    QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Ok) != QMessageBox.StandardButton.Ok:
                     return
             else:
                 if QMessageBox.question(self.iface.mainWindow(), title,
                     self.tr("File type %s can take quite a while to open in QGIS\nDo you want to open it after downloading?") % ext,
-                    QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes:
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) == QMessageBox.StandardButton.Yes:
                     is_slow_format = False
 
         # Load layer
@@ -2798,7 +2747,7 @@ class OpenICGC(PluginBase):
         if is_unsupported_format:
             if QMessageBox.question(self.iface.mainWindow(), title,
                 self.tr("File type %s is unsupported by QGIS\nDo you want try open downloaded file in a external viewer?") % ext,
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) != QMessageBox.Yes:
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) != QMessageBox.StandardButton.Yes:
                 self.log.debug("Open donwloaded file with external viewer cancelled")
                 return
             try:
@@ -2819,7 +2768,7 @@ class OpenICGC(PluginBase):
             self.log.debug("Download tool coordinates (%s)", self.download_type)
             msg_text = self.tr('Enter west, north, east, south values in the project coordinates system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65 429493.19 4580294.65" or\n   "429393.19 4580194.65 429493.19 4580294.65 EPSG:25831" or\n   "EPSG:25831 429393.19 4580194.65 429493.19 4580294.65"')
             coord_text, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), self.tr("Download tool"),
-                set_html_font_size(msg_text), QLineEdit.Normal, "")
+                set_html_font_size(msg_text), QLineEdit.EchoMode.Normal, "")
             if not ok_pressed:
                 self.log.debug("User coordinates input cancelled")
                 return None
@@ -2847,7 +2796,7 @@ class OpenICGC(PluginBase):
                 polygons_list = []
                 for feature in layer.selectedFeatures():
                     geom = feature.geometry()
-                    if geom.wkbType() in [QgsWkbTypes.Polygon, QgsWkbTypes.MultiPolygon]:
+                    if geom.wkbType() in [QgsWkbTypes.Type.Polygon, QgsWkbTypes.Type.MultiPolygon]:
                         polygons_list.append(geom)
                 if polygons_list:
                     multipolygon = QgsGeometry.collectGeometry(polygons_list)
@@ -2978,7 +2927,7 @@ class OpenICGC(PluginBase):
     def disable_ref_layers(self, hide_not_remove=False):
         """ Disable all reference layers """
         group = self.legend.get_group_by_name(self.BACKGROUND_MAP_GROUP_NAME)
-        if group:
+        if group is not None:
             disable_layers_list = [layer_tree.layer() for layer_tree in group.children()
                 if layer_tree.name().startswith(self.DOWNLOAD_REF_PATTERN % "")]
             for layer in disable_layers_list:
@@ -3058,7 +3007,7 @@ class OpenICGC(PluginBase):
         """ Load shadow DTM layer to overlap to current background map in the first position of background map group"""
         # Selects first group layer if group exists
         group = self.legend.get_group_by_name(group_name)
-        if group:
+        if group is not None:
             legend_layers_list = group.findLayers()
             if legend_layers_list:
                 self.layers.set_current_layer(legend_layers_list[0].layer())
@@ -3122,7 +3071,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
     ###########################################################################
     # Update help & plugin
 
-    def sync_help(self, path, online_basename, local_basename, timeout=0.5, filename_patterns_list=["%s.html", "%s-ca.html", "%s-es.html"]):
+    def sync_help(self, path, online_basename, local_basename, timeout=0.5, check_ssl=CHECK_SSL, filename_patterns_list=["%s.html", "%s-ca.html", "%s-es.html"]):
         """ Update local help files from online (GitHub) help files """
         if not os.path.isabs(path):
             path = os.path.join(self.plugin_path, path)
@@ -3147,7 +3096,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             remote_url = found.group(1)
             # Read remote help file metadata tag "last-modified"
             try:
-                remote_data = requests.get(remote_url, verify=True, timeout=timeout).text
+                remote_data = requests.get(remote_url, verify=check_ssl, timeout=timeout).text
             except:
                 fin = None
             if not fin:
@@ -3174,7 +3123,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         # Copy image files of all help files (witout repetitions)
         for local_image_pathname, remote_image_url in sync_images_dict.items():
             try:
-                remote_image_data = requests.get(remote_image_url, verify=True,
+                remote_image_data = requests.get(remote_image_url, verify=check_ssl,
                     timeout=timeout).content
             except:
                 fin = None
@@ -3184,7 +3133,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 fout.write(remote_image_data)
             self.log.debug("Help updated:", remote_image_url)
 
-    def check_plugin_update(self, timeout=5):
+    def check_plugin_update(self, timeout=5, check_ssl=CHECK_SSL):
         """ Check plugin new version
             Dont' work on SharePoint links
             To do, try: https://pypi.org/project/Office365-REST-Python-Client/
@@ -3206,7 +3155,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         else:
             # Download plugin to gets version
             try:
-                remote_data = requests.get(remote_url, verify=True, \
+                remote_data = requests.get(remote_url, verify=check_ssl, \
                     timeout=timeout).text
             except Exception as e:
                 remote_data = None
@@ -3268,8 +3217,9 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
     def enable_search_photos(self, checked=False):
         """ Enables search photos interactive tool """
-        self.gui.enable_tool(self.tool_photo_search)
-        self.iface.messageBar().pushMessage(self.tr("Photograms search tool"), self.tr("Select a point"), level=Qgis.Info, duration=5)
+        self.gui.enable_tool(self.tool_photo_search if checked else None)
+        if checked:
+            self.iface.messageBar().pushMessage(self.tr("Photograms search tool"), self.tr("Select a point"), level=Qgis.MessageLevel.Info, duration=5)
 
     def search_photos_by_point(self):
         """ Search photos in photo library by text point coordinates """
@@ -3277,7 +3227,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         title = self.tr("Search photograms")
         msg_text = self.tr('Enter an x y value in the project coordinate system or add the corresponding EPSG code in the following format:\n   "429393.19 4580194.65" or "429393.19 4580194.65 EPSG:25831" or "EPSG:25831 429393.19 4580194.65"')
         coord_text, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
-            set_html_font_size(msg_text), QLineEdit.Normal, "")
+            set_html_font_size(msg_text), QLineEdit.EchoMode.Normal, "")
         if not ok_pressed:
             return
         # Use GeoFinder static function to parse coordinate text
@@ -3294,7 +3244,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         title = self.tr("Search photograms")
         msg_text = self.tr('Photogram name:') + " " * 50
         photo_name, ok_pressed = QInputDialog.getText(self.iface.mainWindow(), title,
-            set_html_font_size(msg_text), QLineEdit.Normal, "")
+            set_html_font_size(msg_text), QLineEdit.EchoMode.Normal, "")
         if not ok_pressed or not photo_name:
             return
         # Search photo name
@@ -3312,7 +3262,8 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         group = self.legend.get_group_by_name(self.PHOTOS_GROUP_NAME)
         if group and len(self.layers.get_group_layers(group)) > 0:
             if QMessageBox.question(self.iface.mainWindow(), title,
-                self.tr('It exists a previous photo search. Do you want close it?'), QMessageBox.Yes, QMessageBox.No) == QMessageBox.No:
+                self.tr('It exists a previous photo search. Do you want close it?'),
+                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
                 # Walkthrough to show photo search dialog with current search
                 if self.photo_search_dialog:
                     self.photo_search_dialog.show()
@@ -3325,7 +3276,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                     photo_search_layer.willBeDeleted.disconnect(self.photo_search_dialog.reset)
             self.legend.empty_group(group)
         # If photo search group not exist, we ensure that it is created before download group
-        if not group:
+        if group is None:
             # If not exists download group return -1
             group_pos = self.legend.get_group_position_by_name(self.DOWNLOAD_GROUP_NAME) + 1
 
@@ -3550,7 +3501,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                     autoshow=True, parent=self.iface.mainWindow())
                 # Align dialog to right
                 self.photo_search_dialog.hide()
-                self.iface.addDockWidget(Qt.RightDockWidgetArea, self.photo_search_dialog)
+                self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.photo_search_dialog)
                 # Map visibility event to refresh any control if necessary. This is implemented in
                 # change layer event that's why i send a change layer signal
                 self.photo_search_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
@@ -3585,7 +3536,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         photo_date_text = photo_date.toString(self.tr("yyyy/MM/dd HH:mm:ss")) if type(photo_date) is QDateTime else str(photo_date)
         if QMessageBox.question(self.iface.mainWindow(), title,
             self.tr("Before reporting an error, bear in mind that the position of photograms is an approximation i will never completely fit the underlying cartography, since no terrain model has been used to project the imatge against. Furthermore, changes in instrumenation over time (wheter GPS is used or not, scanning and photogrammetric workflow) account for a very limited precision in positioning.\n\nOnly large displacements in position (for example, an element that should appear near the center does not appear) or if there is an error in rotation (eg. the sea appears in the northern part of a photo).\n\nDo you want continue?"),
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) != QMessageBox.Yes:
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) != QMessageBox.StandardButton.Yes:
             return
         self.send_email(self.tr("Photo: %s\nFlight code: %s\nDate: %s\nResolution: %.2fm\n\n" \
             "Problem description: ") % (photo_name, flight_code, photo_date_text, photo_resolution or 0), \

@@ -3,15 +3,19 @@ from urllib.parse import quote_plus
 import json
 import requests
 
+CHECK_SSL = True
+
 
 class CatastroClient:
     """ Catastro client for rest services class
         Doc: https://www.catastro.hacienda.gob.es/ws/Webservices_Libres.pdf
         """
-    def __init__(self, url="http://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/", timeout=5):
+    def __init__(self, url="http://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/",
+            timeout=5, check_ssl=CHECK_SSL):
         """ Configure server connection and calls """
         self.url = url + ("" if url.endswith("/") else "/")
         self.timeout = timeout # Segons
+        self.check_ssl = check_ssl
         self.last_request = None
 
     def Consulta_CPMRC(self, ref_cad, **extra_params_dict):
@@ -23,7 +27,7 @@ class CatastroClient:
             Raw query example:
                 http://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/json/Consulta_CPMRC?RefCat=9503802DF2890D
             """
-        params_dict = {"RefCat": ref_cad, "SRS": "EPSG:4326"}
+        params_dict = {"RefCat": ref_cad.strip()[:14], "SRS": "EPSG:4326"}
         params_dict.update(extra_params_dict)
         json_data = self.call("COVCCoordenadas.svc/json/Consulta_CPMRC", **params_dict)
         return json_data["Consulta_CPMRCResult"] if json_data else json_data
@@ -49,7 +53,7 @@ class CatastroClient:
             "&".join([f"{key}={quote_plus(value) if value_encode else value}" \
             for key, value in params_dict.items() if value is not None])
         try:
-            response_data = requests.get(self.last_request, verify=True, timeout=self.timeout).text
+            response_data = requests.get(self.last_request, verify=self.check_ssl, timeout=self.timeout).text
             response_json = json.loads(response_data)
         except Exception as e:
             response_json = None

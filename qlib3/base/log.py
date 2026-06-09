@@ -18,7 +18,7 @@ import logging
 import sys
 import traceback
 from qgis.core import QgsApplication, Qgis
-from PyQt5.QtWidgets import QDockWidget, QDialog, QTabWidget, QTabBar, QStackedWidget
+from qgis.PyQt.QtWidgets import QDockWidget, QDialog, QTabWidget, QTabBar, QStackedWidget
 
 
 class QGISHandler(logging.Handler):
@@ -27,12 +27,12 @@ class QGISHandler(logging.Handler):
         Class to connext QGIS logger with standard python logging system
         """
     level_dict = {
-        logging.NOTSET: Qgis.Info,
-        logging.DEBUG: Qgis.Info,
-        logging.INFO: Qgis.Info,
-        logging.WARNING: Qgis.Warning,
-        logging.ERROR: Qgis.Critical,
-        logging.CRITICAL: Qgis.Critical,
+        logging.NOTSET: Qgis.MessageLevel.Info,
+        logging.DEBUG: Qgis.MessageLevel.Info,
+        logging.INFO: Qgis.MessageLevel.Info,
+        logging.WARNING: Qgis.MessageLevel.Warning,
+        logging.ERROR: Qgis.MessageLevel.Critical,
+        logging.CRITICAL: Qgis.MessageLevel.Critical,
         }
 
     def __init__(self, log_name):                

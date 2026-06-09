@@ -10,6 +10,7 @@ Module with functions to recover data to make WMS connections to ICGC resources
 *******************************************************************************
 """
 
+import os
 import socket
 import re
 import datetime
@@ -20,8 +21,10 @@ import requests
 log = logging.getLogger('dummy')
 log.addHandler(logging.NullHandler())
 
+CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
-def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
+
+def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3, check_ssl=CHECK_SSL):
     """ Obté el text del capabilities d'un servei WMS
         ---
         Gets capabilities text from WMS service
@@ -29,7 +32,7 @@ def get_wms_capabilities(url, version="1.1.1", timeout_seconds=10, retries=3):
     capabilities_url = "%s?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, version)
     while retries:
         try:
-            response_data = requests.get(capabilities_url, verify=True, timeout=timeout_seconds).text
+            response_data = requests.get(capabilities_url, verify=check_ssl, timeout=timeout_seconds).text
             retries = 0
         except socket.timeout:
             retries -= 1

@@ -14,9 +14,9 @@ bars
 
 import os
 
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QComboBox, QCheckBox
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QDialog, QTableWidgetItem, QComboBox, QCheckBox
 
 ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_styles.ui'))
 
@@ -28,20 +28,20 @@ class StylesDialog(QDialog, ui_loginfo):
         """
 
     def __init__(self, layers_dict={}, title=None, autoshow=True, parent=None):
-        """ Inicialitza el diàleg d'estils a partir de les capes seleccionades 
+        """ Inicialitza el diàleg d'estils a partir de les capes seleccionades
             Opcionalment es pot especificar:
             - title: títol del diàleg
             - autoshow: mostra el diàleg al declarar-lo
             - parent: finestra pare del diàleg
             ---
             Initializes styles dialog from selected layers
-            Optionally you can specify:
-            - title: dialog title
+            Optionally you can specify:
+            - title: dialog title
             - autoshow: show dialog on declaration
-            - parent: parent window of the dialog
+            - parent: parent window of the dialog
             """
         QDialog.__init__(self, parent)
-        self.setupUi(self)        
+        self.setupUi(self)
         self.ui = self # Per compatibilitat QGIS2/3
         # Canviem el títol
         if title:
@@ -61,7 +61,7 @@ class StylesDialog(QDialog, ui_loginfo):
             Show modal dialog
             """
         self.show()
-        self.return_value = self.exec_()
+        self.return_value = self.exec()
         return self.return_value
 
     def is_cancelled(self):
@@ -70,12 +70,12 @@ class StylesDialog(QDialog, ui_loginfo):
             Return if exit with cancel button
             """
         return self.return_value == 0
-    
+
     def set_layers_styles(self, layers_styles_dict_list):
         """ Carrega la informació de capes i estils a mostrar
             ---
             Load style layers information
-            ---            
+            ---
             layers_styles_dict_list: [(layer_id, layer_name, current_style_id, available_styles_dict),]
                 available_styles_dict: {style_id: (style_name, style_description)
             """
@@ -83,7 +83,7 @@ class StylesDialog(QDialog, ui_loginfo):
         global_styles_set = set()
 
         # Resetejem la taula del diàleg
-        self.tableWidget.reset()        
+        self.tableWidget.reset()
         # Carreguem la informació de les capes
         self.tableWidget.setRowCount(len(layers_styles_dict_list))
         for index, (layer_id, layer_name, visible, current_style_id, styles_dict) in enumerate(layers_styles_dict_list):
@@ -106,7 +106,7 @@ class StylesDialog(QDialog, ui_loginfo):
                 # Guardem l'estil a la llista de globals
                 global_styles_set |= set((style_name, ))
             combo.setCurrentIndex(current_style_pos)
-            self.ui.tableWidget.setCellWidget(index, 2, combo)            
+            self.ui.tableWidget.setCellWidget(index, 2, combo)
         # Ajustem les mides de la taula
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()

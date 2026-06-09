@@ -25,10 +25,10 @@ try:
 except:
     email_available = False
 
-from PyQt5 import uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette, QColor, QFontMetrics, QFont
-from PyQt5.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication, QFrame, QFileDialog, QMessageBox
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPalette, QColor, QFontMetrics, QFont
+from qgis.PyQt.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication, QFrame, QFileDialog, QMessageBox
 
 ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_loginfo.ui'))
 
@@ -82,23 +82,23 @@ class LogInfoDialog(QDialog, ui_loginfo):
             - parent: Finestra pare del diàleg
             ---
             Initialization of the dialog, you need to specify a parameter with an information text or with a
-            list of tuples with information. Optionally you can specify:
-            - title: Dialog title
-            - mode: Dialog mode that switches the icon to display (mode_info, mode_warning, mode_error)
-            - buttons: Mask of buttons to show (buttons_ok, buttons_cancel, buttons_yes ...)
-            - default_combo_selection: If you have a list of information, value of the list to be displayed by default
-            - extrainfo_or_tupleextrainfolist: Additional information to show (email button + shift)
-            - extrainfohtml_or_tupleextrainfohtmllist: Additional HTML information to show (in emails)
-            - email_button_text: Text of the button used to send reports by email
-            - email_subject: Subject of the reports by email
-            - email_to: Receivers of the reports by email
-            - email_cc: Receivers in copy of the reports by email
-            - save_button_text: Text of the button to save information to file
-            - copy_clipboard_button_text: Text of the button to save information to clipboard
-            - autoshow: Automatically show the dialog when creating it
-            - width: Dialog width
-            - height: Dialog height
-            - parent: Parent window of the dialog
+            list of tuples with information. Optionally you can specify:
+            - title: Dialog title
+            - mode: Dialog mode that switches the icon to display (mode_info, mode_warning, mode_error)
+            - buttons: Mask of buttons to show (buttons_ok, buttons_cancel, buttons_yes ...)
+            - default_combo_selection: If you have a list of information, value of the list to be displayed by default
+            - extrainfo_or_tupleextrainfolist: Additional information to show (email button + shift)
+            - extrainfohtml_or_tupleextrainfohtmllist: Additional HTML information to show (in emails)
+            - email_button_text: Text of the button used to send reports by email
+            - email_subject: Subject of the reports by email
+            - email_to: Receivers of the reports by email
+            - email_cc: Receivers in copy of the reports by email
+            - save_button_text: Text of the button to save information to file
+            - copy_clipboard_button_text: Text of the button to save information to clipboard
+            - autoshow: Automatically show the dialog when creating it
+            - width: Dialog width
+            - height: Dialog height
+            - parent: Parent window of the dialog
             """
         QDialog.__init__(self, parent)
         self.setupUi(self)
@@ -107,11 +107,11 @@ class LogInfoDialog(QDialog, ui_loginfo):
         # Canviem el títol i la icona
         self.setWindowTitle(title)
         if mode == self.mode_error:
-            icon = QStyle.SP_MessageBoxCritical
+            icon = QStyle.StandardPixmap.SP_MessageBoxCritical
         elif mode == self.mode_warning:
-            icon = QStyle.SP_MessageBoxWarning
+            icon = QStyle.StandardPixmap.SP_MessageBoxWarning
         else:
-            icon = QStyle.SP_MessageBoxInformation
+            icon = QStyle.StandardPixmap.SP_MessageBoxInformation
         self.setWindowIcon(self.style().standardIcon(icon))
 
         # Canviem la mida
@@ -123,20 +123,20 @@ class LogInfoDialog(QDialog, ui_loginfo):
             self.resize(width, height)
 
         # Canviem els botons que mostrem
-        qt_buttons = 0
+        qt_buttons = QDialogButtonBox.StandardButton.NoButton
         if buttons & self.buttons_ok:
-            qt_buttons |= QDialogButtonBox.Ok
+            qt_buttons |= QDialogButtonBox.StandardButton.Ok
         if buttons & self.buttons_cancel:
-            qt_buttons |= QDialogButtonBox.Cancel
+            qt_buttons |= QDialogButtonBox.StandardButton.Cancel
         if buttons & self.buttons_yes:
-            qt_buttons |= QDialogButtonBox.Yes
+            qt_buttons |= QDialogButtonBox.StandardButton.Yes
         if buttons & self.buttons_no:
-            qt_buttons |= QDialogButtonBox.No
+            qt_buttons |= QDialogButtonBox.StandardButton.No
         self.ui.buttonBox.setStandardButtons(qt_buttons)
         if buttons & self.buttons_defcancel:
-            self.ui.buttonBox.button(QDialogButtonBox.Cancel).setDefault(True)
+            self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).setDefault(True)
         if buttons & self.buttons_defno:
-            self.ui.buttonBox.button(QDialogButtonBox.No).setDefault(True)
+            self.ui.buttonBox.button(QDialogButtonBox.StandardButton.No).setDefault(True)
 
         # Mostrem o no el botó de Save
         if save_button_text:
@@ -173,11 +173,11 @@ class LogInfoDialog(QDialog, ui_loginfo):
 
         # Canviem el color i mida de la font de l'edit
         palette = self.ui.plainTextEdit.palette()
-        palette.setColor(QPalette.Base, QColor('transparent'))
+        palette.setColor(QPalette.ColorRole.Base, QColor('transparent'))
         self.ui.plainTextEdit.setPalette(palette)
-        self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size))
+        #self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size)) # NO COMPATIBLE QT6/QGIS4
         if not border:
-            self.ui.plainTextEdit.setFrameStyle(QFrame.NoFrame)
+            self.ui.plainTextEdit.setFrameStyle(QFrame.Shape.NoFrame)
 
         # Carreguem les dades
         self.info_or_tupleinfolist = info_or_tupleinfolist
@@ -225,7 +225,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             text pla, HTML i es pot configurar els canvis de linia
             ---
             Returns a text with the information displayed in the dialog, it can be in
-            plain text format, HTML, and you can configure line changes format
+            plain text format, HTML, and you can configure line changes format
             """
         if self.index:
             if html_format and self.extrainfohtml_or_tupleextrainfohtmllist:
@@ -278,7 +278,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             """
         if not email_available:
             return
-        if QApplication.keyboardModifiers() == Qt.ShiftModifier:
+        if QApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier:
             return self.show_extra_info()
 
         email_info = self.get_report_info(html_format=True)
@@ -309,7 +309,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
             Show modal dialog
             """
         self.show()
-        self.return_value = self.exec_()
+        self.return_value = self.exec()
         return self.return_value
 
     def accept(self):

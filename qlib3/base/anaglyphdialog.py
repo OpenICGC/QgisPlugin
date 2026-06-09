@@ -14,10 +14,10 @@ Module with a dialog class to manage temporal series
 
 import os
 
-from PyQt5 import uic
-from PyQt5.QtGui import QPainter, QPen, QFont
-from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip
+from qgis.PyQt import uic
+from qgis.PyQt.QtGui import QPainter, QPen, QFont
+from qgis.PyQt.QtCore import Qt, QPoint, QTimer
+from qgis.PyQt.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip
 
 from .qtextra import QtExtra
 
@@ -80,7 +80,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
         if inverted_stereo_label:
             self.checkBox_inverted_stereo.setText(inverted_stereo_label)
         if inverted_stereo:
-            self.checkBox_inverted_stereo.setChecked(Qt.Checked if inverted_stereo else Qt.Unchecked)
+            self.checkBox_inverted_stereo.setChecked(inverted_stereo)
 
         # Mostrem el diàleg
         if autoshow:
@@ -117,7 +117,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
     def set_anaglyph(self, parallax, inverted_stereo):
         """ Assigna valors a les opcions del diàleg """
         self.horizontalSlider_parallax.setValue(int((parallax - 80) / 4))
-        self.checkBox_inverted_stereo.setChecked(Qt.Checked if inverted_stereo else Qt.Unchecked)
+        self.checkBox_inverted_stereo.setChecked(inverted_stereo)
 
     def get_parallax(self):
         """ Retornem el valor de parallax enter entre 80 i 120 (tant per cent)"""
@@ -125,7 +125,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
 
     def is_inverted_stereo(self):
         """ Retornem el valor d'estèreo invertid """
-        return self.checkBox_inverted_stereo.checkState() == Qt.Checked
+        return self.checkBox_inverted_stereo.checkState() == Qt.CheckState.Checked
 
     def on_inverted_stereo(self, inverted):
         if self.update_callback:

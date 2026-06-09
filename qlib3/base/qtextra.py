@@ -3,7 +3,7 @@
 Module with extra QT functionalies 
 """
 
-from PyQt5.QtWidgets import QApplication, QStyleFactory, QCommonStyle
+from qgis.PyQt.QtWidgets import QApplication, QStyleFactory, QCommonStyle
 
 
 class QtExtra:
