@@ -1060,12 +1060,13 @@ class OpenICGC(PluginBase):
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
-        base_map_callback = lambda layer_name: self.zoom_to_cat_when_empty(self.layers.add_wms_layer( \
-            self.BASE_MAP_DICT[layer_name][0], \
-            "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms", \
-            [layer_name], None, "image/png", 25831, self.request_referrer_param, \
-            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True))
-        self.default_map_callback = lambda _checked=False: base_map_callback("topografic") # Used on find call and  layer button
+        base_map_callback = lambda layer_name: self.force_project_epsg_when_empty( \
+            self.zoom_to_cat_when_empty(self.layers.add_wms_layer( \
+                self.BASE_MAP_DICT[layer_name][0], \
+                "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms", \
+                [layer_name], None, "image/png", 25831, self.request_referrer_param, \
+                self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True)), 25831)
+        self.default_map_callback = lambda _checked=False: base_map_callback("topografic") # Used on find call and layers button
         self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""), [
             self.tr("Find"), # Label text
             self.combobox, # Editable combobox
@@ -1765,29 +1766,34 @@ class OpenICGC(PluginBase):
             (self.tr("Help"), self.show_help, "help.png", [
                 (self.tr("About Open ICGC"), self.show_about, "icon.png"),
                 (self.tr("What's new"), self.show_changelog, "new.png"),
-                (self.tr("Help"), self.show_help, "help.png"),
+                #(self.tr("Plugin introduction"), self.show_help, "help.png"),
+                (self.tr("Plugin introduction"),
+                    lambda _checked:self.show_help_file("plugin_presentation"), "help.png"),
+                (self.tr("Presentation video"),
+                    lambda _checked:self.show_help_file("plugin_presentation_video"), "youtube.png"),
                 "---",
                 (self.tr("Available products list"), self.show_available_products,
                     style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 (self.tr("Deprecated products list"),
-                    lambda _checked:self.show_url("https://www.icgc.cat/ca/Geoinformacio-i-mapes/Obsolescencia-daplicacions-productes-i-serveis"),
+                    lambda _checked:self.show_help_file("icgc_deprecated_products"),
                     style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 "---",
-                (self.tr("Cartographic and Geological Institute of Catalonia web"),
-                    lambda _checked:self.show_help_file("icgc"), "icgc.png"),
                 (self.tr("QGIS plugin repository"),
                     lambda _checked:self.show_help_file("plugin_qgis"),
                     "plugin.png"),
                 (self.tr("Software Repository"),
                     lambda _checked:self.show_help_file("plugin_github"),
                     "git.png"),
-                (self.tr("Send us an email"),
-                    lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(new_plugin_version=new_plugin_version),
-                    "send_email.png"),
+                # (self.tr("Send us an email"),
+                #     lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(new_plugin_version=new_plugin_version),
+                #     "send_email.png"),
                 "---",
                 (self.tr("Report an issue"),
-                    lambda _checked, new_plugin_version=self.new_plugin_version:self.report_issue(new_plugin_version=new_plugin_version),
+                    lambda _checked, new_plugin_version=self.new_plugin_version:self.report_issue_form(new_plugin_version=new_plugin_version),
                     "bug.png"),
+                (self.tr("Github issue"),
+                    lambda _checked, new_plugin_version=self.new_plugin_version:self.report_issue(new_plugin_version=new_plugin_version),
+                    "github.png"),
                 (self.tr("Debug"), None, "bug_target.png", [
                     (self.tr("Enable debug log info"),
                         self.enable_debug_log,
@@ -1798,9 +1804,21 @@ class OpenICGC(PluginBase):
                     (self.tr("Open plugin installation folder"),
                         lambda _checked:self.gui.open_file_folder(self.plugin_path),
                         style.standardIcon(QStyle.StandardPixmap.SP_DirIcon)),
-                    (self.tr("Send us an email with debug information"),
-                        lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(debug=True, new_plugin_version=new_plugin_version),
-                        "send_email_red.png"),
+                    # (self.tr("Send us an email with debug information"),
+                    #     lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(debug=True, new_plugin_version=new_plugin_version),
+                    #     "send_email_red.png"),
+                    ]),
+                ] + [
+                "---",
+                (self.tr("Cartographic and Geological Institute of Catalonia web"),
+                    lambda _checked:self.show_help_file("icgc"), "icgc.png"),
+                (self.tr("Other ICGC's interesting web sites"), None, "icgc_webs.png", [
+                    (self.tr("Vissir viewer"), lambda _checked:self.show_help_file("icgc_vissir"), "vissir.png"),
+                    (self.tr("Download viewer"), lambda _checked:self.show_help_file("icgc_app_downloads"), "icgc.png"),
+                    (self.tr("IDEC viewer"), lambda _checked:self.show_help_file("icgc_app_downloads"), "icgc.png"),
+                    (self.tr("MapLibrary viewer"), lambda _checked:self.show_help_file("icgc_map_library"), "icgc.png"),
+                    (self.tr("PhotoLibrary viewer"), lambda _checked:self.show_help_file("icgc_photo_library"), "fototeca.png"),
+                    (self.tr("3D Streets viewer"), lambda _checked:self.show_help_file("icgc_3d_streets"), "icgc.png"),
                     ]),
                 ]),
             ]) + ([] if not self.new_qgis_plugin_version or self.lite else [
@@ -3532,18 +3550,25 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
     def report_photo_bug(self, photo_name, flight_code="", photo_date="", photo_resolution=0):
         """ Report a photo bug """
-        title=self.tr("Report photo bug")
+        # Show warning message
+        title = self.tr("Report photo bug")
         photo_date_text = photo_date.toString(self.tr("yyyy/MM/dd HH:mm:ss")) if type(photo_date) is QDateTime else str(photo_date)
         if QMessageBox.question(self.iface.mainWindow(), title,
             self.tr("Before reporting an error, bear in mind that the position of photograms is an approximation i will never completely fit the underlying cartography, since no terrain model has been used to project the imatge against. Furthermore, changes in instrumenation over time (wheter GPS is used or not, scanning and photogrammetric workflow) account for a very limited precision in positioning.\n\nOnly large displacements in position (for example, an element that should appear near the center does not appear) or if there is an error in rotation (eg. the sea appears in the northern part of a photo).\n\nDo you want continue?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes) != QMessageBox.StandardButton.Yes:
             return
-        self.send_email(self.tr("Photo: %s\nFlight code: %s\nDate: %s\nResolution: %.2fm\n\n" \
-            "Problem description: ") % (photo_name, flight_code, photo_date_text, photo_resolution or 0), \
-            title = "Error en el fotograma %s" % photo_name) # Static text no translated
 
-        QMessageBox.information(self.iface.mainWindow(), title,
-            self.tr("Thanks for reporting an error in photogram:\n%s\n\nWe try to fix it as soon as possible") % photo_name)
+        # Open web form with issue information
+        error_text = self.tr(
+            "Photo: %s\nFlight code: %s\nDate: %s\nResolution: %.2fm\n\nProblem description: "
+            ) % (photo_name, flight_code, photo_date_text, photo_resolution or 0)
+        self.report_issue_form(error=(title + "\n\n" + error_text))
+
+        # self.send_email(self.tr("Photo: %s\nFlight code: %s\nDate: %s\nResolution: %.2fm\n\n" \
+        #     "Problem description: ") % (photo_name, flight_code, photo_date_text, photo_resolution or 0), \
+        #     title = "Error en el fotograma %s" % photo_name) # Static text no translated
+        # QMessageBox.information(self.iface.mainWindow(), title,
+        #     self.tr("Thanks for reporting an error in photogram:\n%s\n\nWe try to fix it as soon as possible") % photo_name)
 
     def save_map(self, report_template, file_suffix="", title="Save map as PDF"):
         """ Save current map as PDF applying a template <report_template> """
@@ -3634,33 +3659,61 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             self.log.info("Python version: %s", sys.version)
             self.log.info("%s version: %s", self.metadata.get_name(), self.metadata.get_version())
 
-    def send_email(self, mail_text="", title="OpenICGC QGIS plugin", debug=False, new_plugin_version=None, last_log_lines=100, email_to="qgis.openicgc@icgc.cat"):
-        """ Sends Open ICGC email with optional debug information """
+    # def send_email(self, mail_text="", title="OpenICGC QGIS plugin", debug=False, new_plugin_version=None, last_log_lines=100, email_to="qgis.openicgc@icgc.cat"):
+    #     """ Sends Open ICGC email with optional debug information """
+    #     if new_plugin_version:
+    #         # Cannot report issues with obsolete version of plugin, "report_issue" show warning message
+    #         self.report_issue(new_plugin_version=new_plugin_version)
+    #         return
+
+    #     if not mail_text:
+    #         # Add default mail body
+    #         mail_text = "\n\n%s v%s / QGIS v%s\n" % (
+    #             self.metadata.get_name(), self.metadata.get_version(), Qgis.QGIS_VERSION)
+    #         mail_text += "OS: %s %s v%s (%s)\n" % (
+    #             platform.system(), platform.release(), platform.version(), sys.platform)
+    #         # Adds log information from log_file
+    #         if debug:
+    #             title += " debug"
+    #             log_pathname = self.log.getLogFilename()
+    #             if log_pathname and os.path.exists(log_pathname):
+    #                 with open(log_pathname, "r") as file_in:
+    #                     log_text = file_in.read()
+    #                 log_info = "Log: " + "\n".join(list(reversed(log_text.split("\n")))[:last_log_lines])
+    #             else:
+    #                 log_info = ""
+    #             mail_text += "Project EPSG: %s\n" \
+    #                 "%s" % (self.project.get_epsg(), log_info)
+    #     # Send email
+    #     self.tools.send_email(email_to, title, mail_text)
+
+    def report_issue_form(self, new_plugin_version=None, error=""):
+        """ Open issue form with optional information """
         if new_plugin_version:
             # Cannot report issues with obsolete version of plugin, "report_issue" show warning message
             self.report_issue(new_plugin_version=new_plugin_version)
             return
 
-        if not mail_text:
-            # Add default mail body
-            mail_text = "\n\n%s v%s / QGIS v%s\n" % (
-                self.metadata.get_name(), self.metadata.get_version(), Qgis.QGIS_VERSION)
-            mail_text += "OS: %s %s v%s (%s)\n" % (
-                platform.system(), platform.release(), platform.version(), sys.platform)
-            # Adds log information from log_file
-            if debug:
-                title += " debug"
-                log_pathname = self.log.getLogFilename()
-                if log_pathname and os.path.exists(log_pathname):
-                    with open(log_pathname, "r") as file_in:
-                        log_text = file_in.read()
-                    log_info = "Log: " + "\n".join(list(reversed(log_text.split("\n")))[:last_log_lines])
-                else:
-                    log_info = ""
-                mail_text += "Project EPSG: %s\n" \
-                    "%s" % (self.project.get_epsg(), log_info)
-        # Send email
-        self.tools.send_email(email_to, title, mail_text)
+        # Set base issue form url (params: lang, coordinates, environment and error)
+        base_url = "https://forms.office.com/Pages/ResponsePage.aspx?" \
+            "id=V5S73HJB-UO3rUQwD03qJkuaYVuCv_VIuHYZCM2bVrZUOFZRTEpMNUpMRTBGQ1BTRTVYRFlFNDdZUSQlQCN0PWcu" \
+            "&lang=%s" \
+            "&r2f8b5d505c5b4b4ab211be61e1cec571=%s" \
+            "&rba56d562e5b6473ba99b13a3cefa6673=%s" \
+            "&rf6924452a01e4a5f84a8eb200a852662=%s"
+        # Set coordinates text
+        center = self.iface.mapCanvas().center()
+        is_geographic_coords = (-180 <= center.x() and center.x() <= 180 and -90 <= center.y() and center.y() <= 90)
+        coord_text = ("%.6f %.6f (EPSG:%s)" if is_geographic_coords else "%.2f %.2f (EPSG:%s)") % (
+            center.x(), center.y(), self.project.get_epsg())
+        # Set environment text
+        environment_text = "%s v%s / QGIS v%s / %s %s v%s (%s)" % (
+            self.metadata.get_name(), self.metadata.get_version(), Qgis.QGIS_VERSION,
+            platform.system(), platform.release(), platform.version(), sys.platform)
+
+        # Open issues form
+        url = base_url % (self.translation.get_qgis_language(), coord_text, environment_text, error)
+        self.show_url(url)
 
     def report_issue(self, new_plugin_version=None):
         """ Open web navigator with GitHub issues page (if not new version of plugin available) """
@@ -3681,7 +3734,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         # Only zoom with empty project (only 1 new layer)
         layer_count = len(QgsProject.instance().mapLayers())
         if layer_count <= 1:
-            return self.layers.zoom_to_cat(layer)
+            self.layers.zoom_to_cat()
         return layer
 
     def force_project_epsg_when_empty(self, layer, epsg):

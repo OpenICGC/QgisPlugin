@@ -60,8 +60,6 @@ from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, Qgs
 from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression, QgsDateTimeRange
 from qgis.utils import plugins, reloadPlugin, showPluginHelp
 
-# from . import resources_rc
-
 from . import progressdialog
 reload(progressdialog)
 from .progressdialog import ProgressDialog
@@ -608,25 +606,25 @@ class GuiBase(object):
                 [
                     "Cercar:", # Label
                     self.combobox, # Control
-                    (self.TOOLTIP_TEXT, self.run, QIcon(":/plugins/geofinder/icon.png")), # Button with icon
-                    ("GeoFinder reload", self.reload_plugin, QIcon(":/lib/qlib3/base/images/python.png")), # Button with icon
+                    (self.TOOLTIP_TEXT, self.run, "icon.png")), # Button with icon
+                    ("GeoFinder reload", self.reload_plugin, "python.png"), # Button with icon
                 ]
 
             Exemple2:
                 [
                     ("&Ortofoto color",
                         lambda:self.parent.layers.add_wms_layer("WMS Ortofoto color", "https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service", ["orto"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
-                        QIcon(":/lib/qlib3/base/images/cat_ortho5k.png")),
+                        "cat_ortho5k.png"),
                     ("Ortofoto &infraroja",
                         lambda:self.parent.layers.add_wms_layer("WMS Ortofoto infraroja", "https://geoserveis.icgc.cat/icc_mapesbase/wms/service", ["ortoi5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
-                        QIcon(":/lib/qlib3/base/images/cat_ortho5ki.png")),
-                    ("Ortofoto &històrica", None, QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png"), [ # Subnivell
+                        "cat_ortho5ki.png"),
+                    ("Ortofoto &històrica", None, "cat_ortho5kbw.png", [ # Subnivell
                         ("&Ortofoto 1:5.000 vol americà sèrie B blanc i negre",
                             lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie B 1:5.000 BN", "https://geoserveis.icgc.cat/icc_ortohistorica/wms/service",  ["ovab5m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
-                            QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
+                            "cat_ortho5kbw.png"),
                         ("&Ortofoto 1:10.000 vol americà sèrie A blanc i negre (1945-1946)",
                             lambda:self.parent.layers.add_wms_layer("WMS Ortofoto vol americà sèrie A 1:10.000 BN", "https://geoserveis.icgc.cat/icc_ortohistorica/wms/service", ["ovaa10m"], ["default"], "image/jpeg", None, "BGCOLOR=0x000000", group_name, None, only_one_map),
-                            QIcon(":/lib/qlib3/base/images/cat_ortho5kbw.png")),
+                            "cat_ortho5kbw.png"),
                         ]), # Fi de subnivell
                     "---", # Separador
                     ("blablabla", ...)
@@ -1233,6 +1231,7 @@ class GuiBase(object):
         icon = QIcon(":/lib/qlib3/base/images/%s" % icon_name)
         if not icon.isNull():
             return icon
+        print("Icon not found:", icon_name)
         return None
 
     def open_file_folder(self, file_or_folder):
@@ -2890,19 +2889,9 @@ class LayersBase(object):
             return False
         area = layer.extent()
         epsg = self.get_epsg(layer)
-        return self.zoom_to_extent(layer, area, epsg, buffer)
+        return self.zoom_to_extent(area, epsg, buffer)
 
-    def zoom_to_extent_by_id(self, layer_idprefix, area, epsg=None, buffer=0, pos=0):
-        """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa per id. Opcionalment se li pot afegir una orla "buffer"
-            ---
-            Zoom in to specified coordinates (QgsRectangle) of layer by id. Optionally you can add a "buffer"
-            """
-        layer = self.get_by_id(layer_idprefix, pos)
-        if not layer:
-            return False
-        return self.zoom_to_extent(layer, area, epsg, buffer)
-
-    def zoom_to_extent(self, layer, area, epsg=None, buffer=0):
+    def zoom_to_extent(self, area, epsg=None, buffer=0):
         """ Fa zoom a les coordenades indicades (QgsRectangle) d'una capa. Opcionalment se li pot afegir una orla "buffer"
             ---
             Zoom in to specified coordinates (QgsRectangle) of layer. Optionally you can add a "buffer"
@@ -2912,9 +2901,7 @@ class LayersBase(object):
             return False
         # Reprojectem les coordenades si cal
         project_epsg = self.parent.project.get_epsg()
-        if not epsg:
-            epsg = self.get_epsg(layer)
-        if project_epsg != epsg:
+        if epsg and project_epsg != epsg:
             area = self.parent.crs.transform_bounding_box(area, epsg, project_epsg)
         # Ampliem el rectangle si cal
         if buffer:
@@ -2924,24 +2911,14 @@ class LayersBase(object):
         self.iface.mapCanvas().refresh()
         return True
 
-    def zoom_to_cat_by_id(self, layer_idprefix, buffer=0, pos=0):
-        """ Fa zoom d'una capa per id. de manera que es vegi tota Catalunya
-            ---
-            Zoom to Catalonia area by layer id.
-            """
-        layer = self.get_by_id(layer_idprefix, pos)
-        if not layer:
-            return False
-        return self.zoom_to_cat(layer, buffer)
-
-    def zoom_to_cat(self, layer, buffer=0):
+    def zoom_to_cat(self, buffer=0):
         """ Fa zoom de manera que es vegi tota Catalunya
             ---
             Zoom to Catalonia area
             """
         cat_rect = QgsRectangle(250000, 4480000, 535000, 4755000)
         epsg = 25831
-        return self.zoom_to_extent(layer, cat_rect, epsg, buffer)
+        return self.zoom_to_extent(cat_rect, epsg, buffer)
 
     def ensure_visible_by_id(self, layer_idprefix, pos=0):
         """ Asegura que els elements d'una capa per id són visibles fent un zoom a la extensió si cal
@@ -6359,11 +6336,11 @@ class ToolsBase(object):
             """
         if toolbar_name:
             self.parent.gui.configure_toolbar(toolbar_name, [
-                (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
+                (tool_name, self.parent.debug.toggle_console, "console.png")
                 ], add_separator=add_separator)
         if menu_name:
             self.parent.gui.configure_menu(menu_name, [
-                (tool_name, self.parent.debug.toggle_console, QIcon(":/lib/qlib3/base/images/console.png"))
+                (tool_name, self.parent.debug.toggle_console, "console.png")
                 ], add_separator=add_separator)
 
     def add_tool_reload_plugins(self, plugins_id_list=[], plugins_id_wildcard = "*Q", tool_name="&Recarregar plugins ICGC", toolbar_and_menu_name="&Manteniment"):
@@ -6372,7 +6349,7 @@ class ToolsBase(object):
             Add tool to reload plugins that match the wildcard
             """
         self.parent.gui.configure_GUI(toolbar_and_menu_name, [
-            (tool_name, lambda l=plugins_id_list, w=plugins_id_wildcard : self.parent.debug.reload_plugins(l, w), QIcon(":/lib/qlib3/base/images/python.png"))
+            (tool_name, lambda l=plugins_id_list, w=plugins_id_wildcard : self.parent.debug.reload_plugins(l, w), "python.png")
             ])
 
     def add_tool_refresh_map_and_legend(self, tool_name, remove_refresh_map, id="ToolRefreshMapAndLegend"):
@@ -6383,7 +6360,7 @@ class ToolsBase(object):
         self.action_refresh_all = self.parent.gui.find_action(id, self.iface.mapNavToolToolBar().actions())
         # Si no existeix creem l'acció
         if not self.action_refresh_all:
-            self.action_refresh_all = QAction(QIcon(":/lib/qlib3/base/images/refresh_all.png"), tool_name, self.iface.mainWindow())
+            self.action_refresh_all = QAction(self.parent.gui.get_icon("refresh_all.png"), tool_name, self.iface.mainWindow())
             self.action_refresh_all.setObjectName(id)
             self.action_refresh_all.triggered.connect(self.parent.refresh_all)
             # Afegim el botó de la eina a la toolbar
@@ -6642,6 +6619,7 @@ class MetadataBase(object):
         self.iface = parent.iface
         # Obtenim el path de l'arxiu de metadades però no el carreguem encara
         self.metadata_pathname = os.path.join(os.path.dirname(plugin_pathname), 'metadata.txt')
+        self.metadata_changelog_pathname = os.path.join(os.path.dirname(plugin_pathname), 'metadata_changelog.txt')
         self.metadata = None
 
     def get(self, option, section="general", default_value=""):
@@ -6653,6 +6631,15 @@ class MetadataBase(object):
         if not self.metadata:
             self.metadata = configparser.ConfigParser()
             self.metadata.read(self.metadata_pathname, "utf8")
+            # Carreguem informació extra de canvis de versió (que ja no caben a metadata.txt)
+            if os.path.exists(self.metadata_changelog_pathname):
+                with open(self.metadata_changelog_pathname, encoding="utf8") as f:
+                    metadata_changelog = f.read()
+                self.metadata.set("general", "changelog",
+                    self.metadata.get("general", "changelog") +
+                    "\n\n" +
+                    metadata_changelog)
+
         # Obtenim la informació demanada
         return self.metadata.get(section, option) if self.metadata.has_option(section, option) else default_value
 
