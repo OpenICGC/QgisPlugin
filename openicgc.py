@@ -67,7 +67,7 @@ if is_import_relative:
     from .resources3.http import get_historic_ortho_code, get_historic_ortho_ref, get_lidar_ortho
     from .resources3.http import get_coastline_filename_dict, get_coast_orthophoto_filename_dict
     from .resources3.http import get_historic_local_ortho_ref, get_historic_local_ortho_code
-    from .resources3.http import get_old_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
+    from .resources3.http import get_sheets, get_grids, get_delimitations, get_census_tracts
     from .resources3.http import get_ndvis, get_topographic_5k, get_decentralized_municipal_entities
     from .resources3.http import get_population_zones, get_coast_lidar_ref, get_coast_lidar_filename_dict
     from .resources3.http import get_dtm_ref, get_dtm_filename, get_dtms
@@ -112,7 +112,7 @@ else:
     from resources3.http import get_historic_ortho_code, get_historic_ortho_ref, get_lidar_ortho
     from resources3.http import get_coastline_filename_dict, get_coast_orthophoto_filename_dict
     from resources3.http import get_historic_local_ortho_ref, get_historic_local_ortho_code
-    from resources3.http import get_old_dtms, get_sheets, get_grids, get_delimitations, get_census_tracts
+    from resources3.http import get_sheets, get_grids, get_delimitations, get_census_tracts
     from resources3.http import get_ndvis, get_topographic_5k, get_decentralized_municipal_entities
     from resources3.http import get_population_zones, get_coast_lidar_ref, get_coast_lidar_filename_dict
     from resources3.http import get_dtm_ref, get_dtm_filename, get_dtms
@@ -133,9 +133,9 @@ CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 class QgsMapToolSubScene(QgsMapTool):
     """ Tool class to manage rectangular selections """
 
-    def __init__(self, map_canvas, callback=None, \
-        min_side=None, max_download_area=None, min_px_side=None, max_px_download_area=None, gsd=None, gsd_dict={}, \
-        mode_area_not_point=None, color=QColor(0,150,0,255), error_color=QColor(255,0,0,255), line_width=3):
+    def __init__(self, map_canvas, callback=None,
+        min_side=None, max_download_area=None, min_px_side=None, max_px_download_area=None, gsd=None, gsd_dict={},
+        mode_area_not_point=None, color=QColor(0, 150, 0, 255), error_color=QColor(255, 0, 0, 255), line_width=3):
         # Initialize parent
         QgsMapTool.__init__(self, map_canvas)
         # Initialize local variables
@@ -170,7 +170,7 @@ class QgsMapToolSubScene(QgsMapTool):
         self.mode_area_not_point = area_not_point
 
     def canvasPressEvent(self, event):
-        #click
+        # click
         if event.button() == Qt.MouseButton.LeftButton:
             self.pressed = True
             self.top_left = self.toMapCoordinates(QPoint(event.pos().x(), event.pos().y()))
@@ -187,7 +187,7 @@ class QgsMapToolSubScene(QgsMapTool):
 
         width = abs(cpos.x() - self.top_left.x())
         height = abs(cpos.y() - self.top_left.y())
-        area =  width * height
+        area = width * height
         area_too_big = self.max_download_area and (area > self.max_download_area) or \
             self.max_px_download_area and self.gsd and ((area / self.gsd / self.gsd) > self.max_px_download_area)
         area_too_little = self.min_side and (width < self.min_side or height < self.min_side) or \
@@ -314,7 +314,7 @@ class OpenICGC(PluginBase):
         self.can_filter_point_cloud = self.check_qgis_version(32600)
         self.enable_photo_search = self.check_qgis_version(30800) # QtRangeSlider fails on old MAC/OS with QGIS3.8
 
-        ## Initialize default download variables
+        # Initialize default download variables
         self.download_type = "dt_area"
         self.cat_limits_dict = {} # Delayed initialization: key: (geometry, epsg)
         # Lambda function with last download reference layer used
@@ -354,8 +354,8 @@ class OpenICGC(PluginBase):
         """ Initialize static translation constants """
         # Translated long tooltip text
         # Disabled:
-            #Crossing: municipality, street, street
-            #    Barcelona, Mallorca, Aribau
+        # Crossing: municipality, street, street
+        #    Barcelona, Mallorca, Aribau
         self.TOOLTIP_HELP = self.tr("""Find:
             Address: municipality, street number or vice versa
                 Barcelona, Aribau 86
@@ -411,12 +411,12 @@ class OpenICGC(PluginBase):
         self.HTTP_NAMES_DICT = {
             "caps-municipi": self.tr("Municipal capitals"), # Available HTTP
             "capmunicipi": self.tr("Municipal capitals"), # Available WFS
-            "capcomarca": self.tr("County capitals"), #  # Available WFS
+            "capcomarca": self.tr("County capitals"), # Available WFS
             "municipis": self.tr("Municipalities"),
             "comarques": self.tr("Counties"),
             "vegueries": self.tr("Vegueries"), # Available HTTP
             "provincies": self.tr("Provinces"),
-            "catalunya": self.tr("Catalonia"), #Available HTTP
+            "catalunya": self.tr("Catalonia"), # Available HTTP
             }
 
         # Initialize download names (with translation)
@@ -462,7 +462,7 @@ class OpenICGC(PluginBase):
             "topografia-territorial-3d-dgn": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-3d-dwg": self.tr("Territorial topographic referential 3D"),
             "topografia-territorial-3d-dwg-object-data": self.tr("Territorial topographic referential 3D object-data"),
-            #"topografia-territorial-volum-dwg": self.tr("Territorial topographic referential volume"),
+            # "topografia-territorial-volum-dwg": self.tr("Territorial topographic referential volume"),
             "referencial-topografic-local-gpkg": self.tr("Local topographic referential"),
             "referencial-topografic-local-dgn": self.tr("Local topographic referential"),
             "referencial-topografic-local-dwg": self.tr("Local topographic referential"),
@@ -485,8 +485,8 @@ class OpenICGC(PluginBase):
             "cobertes-sol-raster": self.tr("Land cover map"),
             "cobertes-sol-vector": self.tr("Land cover map"),
 
-            #"met2": self.tr("Digital terrain model 2m 2008-2011"),
-            #"met5": self.tr("Digital terrain model 5m 2020"),
+            # "met2": self.tr("Digital terrain model 2m 2008-2011"),
+            # "met5": self.tr("Digital terrain model 5m 2020"),
             "elevacions": self.tr("Elevations"),
             "met25cm": self.tr("Digital terrain model"),
             "met50cm": self.tr("Digital terrain model"),
@@ -543,11 +543,11 @@ class OpenICGC(PluginBase):
             "mg250m-raster": self.tr("Geological map 1:250,000"),
             "mggt6": self.tr("Geological map for the prevention of geological hazards 1:25,000 (GT VI)"),
             # Pending revision of symbology
-            #"gt2": self.tr("GT II. Geoanthropic map 1:25,000"),
-            #"gt3": self.tr("GT III. Geological map of urban areas 1:5,000"),
-            #"gt4": self.tr("GT IV. Soil map 1:25,000"),
-            #"gt5": self.tr("GT V. Hydrogeological map 1:25,000"),
-            #"mah250m": self.tr("Map of hydrogeological Areas 1:250,000"),
+            # "gt2": self.tr("GT II. Geoanthropic map 1:25,000"),
+            # "gt3": self.tr("GT III. Geological map of urban areas 1:5,000"),
+            # "gt4": self.tr("GT IV. Soil map 1:25,000"),
+            # "gt5": self.tr("GT V. Hydrogeological map 1:25,000"),
+            # "mah250m": self.tr("Map of hydrogeological Areas 1:250,000"),
 
             "lidar-territorial": self.tr("Territorial Lidar"),
             "lidar-litoral": self.tr("Coastal Lidar"),
@@ -560,7 +560,7 @@ class OpenICGC(PluginBase):
             "ct": "cat_topo5k.png",
             "bm": "cat_topo5k.png",
             "re": "cat_topo5k.png", # referencial-topografic-local
-            #"bt" :"cat_topo5k.png",
+            # "bt" :"cat_topo5k.png",
             "di": "cat_topo5k.png", # divisions-administratives
             "en": "cat_topo5k.png", # entitats-municipals-descentralitzades
             "bs": "cat_topo5k.png", # seccions-censals
@@ -600,7 +600,7 @@ class OpenICGC(PluginBase):
             "mol1m": "cat_coast.png",
             "mol2m": "cat_coast.png",
             "mol5m": "cat_coast.png",
-            #"gt": "cat_geo250k.png", # Geològic
+            # "gt": "cat_geo250k.png", # Geològic
             "mg": "cat_geo250k.png",
             "ma": "cat_geo250k.png",
             "lc": "cat_coast.png",
@@ -621,13 +621,13 @@ class OpenICGC(PluginBase):
             "oli10cm": "Infrared local orthophoto",
             "hli10cm": "Infrared local orthophoto (temporal serie)",
 
-            #"bt5m": "Topographic base 1:5,000",
+            # "bt5m": "Topographic base 1:5,000",
             "topografia-territorial": "Territorial topographic referential",
             "topografia-250000": "Topographic map 1:250,000",
-            #"mtc500m": "Topographic map 1:500,000",
+            # "mtc500m": "Topographic map 1:500,000",
             "topografia-1000000": "Topographic map 1:1,000,000",
             "ct1m": "Topographic cartography 1:1,000",
-            #"bm5m": "Municipal base 1:5,000",
+            # "bm5m": "Municipal base 1:5,000",
             "topografia-territorial-gpkg": "Territorial topographic referential",
             "topografia-territorial-dgn": "Territorial topographic referential",
             "topografia-territorial-dwg": "Territorial topographic referential",
@@ -637,7 +637,7 @@ class OpenICGC(PluginBase):
             "topografia-territorial-3d-dgn": "Territorial topographic referential",
             "topografia-territorial-3d-dwg": "Territorial topographic referential",
             "topografia-territorial-3d-dwg-object-data": "Territorial topographic referential",
-            #"topografia-territorial-volum-dwg": "Territorial topographic referential",
+            # "topografia-territorial-volum-dwg": "Territorial topographic referential",
             "referencial-topografic-local-gpkg": "Local topographic referential",
             "referencial-topografic-local-dgn": "Local topographic referential",
             "referencial-topografic-local-dwg": "Local topographic referential",
@@ -659,8 +659,8 @@ class OpenICGC(PluginBase):
             "cobertes-sol-raster": "Land cover map",
             "cobertes-sol-vector": "Land cover map",
 
-            #"met2": "Digital Terrain Model 2m 2008-2011",
-            #"met5": "Digital Terrain Model 5m 2020",
+            # "met2": "Digital Terrain Model 2m 2008-2011",
+            # "met5": "Digital Terrain Model 5m 2020",
             "met25cm": "Digital terrain model",
             "met50cm": "Digital terrain model",
             "met1m": "Digital terrain model",
@@ -715,11 +715,11 @@ class OpenICGC(PluginBase):
             "mggt6": "Geological map for the prevention of geological hazards 1:25,000 (GT VI)",
             "mggt1": "Geological map 1:25,000 (GT I)",
             # Pending revision of symbology
-            #"gt2": "GT II. Geoanthropic map 1:25,000",
-            #"gt3": "GT III. Geological map of urban areas 1:5,000",
-            #"gt4": "GT IV. Soil map 1:25,000",
-            #"gt5": "GT V. Hydrogeological map 1:25,000",
-            #"mah250m": "Map of hydrogeological Areas 1:250,000",
+            # "gt2": "GT II. Geoanthropic map 1:25,000",
+            # "gt3": "GT III. Geological map of urban areas 1:5,000",
+            # "gt4": "GT IV. Soil map 1:25,000",
+            # "gt5": "GT V. Hydrogeological map 1:25,000",
+            # "mah250m": "Map of hydrogeological Areas 1:250,000",
 
             "lidar-territorial": "Territorial Lidar",
             "lidar-litoral": "Coastal Lidar",
@@ -727,7 +727,7 @@ class OpenICGC(PluginBase):
             "oi-lidar-territorial": "Territorial Lidar Infrared Orthophoto",
 
             # No metadata
-            #"photo": "Photo library",
+            # "photo": "Photo library",
             }
 
         # Initialize download type descriptions (with translation) and labels
@@ -817,9 +817,9 @@ class OpenICGC(PluginBase):
         self.resourcesLoadingFinished.connect(self.reload_toolbar)
         self.run_async(self.init_resources, self.resourcesLoadingFinished)
         # Debug:
-        #self.init_local_resources()
-        #self.init_online_resources()
-        #self.reload_toolbar()
+        # self.init_local_resources()
+        # self.init_online_resources()
+        # self.reload_toolbar()
 
         # Log plugin time
         t1 = datetime.datetime.now()
@@ -857,8 +857,8 @@ class OpenICGC(PluginBase):
             if os.path.exists(product_metadata_pathname):
                 with open(product_metadata_pathname, 'r') as json_file:
                     product_dict_list = json.load(json_file)
-            self.product_metadata_dict = { product_dict['Carpeta']: product_dict['Metadades'] \
-                for product_dict in product_dict_list if product_dict['Metadades'] }
+            self.product_metadata_dict = {product_dict['Carpeta']: product_dict['Metadades']
+                for product_dict in product_dict_list if product_dict['Metadades']}
             t1 = datetime.datetime.now()
             self.log.info("Load product metadatas: %s (%s)" % (len(self.product_metadata_dict), t1-t0))
 
@@ -955,7 +955,7 @@ class OpenICGC(PluginBase):
             ]
 
             # Check plugin update
-            self.new_icgc_plugin_version =  None
+            self.new_icgc_plugin_version = None
             self.new_qgis_plugin_version = None
             self.new_plugin_version = None
 
@@ -1049,7 +1049,7 @@ class OpenICGC(PluginBase):
 
         # Create combobox to do searches
         self.combobox = QComboBox()
-        self.combobox.setFixedSize(QSize(250,24))
+        self.combobox.setFixedSize(QSize(250, 24))
         self.combobox.setEditable(True)
         self.combobox.setInsertPolicy(QComboBox.InsertPolicy.InsertAtTop)
         self.combobox.setToolTip(self.TOOLTIP_HELP)
@@ -1060,11 +1060,11 @@ class OpenICGC(PluginBase):
 
         # Add new toolbar with plugin options (using pluginbase functions)
         style = self.iface.mainWindow().style()
-        base_map_callback = lambda layer_name: self.force_project_epsg_when_empty( \
-            self.zoom_to_cat_when_empty(self.layers.add_wms_layer( \
-                self.BASE_MAP_DICT[layer_name][0], \
-                "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms", \
-                [layer_name], None, "image/png", 25831, self.request_referrer_param, \
+        base_map_callback = lambda layer_name: self.force_project_epsg_when_empty(
+            self.zoom_to_cat_when_empty(self.layers.add_wms_layer(
+                self.BASE_MAP_DICT[layer_name][0],
+                "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms",
+                [layer_name], None, "image/png", 25831, self.request_referrer_param,
                 self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True)), 25831)
         self.default_map_callback = lambda _checked=False: base_map_callback("topografic") # Used on find call and layers button
         self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""), [
@@ -1084,29 +1084,29 @@ class OpenICGC(PluginBase):
                     (product_name,
                         lambda _checked=False, layer_name=layer_name: base_map_callback(layer_name),
                         icon_file,
-                        self.manage_metadata_button(product_metadata_url=BASE_MAPS_INFO_URL), True) \
+                        self.manage_metadata_button(product_metadata_url=BASE_MAPS_INFO_URL), True)
                     for layer_name, (product_name, icon_file) in self.BASE_MAP_DICT.items()]),
                 "---",
                 (self.tr("Topographic map"), None, "cat_topo1m", [
                     (self.tr("Topographic map 1:250,000"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Topographic map 1:250,000"),
                         "https://geoserveis.icgc.cat/servei/catalunya/topografia-250000/wms",
                         ["topografia-250000"], ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                         "cat_topo250k.png",
                         self.manage_metadata_button("Topographic map 1:250,000"), True),
                     (self.tr("Topographic map 1:1,000,000"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Topographic map 1:1,000,000"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Topographic map 1:1,000,000"),
                         "https://geoserveis.icgc.cat/servei/catalunya/topografia-1000000/wms",
                         ["topografia-1000000"], ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                         "cat_topo1m.png",
                         self.manage_metadata_button("Topographic map 1:1,000,000"), True),
                     ]),
-                (self.tr("Territorial topographic referential"), None, "cat_topo5k.png", \
+                (self.tr("Territorial topographic referential"), None, "cat_topo5k.png",
                     self.enable_http_files and len(self.topo5k_time_series_list) > 0, [
                     (self.tr("Territorial topographic referential %s (temporal serie)") % topo5k_year,
-                        lambda _checked, topo5k_year=topo5k_year:self.add_wms_t_layer(
+                        lambda _checked, topo5k_year=topo5k_year: self.add_wms_t_layer(
                         self.tr("[TS] Territorial topographic referential"), None, topo5k_year, None, "default", "image/png",
                         self.topo5k_time_series_list[::-1], None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1115,9 +1115,9 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Territorial topographic referential (temporal serie)"), True)
                     for topo5k_year, _url in self.topo5k_time_series_list]),
                 (self.tr("Local topographic referential"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Local topographic referential"),
+                    lambda _checked: self.layers.add_wms_layer(self.tr("Local topographic referential"),
                         "https://geoserveis.icgc.cat/servei/catalunya/topografia-local/wms",
-                        self.topo_ltr_layers, ##['210_noms_geografics_n', '200_noms_geografics_l', '190_energia_serveis_n', '180_hidrografia_n', '170_cobertes_sol_n', '160_relleu_n', '150_construccions_l', '140_energia_serveis_l', '130_transports_eixos_de_vials_l', '120_transports_l', '110_hidrografia_eixos_l', '100_hidrografia_l', '090_cobertes_sol_l', '080_energia_serveis_p', '070_hidrografia_p', '060_transports_p', '050_construccions_p', '040_relleu_l', '030_construccions_illa-urbana_p', '020_construccions_recinte_p', '010_cobertes_sol_p', '000_ambits_p'],
+                        self.topo_ltr_layers, # ['210_noms_geografics_n', '200_noms_geografics_l', '190_energia_serveis_n', '180_hidrografia_n', '170_cobertes_sol_n', '160_relleu_n', '150_construccions_l', '140_energia_serveis_l', '130_transports_eixos_de_vials_l', '120_transports_l', '110_hidrografia_eixos_l', '100_hidrografia_l', '090_cobertes_sol_l', '080_energia_serveis_p', '070_hidrografia_p', '060_transports_p', '050_construccions_p', '040_relleu_l', '030_construccions_illa-urbana_p', '020_construccions_recinte_p', '010_cobertes_sol_p', '000_ambits_p'],
                         ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                     "cat_topo5k.png", len(self.topo_ltr_layers) > 0,
@@ -1128,13 +1128,13 @@ class OpenICGC(PluginBase):
                         lambda _checked: self.layers.add_remote_layer_definition_file(
                             "https://datacloud.icgc.cat/datacloud/divisions-administratives/vigent/fgb_unzip_EPSG25831/divisions-administratives.qlr",
                             group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_visible_map_on_group=True,
-                            create_qlr_group=False, rename_group_dict={"divisions-administratives":self.tr("Administrative divisions (vector pyramid)")},
+                            create_qlr_group=False, rename_group_dict={"divisions-administratives": self.tr("Administrative divisions (vector pyramid)")},
                             select_folder_text=self.tr("Select download folder"),
                             title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s")),
                         "cat_vector.png", self.enable_qlr_files,
                         self.manage_metadata_button("Administrative divisions"), True),
                     (self.tr("Administrative divisions (raster pyramid)"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Administrative divisions (raster pyramid)"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Administrative divisions (raster pyramid)"),
                             "https://geoserveis.icgc.cat/servei/catalunya/divisions-administratives/wms",
                             ['divisions_administratives_comarques_1000000', 'divisions_administratives_comarques_500000', 'divisions_administratives_comarques_250000', 'divisions_administratives_comarques_100000', 'divisions_administratives_comarques_50000', 'divisions_administratives_comarques_5000', 'divisions_administratives_municipis_250000', 'divisions_administratives_municipis_100000', 'divisions_administratives_municipis_50000', 'divisions_administratives_municipis_5000', 'divisions_administratives_capsdemunicipi_capmunicipi', 'divisions_administratives_capsdemunicipi_capcomarca'],
                             ["default"], "image/png", 25831, self.request_referrer_param, self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1143,13 +1143,13 @@ class OpenICGC(PluginBase):
                     "---",
                     ] + [
                         (self.HTTP_NAMES_DICT.get(name, name),
-                        (lambda _checked, name=name, scale_list=scale_list, style_file=style_file:self.layers.add_vector_layer(self.HTTP_NAMES_DICT.get(name, name), scale_list[0][1], group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, style_file=style_file) if len(scale_list) == 1 else None),
+                        (lambda _checked, name=name, scale_list=scale_list, style_file=style_file: self.layers.add_vector_layer(self.HTTP_NAMES_DICT.get(name, name), scale_list[0][1], group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, style_file=style_file) if len(scale_list) == 1 else None),
                         "cat_vector.png", ([
                             ("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)),
-                                lambda _checked, name=name, scale=scale, url=url, style_file=style_file:self.layers.add_vector_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), url, group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, style_file=style_file),
+                                lambda _checked, name=name, scale=scale, url=url, style_file=style_file: self.layers.add_vector_layer("%s 1:%s" % (self.HTTP_NAMES_DICT.get(name, name), self.format_scale(scale)), url, group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, style_file=style_file),
                                 "cat_vector.png",
                                 self.manage_metadata_button("Administrative divisions"), True)
-                            for scale, url in scale_list] if len(scale_list) > 1 \
+                            for scale, url in scale_list] if len(scale_list) > 1
                             else self.manage_metadata_button("Administrative divisions")),
                             len(scale_list) == 1)
                         for name, scale_list, style_file in self.delimitations_list
@@ -1174,29 +1174,28 @@ class OpenICGC(PluginBase):
                             set_current=True, style_file=self.census_tracts_file),
                         "cat_vector.png", self.manage_metadata_button("Census tracts"), True),
                     ]),
-                (self.tr("Cartographic series"), None, "sheets.png", self.enable_http_files, [
-                    (self.tr("%s serie") % sheet_name,
-                        lambda _checked, sheet_name=sheet_name, sheet_url=sheet_url:self.layers.add_vector_layer(
-                            self.tr("%s serie") % sheet_name, sheet_url,
-                            group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                            style_file=sheet_style_file),
-                        "sheets.png", self.enable_http_files,
-                        self.manage_metadata_button("Cartographic series"), True
-                        ) for sheet_name, sheet_url, sheet_style_file in self.sheets_list
+                (self.tr("Cartographic series"), None, "sheets.png", self.enable_http_files, [(
+                    self.tr("%s serie") % sheet_name,
+                    lambda _checked, sheet_name=sheet_name, sheet_url=sheet_url: self.layers.add_vector_layer(
+                        self.tr("%s serie") % sheet_name, sheet_url,
+                        group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
+                        style_file=sheet_style_file),
+                    "sheets.png", self.enable_http_files,
+                    self.manage_metadata_button("Cartographic series"), True
+                    ) for sheet_name, sheet_url, sheet_style_file in self.sheets_list
                     ] + [
                     "---"
-                    ] + [
-                    (self.tr("%s grid") % grid_name,
-                        lambda _checked, grid_name=grid_name, grid_url=grid_url:self.layers.add_vector_layer(
+                    ] + [(
+                        self.tr("%s grid") % grid_name,
+                        lambda _checked, grid_name=grid_name, grid_url=grid_url: self.layers.add_vector_layer(
                             self.tr("%s grid") % grid_name, grid_url,
                             group_name=self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
                             style_file=grid_style_file),
                         "sheets.png", self.enable_http_files,
                         self.manage_metadata_button("UTM (MGRS) grids"), True
-                        ) for grid_name, grid_url, grid_style_file in self.grids_list
-                    ]),
+                    ) for grid_name, grid_url, grid_style_file in self.grids_list]),
                 (self.tr("Addresses"),
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Addresses"),
+                    lambda _checked: self.layers.add_wms_layer(self.tr("Addresses"),
                         "https://geoserveis.icgc.cat/servei/catalunya/adreces/wms",
                         ["noms-carrer", "adreces"], ["default", "default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False,
@@ -1206,14 +1205,14 @@ class OpenICGC(PluginBase):
                 "---",
                 (self.tr("Geological map"), None, "cat_geo250k.png", [
                     (self.tr("Geological map 1:50,000"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Geological map 1:50,000"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Geological map 1:50,000"),
                         "https://geoserveis.icgc.cat/servei/catalunya/geologia-territorial/wms",
                         ["geologia-territorial-50000-geologic"], ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, resampling_bilinear=True),
                         "cat_geo50k.png",
                         self.manage_metadata_button("Geological map 1:50,000"), True),
                     (self.tr("Geological map 1:250,000"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Geological map 1:250,000"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Geological map 1:250,000"),
                         "https://geoserveis.icgc.cat/servei/catalunya/geologia-territorial/wms",
                         ["geologia-territorial-250000-geologic"], ["default"], "image/png", 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, resampling_bilinear=True),
@@ -1221,7 +1220,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Geological map 1:250,000"), True),
                     ]),
                 (self.tr("Land cover map (temporal serie)"),
-                    lambda _checked:self.add_wms_t_layer(self.tr("[TS] Land cover map"),
+                    lambda _checked: self.add_wms_t_layer(self.tr("[TS] Land cover map"),
                     "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms",
                     None, None, "default", "image/png", None, r"cobertes_(.+)", 25831,
                     self.request_referrer_param + "&bgcolor=0x000000",
@@ -1232,7 +1231,7 @@ class OpenICGC(PluginBase):
                 (self.tr("Elevations"), None, "cat_dtm.png", [
                     # DTM From DataCloud
                     (self.tr("Digital terrain model (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Digital terrain model"),
                             None, None, None, "default", "image/png",
                             self.dtm_list, None,
@@ -1241,7 +1240,7 @@ class OpenICGC(PluginBase):
                         "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Digital terrain model"), True),
                     (self.tr("Surface model (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Surface model"),
                             None, None, None, "default", "image/png",
                             self.sm_list, None,
@@ -1251,7 +1250,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Surface model"), True),
                     "---",
                     (self.tr("Coastal digital terrain model (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal digital terrain model"),
                             "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
                             None, None, "default", "image/png",
@@ -1261,7 +1260,7 @@ class OpenICGC(PluginBase):
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal digital terrain model"), True),
                     (self.tr("Coastal digital terrain model buildings (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal digital terrain model buildings"),
                             "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
                             None, None, "default", "image/png",
@@ -1271,7 +1270,7 @@ class OpenICGC(PluginBase):
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal digital terrain model buildings"), True),
                     (self.tr("Coastal surface model (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal surface model"),
                             "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
                             None, None, "default", "image/png",
@@ -1281,7 +1280,7 @@ class OpenICGC(PluginBase):
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal surface model"), True),
                     (self.tr("Coastal orientations model (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(
+                        lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal orientations model"),
                             "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
                             None, None, "default", "image/png",
@@ -1291,8 +1290,8 @@ class OpenICGC(PluginBase):
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal orientations model"), True),
                 ]),
-                (self.tr("Coast"), None, "cat_coast.png", [
-                    (self.tr("Coastline"), None, "cat_coast.png", [
+                (self.tr("Coast"), None, "cat_coast.png", [(
+                    self.tr("Coastline"), None, "cat_coast.png", [
                         (self.tr("Coastline (temporal serie)"),
                             lambda _checked: self.add_wms_t_layer(
                                 self.tr("[TS] Coastline"),
@@ -1304,9 +1303,9 @@ class OpenICGC(PluginBase):
                             "cat_coast.png", len(self.coastline_time_series_list) > 0,
                             self.manage_metadata_button("coastline_temporal_serie"), True),
                         "---"
-                        ] + [
-                        ("%s %s" % (self.tr("Coastline"), coastline_name),
-                            lambda _checked, coastline_name=coastline_name, coastline_url=self.coastline_url, coastline_layer=coastline_layer: \
+                        ] + [(
+                            "%s %s" % (self.tr("Coastline"), coastline_name),
+                            lambda _checked, coastline_name=coastline_name, coastline_url=self.coastline_url, coastline_layer=coastline_layer:
                                 self.layers.add_wms_layer(
                                     "%s %s" % (self.tr("Coastline"), coastline_name),
                                     coastline_url, [coastline_layer], ["default"], "image/png", 25831,
@@ -1314,16 +1313,16 @@ class OpenICGC(PluginBase):
                                     group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
                                     set_current=True, resampling_bilinear=True),
                             "cat_coast.png", True,
-                            #self.manage_metadata_button("coastline_" + coastline_date_tag), True
+                            # self.manage_metadata_button("coastline_" + coastline_date_tag), True
                             self.manage_metadata_button("coastline_temporal_serie"), True
-                        ) for coastline_layer, coastline_name, coastline_date_tag in reversed(self.coastline_list)
-                        ]),
+                        ) for coastline_layer, coastline_name, coastline_date_tag in reversed(self.coastline_list)]
+                    ),
                     "---",
                     (self.tr("Bathymetric chart"),
                         lambda _checked: self.layers.add_wms_layer(
                             self.tr("Bathymetric chart"),
                             "https://geoserveis.icgc.cat/servei/catalunya/batimetria/wms",
-                            ["isobates_2500000","isobates_600000","isobates_300000","isobates_100000","isobates_5000","elevacions_franja_litoral"],
+                            ["isobates_2500000", "isobates_600000", "isobates_300000", "isobates_100000", "isobates_5000", "elevacions_franja_litoral"],
                             ["default"] * 6, "image/png", 25831, self.request_referrer_param,
                             group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
                             set_current=True, resampling_bilinear=True),
@@ -1361,23 +1360,22 @@ class OpenICGC(PluginBase):
                         "---"
                         ] + [
                         ("%s %s" % (self.tr("Coast orthophoto"), coast_ortho_name),
-                            lambda _checked, coast_ortho_name=coast_ortho_name, coast_ortho_url=self.coast_ortho_url, coast_ortho_layer=coast_ortho_layer: \
-                                self.layers.add_wms_layer(
-                                    "%s %s" % (self.tr("Coast orthophoto"), coast_ortho_name),
+                            lambda _checked, coast_ortho_name=coast_ortho_name, coast_ortho_url=self.coast_ortho_url, coast_ortho_layer=coast_ortho_layer:
+                                self.layers.add_wms_layer("%s %s" % (self.tr("Coast orthophoto"), coast_ortho_name),
                                     coast_ortho_url, [coast_ortho_layer], ["default"], "image/png", 25831,
                                     self.request_referrer_param,
                                     group_name=self.BACKGROUND_MAP_GROUP_NAME, group_pos=0, only_one_map_on_group=False,
                                     set_current=True, resampling_bilinear=True),
                             "cat_coast.png", True,
-                            #self.manage_metadata_button("coast-orthophoto-" + coast_ortho_date_tag), True
-                            self.manage_metadata_button("coast_orthophoto_temporal_serie"), True
-                        ) for coast_ortho_layer, coast_ortho_name, _coast_ortho_color_type, coast_ortho_date_tag in reversed(self.coast_ortho_list)
-                        ]),
-                    ]),
+                            # self.manage_metadata_button("coast-orthophoto-" + coast_ortho_date_tag), True
+                            self.manage_metadata_button("coast_orthophoto_temporal_serie"), True)
+                        for coast_ortho_layer, coast_ortho_name, _coast_ortho_color_type, coast_ortho_date_tag in reversed(self.coast_ortho_list)
+                    ])
+                ]),
                 "---",
                 (self.tr("NDVI"), None, "cat_shadows.png", [
                     (self.tr("NDVI color (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI color"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[TS] NDVI color"),
                             "https://geoserveis.icgc.cat/servei/catalunya/ndvi/wms",
                             "ndvi_serie_anual_color", None, "default", "image/png", None, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
@@ -1385,14 +1383,14 @@ class OpenICGC(PluginBase):
                         "cat_landcover.png",
                         self.manage_metadata_button("NDVI (temporal serie)"), True),
                     (self.tr("NDVI (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] NDVI"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[TS] NDVI"),
                             None, self.ndvi_current_time, None, "default", "image/png", self.ndvi_time_series_list, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, color_default_expansion=True, only_one_map_on_group=False, set_current=True),
                         "cat_shadows.png", self.enable_http_files and len(self.ndvi_time_series_list) > 0,
                         self.manage_metadata_button("NDVI (temporal serie)"), True),
                     (self.tr("Satellite NDVI (monthly serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite NDVI"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[MS] Satellite NDVI"),
                             "https://geoserveis.icgc.cat/servei/catalunya/ndvi-satellit/wms",
                             None, None, "default", "image/png", None,
                             r"ndvi-satellit-sentinel2-10m-(\d{4})(\d{2})",
@@ -1405,7 +1403,7 @@ class OpenICGC(PluginBase):
                 (self.tr("Color orthophoto"), None, "cat_ortho5k.png", [
                     # Ortofoto color
                     (self.tr("Current color orthophoto") + " (%s)" % self.ortho_color_year,
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Current color orthophoto"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Current color orthophoto"),
                             "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
                             ["ortofoto_color_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1413,7 +1411,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
                     (self.tr("Color orthophoto"), None, "cat_ortho5k.png", [
                         ] + ([(self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
-                            lambda _checked:self.layers.add_wms_layer(
+                            lambda _checked: self.layers.add_wms_layer(
                             self.tr("Color orthophoto %s (provisional)") % self.ortoxpres_color_year,
                             self.ortho_wms_url, [self.ortoxpres_color_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1421,7 +1419,7 @@ class OpenICGC(PluginBase):
                             self.manage_metadata_button("Color orthophoto %s (provisional)" % self.ortoxpres_color_year), True
                             )] if self.ortoxpres_color_list else []) + [
                         ] + ([(self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
-                            lambda _checked:self.layers.add_wms_layer(
+                            lambda _checked: self.layers.add_wms_layer(
                             self.tr("Color orthophoto %s (rectification without corrections)") % self.ortosuperexp_color_year,
                             self.ortho_wms_url, [self.ortosuperexp_color_layer_id], [""], "image/png", 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
@@ -1430,9 +1428,9 @@ class OpenICGC(PluginBase):
                             self.manage_metadata_button("Color orthophoto %s (rectification without corrections)" % self.ortosuperexp_color_year), True
                             )] if self.ortosuperexp_color_list else []) + [
                         "---",
-                        ] + [
-                        (self.tr("Color orthophoto %s (temporal serie)") % ortho_year,
-                            lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Color orthophoto"),
+                        ] + [(
+                            self.tr("Color orthophoto %s (temporal serie)") % ortho_year,
+                            lambda _checked, layer_id=layer_id: self.add_wms_t_layer(self.tr("[TS] Color orthophoto"),
                             self.ortho_wms_url, layer_id, None, "default", "image/png",
                             self.ortho_color_time_series_list, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
@@ -1443,7 +1441,7 @@ class OpenICGC(PluginBase):
                         ] + [
                         "---",
                         (self.tr("Color orthophoto (annual serie)"),
-                            lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color orthophoto"),
+                            lambda _checked: self.add_wms_t_layer(self.tr("[AS] Color orthophoto"),
                             "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
                             "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
@@ -1454,7 +1452,7 @@ class OpenICGC(PluginBase):
                         ]),
                     # Ortofoto color local
                     (self.tr("Current color local orthophoto"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Current color local orthophoto"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Current color local orthophoto"),
                         "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
                         ["orto-local-rgb-vigents"], ["default"], "image/png", 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1462,7 +1460,7 @@ class OpenICGC(PluginBase):
                         "cat_ortho5k.png",
                         self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
                     (self.tr("Color local orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Color local orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[AS] Color local orthophoto"),
                         self.ortho_local_wms_url, self.ortho_color_local_current_layer, self.ortho_color_local_year, "", "image/png",
                         self.ortho_color_local_time_series_list, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1472,7 +1470,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
                     # Ortofoto color satèl·lit
                     (self.tr("Satellite color orthophoto (monthly serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[MS] Satellite color orthophoto"),
                         "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
                         "sen2rgb", None, "", "image/png", None, None, 25831,
                         self.request_referrer_param,
@@ -1481,7 +1479,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Satellite color orthophoto (monthly serie)"), True),
                     # Ortofoto color LiDAR
                     (self.tr("LiDAR color orthophoto (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR color orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[TS] LiDAR color orthophoto"),
                         None, None, None, "", "image/png", self.lidar_ortho_color_time_series_list, self.lidar_ortho_color_year,
                         25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1491,7 +1489,7 @@ class OpenICGC(PluginBase):
                 (self.tr("Infrared orthophoto"), None, "cat_ortho5ki.png", [
                     # Ortofoto infraroja
                     (self.tr("Current infrared orthophoto") + " (%s)" % self.ortho_infrared_year,
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared orthophoto"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Current infrared orthophoto"),
                             "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
                             ["ortofoto_infraroig_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1499,23 +1497,23 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
                     (self.tr("Infrared orthophoto"), None, "cat_ortho5ki.png", [
                         ] + ([(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
-                            lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
+                            lambda _checked: self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (provisional)") % self.ortoxpres_infrared_year,
                             self.ortho_wms_url, [self.ortoxpres_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0xFFFFFF",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "cat_ortho5ki.png",
                             self.manage_metadata_button("Infrared orthophoto %s (provisional)" % self.ortoxpres_infrared_year), True)
                             ] if self.ortoxpres_infrared_list else []) + [
                         ] + ([(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
-                            lambda _checked:self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
+                            lambda _checked: self.layers.add_wms_layer(self.tr("Infrared orthophoto %s (rectification without corrections)") % self.ortosuperexp_infrared_year,
                             self.ortho_wms_url, [self.ortosuperexp_infrared_layer_id], [""], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "cat_ortho5ki.png",
                             self.manage_metadata_button("Infrared orthophoto %s (rectification without corrections)" % self.ortosuperexp_infrared_year), True)
                             ] if self.ortosuperexp_infrared_list else []) + [
                         "---",
-                        ] + [
-                        (self.tr("Infrared orthophoto %s (temporal serie)") % ortho_year,
-                            lambda _checked,layer_id=layer_id:self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"),
+                        ] + [(
+                            self.tr("Infrared orthophoto %s (temporal serie)") % ortho_year,
+                            lambda _checked, layer_id=layer_id: self.add_wms_t_layer(self.tr("[TS] Infrared orthophoto"),
                             self.ortho_wms_url, layer_id, None, "default", "image/png", self.ortho_infrared_time_series_list, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1525,7 +1523,7 @@ class OpenICGC(PluginBase):
                         ] + [
                         "---",
                         (self.tr("Infrared orthophoto (annual serie)"),
-                            lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"),
+                            lambda _checked: self.add_wms_t_layer(self.tr("[AS] Infrared orthophoto"),
                             "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
                             "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
@@ -1536,7 +1534,7 @@ class OpenICGC(PluginBase):
                         ]),
                     # Orfofoto infraroja local
                     (self.tr("Current infrared local orthophoto"),
-                        lambda _checked:self.layers.add_wms_layer(self.tr("Current infrared local orthophoto"),
+                        lambda _checked: self.layers.add_wms_layer(self.tr("Current infrared local orthophoto"),
                         "https://geoserveis.icgc.cat/servei/catalunya/orto-local/wms",
                         ["orto-local-irc-vigents"], ["default"], "image/png", 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1544,7 +1542,7 @@ class OpenICGC(PluginBase):
                         "cat_ortho5k.png",
                         self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
                     (self.tr("Infrared local orthophoto (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Infrared local orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[AS] Infrared local orthophoto"),
                         self.ortho_local_wms_url, self.ortho_infrared_local_current_layer, self.ortho_infrared_local_year, "", "image/png",
                         self.ortho_infrared_local_time_series_list, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1554,7 +1552,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
                     # Ortofoto infraroja satèl·lit
                     (self.tr("Satellite infrared orthophoto (monthly serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[MS] Satellite infared orthophoto"),
                         "https://geoserveis.icgc.cat/icgc_sentinel2/wms/service",
                         "sen2irc", None, "default", "image/png", None, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
@@ -1563,7 +1561,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Satellite infrared orthophoto (monthly serie)"), True),
                     # Ortofoto infraroja LiDAR
                     (self.tr("LiDAR infrared orthophoto (temporal serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[TS] LiDAR infrared orthophoto"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[TS] LiDAR infrared orthophoto"),
                         None, None, None, "", "image/png",
                         self.lidar_ortho_infrared_time_series_list, self.lidar_ortho_infrared_year,
                         25831, self.request_referrer_param,
@@ -1572,7 +1570,7 @@ class OpenICGC(PluginBase):
                         self.manage_metadata_button("Territorial Lidar Infrared Orthophoto"), True),
                 ]),
                 (self.tr("Current gray orthophoto") + " (%s)" % self.ortho_color_year,
-                    lambda _checked:self.layers.add_wms_layer(self.tr("Current gray orthophoto"),
+                    lambda _checked: self.layers.add_wms_layer(self.tr("Current gray orthophoto"),
                     "https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms",
                     ["ortofoto_gris_vigent"], ["default"], "image/png", 25831, self.request_referrer_param + "&bgcolor=0x000000",
                     self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1581,21 +1579,21 @@ class OpenICGC(PluginBase):
                 "---",
                 (self.tr("Centered photogram"), None, "photo.png", [
                     (self.tr("Centered photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered photogram"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[AS] Centered photogram"),
                         self.photolib_wms_url, "foto_central", self.photolib_current_time, "central",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
                         use_qgis_time_controller=True),
                         "photo.png"),
                     (self.tr("Centered rectified photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"),
                         self.photolib_wms_url, "ortoxpres_central", self.photolib_current_time, "central",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
                         use_qgis_time_controller=True),
                         "rectified.png"),
                     (self.tr("Centered anaglyph photogram (annual serie)"),
-                        lambda _checked:self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"),
+                        lambda _checked: self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"),
                         self.photolib_wms_url, "anaglif_central", self.photolib_current_time, "central,100,false",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
@@ -1606,28 +1604,28 @@ class OpenICGC(PluginBase):
                 ] + ([
                     (self.tr("Others"), None, "cat_cmstandard.png", [
                         (self.tr("ContextMaps standard map"),
-                            lambda _checked:self.layers.add_wms_layer(self.tr("ContextMaps standard map"),
+                            lambda _checked: self.layers.add_wms_layer(self.tr("ContextMaps standard map"),
                             "https://geoserveis.icgc.cat/servei/catalunya/contextmaps/wms",
                             ["contextmaps-mapa-estandard"], [""], "image/jpeg", 25831, self.request_referrer_param,
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "cat_cmstandard.png",
                             self.manage_metadata_button("ContextMaps standard map"), True),
                         (self.tr("ContextMaps gray map"),
-                            lambda _checked:self.layers.add_wms_layer(self.tr("ContextMaps gray map"),
+                            lambda _checked: self.layers.add_wms_layer(self.tr("ContextMaps gray map"),
                             "https://geoserveis.icgc.cat/servei/catalunya/contextmaps/wms",
                             ["contextmaps-mapa-base-gris"], [""], "image/jpeg", 25831, self.request_referrer_param,
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "cat_cmgray.png",
                             self.manage_metadata_button("ContextMaps gray map"), True),
                         (self.tr("ContextMaps simplified gray map"),
-                            lambda _checked:self.layers.add_wms_layer(self.tr("ContextMaps simplified gray map"),
+                            lambda _checked: self.layers.add_wms_layer(self.tr("ContextMaps simplified gray map"),
                             "https://geoserveis.icgc.cat/servei/catalunya/contextmaps/wms",
                             ["contextmaps-mapa-base-gris-simplificat"], [""], "image/jpeg", 25831, self.request_referrer_param,
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "cat_cmgray.png",
                             self.manage_metadata_button("ContextMaps simplified gray map"), True),
                         (self.tr("ContextMaps hybrid orthophoto"),
-                            lambda _checked:self.layers.add_wms_layer(self.tr("ContextMaps hybrid orthophoto"),
+                            lambda _checked: self.layers.add_wms_layer(self.tr("ContextMaps hybrid orthophoto"),
                             "https://geoserveis.icgc.cat/servei/catalunya/contextmaps/wms",
                             ["contextmaps-orto-hibrida"], [""], "image/jpeg", 25831, self.request_referrer_param,
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1635,7 +1633,7 @@ class OpenICGC(PluginBase):
                             self.manage_metadata_button("ContextMaps hybrid orthophoto"), True),
                         "---",
                         (self.tr("Instamaps pyramid"),
-                            lambda:self.layers.add_wms_layer(self.tr("Instamaps pyramid"),
+                            lambda: self.layers.add_wms_layer(self.tr("Instamaps pyramid"),
                             "https://tilemaps.icgc.cat/mapfactory/service",
                             ["osm_suau"], ["default"], "image/png", 25831, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1644,46 +1642,46 @@ class OpenICGC(PluginBase):
                     "---",
                     (self.tr("Spain"), None, "spain_topo.png", [
                         (self.tr("IGN topographic"),
-                            lambda:self.layers.add_wms_layer(self.tr("IGN topographic"),
+                            lambda: self.layers.add_wms_layer(self.tr("IGN topographic"),
                             "http://www.ign.es/wms-inspire/mapa-raster", ["mtn_rasterizado"], ["default"], "image/png", 25830, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "spain_topo.png"),
                         "---",
                         (self.tr("PNOA orthophoto"),
-                            lambda:self.layers.add_wms_layer(self.tr("PNOA orthophoto"),
+                            lambda: self.layers.add_wms_layer(self.tr("PNOA orthophoto"),
                             "http://www.ign.es/wms-inspire/pnoa-ma", ["OI.OrthoimageCoverage"], ["default"], "image/png", 25830, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "spain_orto.png"),
                         "---",
                         (self.tr("Cadastral registry"),
-                            lambda:self.layers.add_wms_layer(self.tr("Cadastral registry"),
+                            lambda: self.layers.add_wms_layer(self.tr("Cadastral registry"),
                             "http://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx", ["Catastro"], ["default"], "image/png", 25831, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "spain_cadastral.png"),
                         ]),
                     (self.tr('Andorra'), None, "andorra_topo50k.png", [
                         (self.tr("Andorra topographic 1:50,000 2020"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 2020"),
+                            lambda: self.layers.add_wms_layer(self.tr("Andorra topographic 1:50,000 2020"),
                             "https://www.ideandorra.ad/Serveis/wmscarto50kraster_2020/wms",
                             ["mta50m2020geotif"], [], "image/png",  27563, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "andorra_topo50k.png"),
                         "---",
                         (self.tr("Andorra orthophoto 1:5,000 2012"),
-                            lambda:self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2012"),
+                            lambda: self.layers.add_wms_layer(self.tr("Andorra orthophoto 1:5,000 2012"),
                             "https://www.ideandorra.ad/Serveis/wmsorto2012/wms", ["orto2012"], [], "image/png",  27563, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "andorra_orto2003.png"),
                         ]),
                     (self.tr("France"), None, "france_topo.png", [
                         (self.tr("France topographic"),
-                            lambda:self.layers.add_wms_layer(self.tr("France topographic"),
+                            lambda: self.layers.add_wms_layer(self.tr("France topographic"),
                             "http://mapsref.brgm.fr/wxs/refcom-brgm/refign", ["FONDS_SCAN"], [], "image/png", 32631, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "france_topo.png"),
                         "---",
                         (self.tr("France orthophoto 20cm"),
-                            lambda:self.layers.add_wms_layer(self.tr("France orthophoto 20cm"),
+                            lambda: self.layers.add_wms_layer(self.tr("France orthophoto 20cm"),
                             "https://data.geopf.fr/annexes/ressources/wms-r/ortho.xml",
                             ["HR.ORTHOIMAGERY.ORTHOPHOTOS"], ["normal"], "image/png", 32631, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True, ignore_get_map_url=False),
@@ -1691,12 +1689,12 @@ class OpenICGC(PluginBase):
                         ]),
                     (self.tr("World"), None, "world.png", [
                         (self.tr("OpenStreetMap"),
-                            lambda:self.layers.add_wms_layer(self.tr("OpenStreetMap"),
+                            lambda: self.layers.add_wms_layer(self.tr("OpenStreetMap"),
                             "http://ows.terrestris.de/osm/service", ["OSM-WMS"], [], "image/png", 4326, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
                             "world.png"),
                         (self.tr("NASA blue marble"),
-                            lambda:self.layers.add_wms_layer(self.tr("NASA blue marble"),
+                            lambda: self.layers.add_wms_layer(self.tr("NASA blue marble"),
                             "http://geoserver.webservice-energy.org/geoserver/ows",
                             ["gn:bluemarble-2048"], [], "image/png", 4326, '',
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True),
@@ -1704,11 +1702,11 @@ class OpenICGC(PluginBase):
                          ]),
                     "---",
                 ] if self.extra_countries or self.debug_mode else []) + [
-                (self.tr("Delete background maps"), lambda _checked:self.legend.empty_group_by_name(self.BACKGROUND_MAP_GROUP_NAME),
+                (self.tr("Delete background maps"), lambda _checked: self.legend.empty_group_by_name(self.BACKGROUND_MAP_GROUP_NAME),
                     "wms_remove.png", True, False, "delete_background")
                 ]),
             (self.tr("Time series"),
-                lambda _checked:self.tools.toggle_time_series_dialog(self.iface.mapCanvas().currentLayer(), self.tr("Time series"), self.tr("Selected: ")) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None,
+                lambda _checked: self.tools.toggle_time_series_dialog(self.iface.mapCanvas().currentLayer(), self.tr("Time series"), self.tr("Selected: ")) if type(self.iface.mapCanvas().currentLayer()) in [QgsRasterLayer, QgsVectorLayer] else None,
                 "time.png",
                 False, True, "time_series"),
             ] + ([
@@ -1716,13 +1714,12 @@ class OpenICGC(PluginBase):
                     "search.png", self.enable_photo_search, True, "photo_search", [
                     (self.tr("Search photograms interactively"), (self.enable_search_photos, self.pair_photo_search_checks),
                         "search.png", True, True, "photo_search_2"),
-                    (self.tr("Search photograms by coordinates"), lambda _checked:self.search_photos_by_point(),
+                    (self.tr("Search photograms by coordinates"), lambda _checked: self.search_photos_by_point(),
                         "search_coord.png", True, False),
-                    (self.tr("Search photograms by name"), lambda _checked:self.search_photos_by_name(),
+                    (self.tr("Search photograms by name"), lambda _checked: self.search_photos_by_name(),
                         "search_name.png", True, False),
                     ]),
-                (self.tr("Download tool"), self.enable_last_download,
-                    "download_area.png", True, True, "download", [
+                (self.tr("Download tool"), self.enable_last_download, "download_area.png", True, True, "download", [
                     (self.tr("Select download folder"), self.set_download_folder,
                         "download_folder.png", True, False, "select_download_folder"),
                     (self.tr("Open download folder"), self.open_download_folder,
@@ -1732,77 +1729,77 @@ class OpenICGC(PluginBase):
                     "---"
                     ] + self.get_download_menu(self.fme_services_list, raster_not_vector=True) + [
                     "---",
-                    (self.tr("Save map as PDF"), lambda:self.save_map("A4H", "", self.tr("Save map as PDF")),
+                    (self.tr("Save map as PDF"), lambda: self.save_map("A4H", "", self.tr("Save map as PDF")),
                         "pdf.png", True, False, "save_pdf"),
-                    (self.tr("Save location map as PDF"), lambda:self.save_map("A4V", self.tr(" (location)"), self.tr("Save location map as PDF")),
+                    (self.tr("Save location map as PDF"),
+                        lambda: self.save_map("A4V", self.tr(" (location)"), self.tr("Save location map as PDF")),
                         "pdf.png", True, False, "save_location_pdf"),
-                    ])
+                ])
             ] if not self.lite else []) + [
-            (self.tr("Paint styles for selected layers"), None,
-                "style.png", [
+            (self.tr("Paint styles for selected layers"), None, "style.png", [
                 (self.tr("Transparence"),
-                    lambda _checked:self.tools.show_transparency_dialog(self.tr("Transparence"), self.iface.mapCanvas().currentLayer()),
+                    lambda _checked: self.tools.show_transparency_dialog(self.tr("Transparence"), self.iface.mapCanvas().currentLayer()),
                     "transparency.png"),
                 (self.tr("Desaturate raster layer"),
-                    lambda _checked:self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
+                    lambda _checked: self.layers.set_saturation(self.iface.mapCanvas().currentLayer(), -100, True) if type(self.iface.mapCanvas().currentLayer()) is QgsRasterLayer else None,
                     "desaturate.png"),
                 (self.tr("Height highlighting"),
-                    lambda _checked, dtm_url=self.height_highlighting_url:self.add_height_highlighting_layer(
+                    lambda _checked, dtm_url=self.height_highlighting_url: self.add_height_highlighting_layer(
                         self.tr("Height highlighting"), dtm_url, style_file="ressaltat_alçades.qml",
                         group_name=self.BACKGROUND_MAP_GROUP_NAME),
                     "cat_shadows.png", self.enable_http_files and self.height_highlighting_url),
                 (self.tr("Shading DTM layer"), self.shading_dtm, "cat_shadows.png"),
                 "---",
                 (self.tr("Anaglyph options"),
-                    lambda _checked:self.tools.show_anaglyph_dialog(self.iface.mapCanvas().currentLayer(), self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo")),
+                    lambda _checked: self.tools.show_anaglyph_dialog(self.iface.mapCanvas().currentLayer(), self.tr("Anaglyph"), self.tr("Anaglyph"), self.tr("Inverted stereo")),
                     "stereo.png"),
                 (self.tr("Change DB/geoPackage style"),
-                    lambda _checked:self.tools.show_db_styles_dialog(self.tr("Change DB/geoPackage style")),
+                    lambda _checked: self.tools.show_db_styles_dialog(self.tr("Change DB/geoPackage style")),
                     "style.png",
                     False, False, "geopackage_style"),
             ]),
-            ] + ([] if self.lite else [
+        ] + ([] if self.lite else [
             "---",
             (self.tr("Help"), self.show_help, "help.png", [
                 (self.tr("About Open ICGC"), self.show_about, "icon.png"),
                 (self.tr("What's new"), self.show_changelog, "new.png"),
-                #(self.tr("Plugin introduction"), self.show_help, "help.png"),
+                # (self.tr("Plugin introduction"), self.show_help, "help.png"),
                 (self.tr("Plugin introduction"),
-                    lambda _checked:self.show_help_file("plugin_presentation"), "help.png"),
+                    lambda _checked: self.show_help_file("plugin_presentation"), "help.png"),
                 (self.tr("Presentation video"),
-                    lambda _checked:self.show_help_file("plugin_presentation_video"), "youtube.png"),
+                    lambda _checked: self.show_help_file("plugin_presentation_video"), "youtube.png"),
                 "---",
                 (self.tr("Available products list"), self.show_available_products,
                     style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 (self.tr("Deprecated products list"),
-                    lambda _checked:self.show_help_file("icgc_deprecated_products"),
+                    lambda _checked: self.show_help_file("icgc_deprecated_products"),
                     style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)),
                 "---",
                 (self.tr("QGIS plugin repository"),
-                    lambda _checked:self.show_help_file("plugin_qgis"),
+                    lambda _checked: self.show_help_file("plugin_qgis"),
                     "plugin.png"),
                 (self.tr("Software Repository"),
-                    lambda _checked:self.show_help_file("plugin_github"),
+                    lambda _checked: self.show_help_file("plugin_github"),
                     "git.png"),
                 # (self.tr("Send us an email"),
-                #     lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(new_plugin_version=new_plugin_version),
+                #     lambda _checked, new_plugin_version=self.new_plugin_version: self.send_email(new_plugin_version=new_plugin_version),
                 #     "send_email.png"),
                 "---",
                 (self.tr("Report an issue"),
-                    lambda _checked, new_plugin_version=self.new_plugin_version:self.report_issue_form(new_plugin_version=new_plugin_version),
+                    lambda _checked, new_plugin_version=self.new_plugin_version: self.report_issue_form(new_plugin_version=new_plugin_version),
                     "bug.png"),
                 (self.tr("Github issue"),
-                    lambda _checked, new_plugin_version=self.new_plugin_version:self.report_issue(new_plugin_version=new_plugin_version),
+                    lambda _checked, new_plugin_version=self.new_plugin_version: self.report_issue(new_plugin_version=new_plugin_version),
                     "github.png"),
                 (self.tr("Debug"), None, "bug_target.png", [
                     (self.tr("Enable debug log info"),
                         self.enable_debug_log,
                         "bug_target.png", True, True, "enable_debug_log"),
                     (self.tr("Open debug log file"),
-                        lambda _checked:self.gui.open_file_folder(self.log.getLogFilename()),
+                        lambda _checked: self.gui.open_file_folder(self.log.getLogFilename()),
                         style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), self.log.getLogFilename() is not None),
                     (self.tr("Open plugin installation folder"),
-                        lambda _checked:self.gui.open_file_folder(self.plugin_path),
+                        lambda _checked: self.gui.open_file_folder(self.plugin_path),
                         style.standardIcon(QStyle.StandardPixmap.SP_DirIcon)),
                     # (self.tr("Send us an email with debug information"),
                     #     lambda _checked, new_plugin_version=self.new_plugin_version:self.send_email(debug=True, new_plugin_version=new_plugin_version),
@@ -1811,25 +1808,25 @@ class OpenICGC(PluginBase):
                 ] + [
                 "---",
                 (self.tr("Cartographic and Geological Institute of Catalonia web"),
-                    lambda _checked:self.show_help_file("icgc"), "icgc.png"),
+                    lambda _checked: self.show_help_file("icgc"), "icgc.png"),
                 (self.tr("Other ICGC's interesting web sites"), None, "icgc_webs.png", [
-                    (self.tr("Vissir viewer"), lambda _checked:self.show_help_file("icgc_vissir"), "vissir.png"),
-                    (self.tr("Download viewer"), lambda _checked:self.show_help_file("icgc_app_downloads"), "icgc.png"),
-                    (self.tr("IDEC viewer"), lambda _checked:self.show_help_file("icgc_app_downloads"), "icgc.png"),
-                    (self.tr("MapLibrary viewer"), lambda _checked:self.show_help_file("icgc_map_library"), "icgc.png"),
-                    (self.tr("PhotoLibrary viewer"), lambda _checked:self.show_help_file("icgc_photo_library"), "fototeca.png"),
-                    (self.tr("3D Streets viewer"), lambda _checked:self.show_help_file("icgc_3d_streets"), "icgc.png"),
+                    (self.tr("Vissir viewer"), lambda _checked: self.show_help_file("icgc_vissir"), "vissir.png"),
+                    (self.tr("Download viewer"), lambda _checked: self.show_help_file("icgc_app_downloads"), "icgc.png"),
+                    (self.tr("IDEC viewer"), lambda _checked: self.show_help_file("icgc_app_downloads"), "icgc.png"),
+                    (self.tr("MapLibrary viewer"), lambda _checked: self.show_help_file("icgc_map_library"), "icgc.png"),
+                    (self.tr("PhotoLibrary viewer"), lambda _checked: self.show_help_file("icgc_photo_library"), "fototeca.png"),
+                    (self.tr("3D Streets viewer"), lambda _checked: self.show_help_file("icgc_3d_streets"), "icgc.png"),
                     ]),
                 ]),
             ]) + ([] if not self.new_qgis_plugin_version or self.lite else [
                 self.tr("Update\n available: v%s") % self.new_qgis_plugin_version,
                 (self.tr("Download plugin"),
-                    lambda _checked,v=self.new_qgis_plugin_version:self.download_plugin_update(v, UpdateType.plugin_manager),
+                    lambda _checked, v=self.new_qgis_plugin_version: self.download_plugin_update(v, UpdateType.plugin_manager),
                     "new.png"),
             ]) + ([] if not self.new_icgc_plugin_version or self.lite else [
                 self.tr("Update\n available: v%s") % self.new_icgc_plugin_version,
                 (self.tr("Download plugin"),
-                    lambda _checked,v=self.new_icgc_plugin_version:self.download_plugin_update(v, UpdateType.icgc_web),
+                    lambda _checked, v=self.new_icgc_plugin_version: self.download_plugin_update(v, UpdateType.icgc_web),
                     "new_icgc.png"),
             ]) + ([] if self.qgis_version_ok or self.lite else [
                 self.tr("Warning:"),
@@ -1844,16 +1841,16 @@ class OpenICGC(PluginBase):
                 self.gui.add_to_toolbar(self.toolbar, ["---"])
             if self.debug_mode:
                 self.gui.add_to_toolbar(self.toolbar, [
-                    (self.tr("Reload Open ICGC"), lambda _checked:self.reload_plugin(),
+                    (self.tr("Reload Open ICGC"), lambda _checked: self.reload_plugin(),
                         "python.png"),
                     ])
             if self.test_list:
                 self.gui.add_to_toolbar(self.toolbar, [
                     (self.tr("Unit tests"),
-                        lambda _checked:self.debug.show_test_plugin(self.tr("Unit tests")),
+                        lambda _checked: self.debug.show_test_plugin(self.tr("Unit tests")),
                         "flask.png", [
                             (test_name,
-                                lambda _checked, test_name=test_name:self.debug.show_test_plugin(self.tr("Unit tests"), test_name),
+                                lambda _checked, test_name=test_name: self.debug.show_test_plugin(self.tr("Unit tests"), test_name),
                                 "flask.png")
                             for test_name in self.debug.get_test_names()
                         ]),
@@ -1879,7 +1876,7 @@ class OpenICGC(PluginBase):
         self.tool_photo_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), self.search_photos, self.photo_search_action)
 
         # Add a tool to search photograms in photo library (set action to manage check/uncheck tools)
-        self.tool_geocoder_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), lambda x, y:self.find(None, x, y), self.geocoder_search_action)
+        self.tool_geocoder_search = QgsMapToolPhotoSearch(self.iface.mapCanvas(), lambda x, y: self.find(None, x, y), self.geocoder_search_action)
 
     def get_catalonia_limits(self, filename, buffer=0, segments=10):
         """ Gets Catalonia limits from geojson resource file
@@ -1918,19 +1915,20 @@ class OpenICGC(PluginBase):
         # Gets metadata url
         if not product_metadata_url:
             product_metadata_url = self.product_metadata_dict.get(product_access, None)
-        return [(self.tr("Product metadatas"), \
-            lambda: self.show_url(product_metadata_url), \
-            self.info_icon \
+        return [(
+            self.tr("Product metadatas"),
+            lambda: self.show_url(product_metadata_url),
+            self.info_icon
             )] if product_metadata_url else []
 
     def get_download_menu(self, fme_services_list, raster_not_vector=None, nested_download_submenu=True):
         """ Create download submenu structure list """
         # Filter data type if required
         if raster_not_vector is not None:
-            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
-                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) \
-                for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
-                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled \
+            fme_services_list = [(id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list,
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled)
+                for id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list,
+                filename, limits, url_pattern, url_ref_or_wms_tuple, enabled
                 in fme_services_list if self.is_raster_file(filename) == raster_not_vector]
 
         # Define text labels
@@ -1943,7 +1941,7 @@ class OpenICGC(PluginBase):
         # Prepare nested download submenu
         if nested_download_submenu:
             # Add a end null entry
-            fme_extra_services_list = fme_services_list + [ \
+            fme_extra_services_list = fme_services_list + [
                 (None, None, None, None, None, None, None, None, None, None, None, None, None, None)
                 ] if fme_services_list else []
             download_submenu = []
@@ -1951,7 +1949,7 @@ class OpenICGC(PluginBase):
             product_submenu = []
             gsd_info_dict = {}
             # Create menu with a submenu for every product prefix
-            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list,
                 filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_extra_services_list):
                 # Get current product info
                 id_part_list = id.split("/") if id else []
@@ -1978,7 +1976,7 @@ class OpenICGC(PluginBase):
                     else:
                         previous_name1 = self.FME_NAMES_DICT.get(previous_id, previous_name)
                         previous_name2 = self.FME_NAMES_DICT.get(fme_extra_services_list[i-2][0].split("/")[-1], fme_extra_services_list[i-2][1])
-                        diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2))) \
+                        diff_list = [pos for pos in range(min(len(previous_name1), len(previous_name2)))
                             if previous_name1[pos] != previous_name2[pos]]
                         pos = diff_list[0] if diff_list else min(len(previous_name1), len(previous_name2))
                         common_name = previous_name1[:pos].replace("1:", "").strip()
@@ -1994,11 +1992,11 @@ class OpenICGC(PluginBase):
                                     else points_label if self.is_points_file(filename)
                                     else "",
                                 os.path.splitext(filename)[1][1:]),
-                            (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict: \
+                            (lambda _dummy, id=previous_prefix_id, name=common_name, time_list=previous_time_list, gsd_info_dict=gsd_info_dict:
                                 self.enable_download_subscene(id, name, None, None, None, None, time_list, None, None, None, None, gsd_info_dict), self.pair_download_checks),
                             self.FME_ICON_DICT.get(previous_id, None) or self.FME_ICON_DICT.get(previous_prefix_id, None),
                             previous_enabled, True, previous_prefix_id,
-                            self.manage_metadata_button(self.FME_METADATA_DICT.get(previous_id, None) \
+                            self.manage_metadata_button(self.FME_METADATA_DICT.get(previous_id, None)
                                 or self.FME_METADATA_DICT.get(previous_prefix_id, None)),
                             True
                             ))
@@ -2032,17 +2030,17 @@ class OpenICGC(PluginBase):
                     first_part_id = id.split()[0]
                     last_part_id = id.split()[-1]
                     product_name = self.FME_NAMES_DICT.get(id, None) \
-                        or ((self.FME_NAMES_DICT[first_part_id] + " " + last_part_id) \
+                        or ((self.FME_NAMES_DICT[first_part_id] + " " + last_part_id)
                             if self.FME_NAMES_DICT.get(first_part_id, None) else id)
-                    file_label = product_file_label_pattern % (product_name, \
+                    file_label = product_file_label_pattern % (product_name,
                         raster_label if self.is_raster_file(filename)
-                            else vector_label if self.is_vector_file(filename)
-                            else points_label if self.is_points_file(filename)
-                            else "", \
+                        else vector_label if self.is_vector_file(filename)
+                        else points_label if self.is_points_file(filename)
+                        else "",
                         os.path.splitext(filename)[1][1:])
                     if gsd:
                         # Store product info in GSD dict
-                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area, \
+                        gsd_info_dict[gsd] = (id, file_label, min_side, max_query_area, min_px_side, max_px_area,
                             time_list, download_list, filename, limits, url_ref_or_wms_tuple, enabled)
                     else:
                         # Add entry to temporal product submenu
@@ -2050,13 +2048,13 @@ class OpenICGC(PluginBase):
                         last_part_id = id.split()[-1]
                         product_submenu.append((
                             file_label,
-                            (lambda _dummy, id=id, name=product_name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
+                            (lambda _dummy, id=id, name=product_name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple:
                                 self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
                             self.FME_ICON_DICT.get(id, None) or self.FME_ICON_DICT.get(prefix_id, None),
                             enabled, True, id, # Indiquem: actiu, checkable i un id d'acció
-                            self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None) \
-                                or self.FME_METADATA_DICT.get(prefix_id, None) \
-                                or (self.FME_METADATA_DICT[first_part_id] + " " + last_part_id \
+                            self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None)
+                                or self.FME_METADATA_DICT.get(prefix_id, None)
+                                or (self.FME_METADATA_DICT[first_part_id] + " " + last_part_id
                                     if self.FME_METADATA_DICT.get(first_part_id, None) else None)
                                 ),
                             True
@@ -2073,7 +2071,7 @@ class OpenICGC(PluginBase):
         else:
             fme_extra_services_list = []
             # Add separators on change product prefix
-            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list, \
+            for i, (id, name, min_side, max_query_area, min_px_side, max_px_area, gsd, time_list, download_list,
                 filename, limits, url_pattern, url_ref_or_wms_tuple, enabled) in enumerate(fme_services_list):
                 prefix_id = id[:2] if id else None
                 previous_id = fme_extra_services_list[i-1][0].split("/")[-1] if i > 0 else id
@@ -2083,37 +2081,42 @@ class OpenICGC(PluginBase):
 
                 # If change 2 first characters the inject a separator
                 if prefix_id != previous_prefix_id:
-                    fme_extra_services_list.append((None, None, None, None, None, None, None, None, \
+                    fme_extra_services_list.append((None, None, None, None, None, None, None, None,
                         None, None, None, None)) # 11 + 1 (vectorial_not_raster)
                 vectorial_not_raster = not self.is_raster_file(filename)
-                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, filename, \
+                fme_extra_services_list.append((id, name, min_side, max_query_area, min_px_side, max_px_area, filename,
                     limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled)) # 12 params
             # Create download menu
             first_part_id = id.split()[0]
             last_part_id = id.split()[-1]
-            download_submenu = [
-                (product_file_label_pattern % (name,
-                    raster_label if self.is_raster_file(filename)
-                        else vector_label if self.is_vector_file(filename)
-                        else points_label if self.is_points_file(filename)
-                        else "",
+            download_submenu = [(
+                product_file_label_pattern % (
+                    name, raster_label if self.is_raster_file(filename)
+                    else vector_label if self.is_vector_file(filename)
+                    else points_label if self.is_points_file(filename)
+                    else "",
                     os.path.splitext(filename)[1][1:]),
-                    (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area, min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list, download_list=download_list, filename=filename, limits=limits, url_ref_or_wms_tuple=url_ref_or_wms_tuple : \
-                        self.enable_download_subscene(id, name, min_side, max_query_area, min_px_side, max_px_area, time_list, download_list, filename, limits, url_ref_or_wms_tuple), self.pair_download_checks),
-                    self.FME_ICON_DICT.get(id, None) or self.FME_ICON_DICT.get(id[:2], None),
-                    enabled, True, id,  # Indiquem: actiu, checkable i un id d'acció
-                    self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None) \
-                        or self.FME_METADATA_DICT.get(prefix_id, None) \
-                        or (self.FME_METADATA_DICT[first_part_id] + " " + last_part_id \
-                            if self.FME_METADATA_DICT.get(first_part_id, None) else None)
-                        ),
-                    True
-                ) if id else "---" for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, \
-                    limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled in fme_extra_services_list
-                ]
+                (lambda _dummy, id=id, name=name, min_side=min_side, max_query_area=max_query_area,
+                    min_px_side=min_px_side, max_px_area=max_px_area, time_list=time_list,
+                    download_list=download_list, filename=filename, limits=limits,
+                    url_ref_or_wms_tuple=url_ref_or_wms_tuple:
+                    self.enable_download_subscene(id, name, min_side, max_query_area,
+                        min_px_side, max_px_area, time_list,
+                        download_list, filename, limits, url_ref_or_wms_tuple),
+                    self.pair_download_checks),
+                self.FME_ICON_DICT.get(id, None) or self.FME_ICON_DICT.get(id[:2], None),
+                enabled, True, id, # Indiquem: actiu, checkable i un id d'acció
+                self.manage_metadata_button(self.FME_METADATA_DICT.get(id, None)
+                    or self.FME_METADATA_DICT.get(prefix_id, None)
+                    or (self.FME_METADATA_DICT[first_part_id] + " " + last_part_id
+                    if self.FME_METADATA_DICT.get(first_part_id, None)
+                    else None)),
+                True
+                ) if id else "---"
+                for id, name, min_side, max_query_area, min_px_side, max_px_area, filename, limits, vectorial_not_raster, url_pattern, url_ref_or_wms_tuple, enabled in fme_extra_services_list
+            ]
 
         return download_submenu
-
 
     ###########################################################################
     # Signals
@@ -2167,7 +2170,6 @@ class OpenICGC(PluginBase):
             self.photo_search_2_action.setChecked(status)
         if self.photo_search_action:
             self.photo_search_action.setChecked(status)
-
 
     ###########################################################################
     # Functionalities
@@ -2292,37 +2294,44 @@ class OpenICGC(PluginBase):
 
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg", "ifc"])
+
     def is_unsupported_extension(self, ext):
         return self.is_extension(ext, ["dgn", "dwg", "ifc"])
 
     def is_compressed_file(self, pathname):
         return self.is_file_type(pathname, ["zip"])
+
     def is_compressed_extension(self, ext):
         return self.is_extension(ext, ["zip"])
 
     def is_raster_file(self, pathname):
         return self.is_file_type(pathname, ["tif", "jpeg", "jpg", "png"])
+
     def is_raster_extension(self, ext):
         return self.is_extension(ext, ["tif", "jpeg", "jpg", "png"])
 
     def is_vector_file(self, pathname):
         return self.is_file_type(pathname, ["shp", "dgn", "dwg", "gpkg", "shp-zip", "gdb-zip"])
+
     def is_vector_extension(self, ext):
         return self.is_extension(ext, ["shp", "dgn", "dwg", "gpkg", "shp-zip", "gdb-zip"])
 
     def is_points_file(self, pathname):
         return self.is_file_type(pathname, ["laz", "las"])
+
     def is_points_extension(self, ext):
         return self.is_extension(ext, ["laz", "las"])
 
     def is_slow_file(self, pathname):
         return self.is_file_type(pathname, ["laz", "las"])
+
     def is_slow_extension(self, ext):
         return self.is_extension(ext, ["laz", "las"])
 
     def is_file_type(self, pathname, ext_list):
         _filename, ext = os.path.splitext(pathname) if pathname else (None, "")
         return self.is_extension(ext, ext_list)
+
     def is_extension(self, ext, ext_list):
         return ext[1:].lower() in ext_list
 
@@ -2364,9 +2373,9 @@ class OpenICGC(PluginBase):
 
         # Check EPSG warning
         if self.project.get_epsg() != "25831":
-            if QMessageBox.warning(self.iface.mainWindow(), title, \
-                self.tr("ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.\n\nDo you want change the project coordinate system to EPSG 25831?") % self.project.get_epsg(), \
-                #"Els productes ICGC estan generats en EPSG 25831, carregar-los en un projecte amb EPSG %s podria provocar problemes de visualització, descàrrega o augment del temps de càrrega.\n\nVols canviar el sistema de coordenades del projecte a EPSG 25831?"
+            if QMessageBox.warning(self.iface.mainWindow(), title,
+                self.tr("ICGC products are generated in EPSG 25831, loading them into a project with EPSG %s could cause display problems, download problems, or increased load time.\n\nDo you want change the project coordinate system to EPSG 25831?") % self.project.get_epsg(),
+                # "Els productes ICGC estan generats en EPSG 25831, carregar-los en un projecte amb EPSG %s podria provocar problemes de visualització, descàrrega o augment del temps de càrrega.\n\nVols canviar el sistema de coordenades del projecte a EPSG 25831?"
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
                 self.project.set_epsg(25831)
 
@@ -2375,19 +2384,19 @@ class OpenICGC(PluginBase):
             # If have a date range use end range date to sort
             time_list_list = [time_list or [] for _data_type, _name, _min_side, _max_download_area, _min_px_side, _max_px_area, time_list, _download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled in gsd_dict.values()]
             time_list = sorted(list(set([item for sublist in time_list_list for item in sublist])),
-                key=lambda t: t.split("-")[-1] if str(t).find("-") >=0 else t)
+                key=lambda t: t.split("-")[-1] if str(t).find("-") >= 0 else t)
             if not time_list:
                 time_list = [None]
-            data_dict = {year: {gsd: {"download": {description: id \
-                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST \
-                if operation_code in download_list}, "max_area": gsd_max_download_area} \
-                for (gsd, (_data_type, _name, _min_side, gsd_max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled)) in gsd_dict.items() \
-                if not year or year in gsd_dict[gsd][6]} \
+            data_dict = {year: {gsd: {"download": {description: id
+                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST
+                if operation_code in download_list}, "max_area": gsd_max_download_area}
+                for (gsd, (_data_type, _name, _min_side, gsd_max_download_area, _min_px_side, _max_px_area, _time_list, download_list, _filename, _limits, _url_ref_or_wms_tuple, _enabled)) in gsd_dict.items()
+                if not year or year in gsd_dict[gsd][6]}
                 for year in time_list}
         else:
             # Without GSD dictionari
-            download_type_dict = {description: id \
-                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST \
+            download_type_dict = {description: id
+                for id, description, operation_code in self.FME_DOWNLOADTYPE_LIST
                 if operation_code in download_list}
             if not time_list:
                 time_list = [None]
@@ -2415,7 +2424,7 @@ class OpenICGC(PluginBase):
             "%s: %s / %s%s" % (self.tr("Download tool"), download_description, name, (" / %s" % time_code if time_code else "")))
 
         # Load reference map layer
-        self.load_last_ref_layer = lambda:None
+        self.load_last_ref_layer = lambda: None
         if url_ref_or_wms_tuple:
             # If it is historic ortho we need gets reference file dynamically
             if is_historic_ortho:
@@ -2444,7 +2453,7 @@ class OpenICGC(PluginBase):
                 ref_file = get_dtm_ref(data_type, time_code)
                 url_ref_or_wms_tuple = (ref_file, symbol_file)
 
-            self.load_last_ref_layer = lambda:self.load_ref_layer(url_ref_or_wms_tuple, name)
+            self.load_last_ref_layer = lambda: self.load_ref_layer(url_ref_or_wms_tuple, name)
             self.load_last_ref_layer()
 
         # Configure new option to download
@@ -2562,8 +2571,8 @@ class OpenICGC(PluginBase):
             geo = self.download_get_geometry(geo, download_epsg, min_side, max_download_area, min_px_side, max_px_area, gsd, limits)
             if not geo:
                 return
-        is_polygon = (type(geo) == QgsGeometry)
-        is_area = (type(geo) == QgsRectangle and not geo.isEmpty())
+        is_polygon = (type(geo) is QgsGeometry)
+        is_area = (type(geo) is QgsRectangle and not geo.isEmpty())
         title = self.tr("Download map area") if is_area or is_polygon else self.tr("Download point")
 
         # Validate download path
@@ -2635,8 +2644,8 @@ class OpenICGC(PluginBase):
                     # Download and uncopmress file
                     uncompressed_folder = self.layers.download_remote_file(url, local_filename, download_folder, unzip=True, title=self.tr("Downloading ..."), cancel_button_text=self.tr("Cancel"), time_info=self.tr("Elapsed %s"))
                     # If compressed file contains unsupported format, search first file
-                    local_filename_list = [os.path.join(uncompressed_folder, f) for f in \
-                        os.listdir(uncompressed_folder) \
+                    local_filename_list = [os.path.join(uncompressed_folder, f) for f in
+                        os.listdir(uncompressed_folder)
                         if os.path.splitext(f)[1] == ext]
                     local_filename = local_filename_list[0] if local_filename_list else None
                 else:
@@ -2714,7 +2723,8 @@ class OpenICGC(PluginBase):
 
         # Apply data filter if required
         if download_layer and data_filter and (not is_points or self.can_filter_point_cloud):
-            status_ok = self.layers.set_filter(download_layer, data_filter)
+            # status_ok = self.layers.set_filter(download_layer, data_filter)
+            self.layers.set_filter(download_layer, data_filter)
 
         # Restore previous current layer
         if current_layer:
@@ -2758,9 +2768,9 @@ class OpenICGC(PluginBase):
         else:
             # With unsupported point cloud indexing status show message
             if not self.can_filter_point_cloud and is_points and download_layer and data_filter:
-                QMessageBox.warning(None, title,
-                    self.tr("The current version of QGIS does not allow filtering data from point cloud files, " \
-                        "so data may be displayed incorrectly."))
+                QMessageBox.warning(None, title, self.tr(
+                    "The current version of QGIS does not allow filtering data from point cloud files, "
+                    "so data may be displayed incorrectly."))
         # With unsupported format we try open file with external app
         if is_unsupported_format:
             if QMessageBox.question(self.iface.mainWindow(), title,
@@ -2771,7 +2781,7 @@ class OpenICGC(PluginBase):
             try:
                 self.layers.open_download_path(filename=local_filename)
                 self.log.debug("Open donwloaded file with external viewer")
-            except:
+            except Exception:
                 self.log.exception("The downloaded file could not be opened with external viewer")
                 QMessageBox.warning(self.iface.mainWindow(), title,
                     self.tr("The download file could not be opened"))
@@ -2805,7 +2815,7 @@ class OpenICGC(PluginBase):
             self.log.debug("Download tool polygon (%s)", self.download_type)
             multipolygon = None
             layer = self.iface.mapCanvas().currentLayer()
-            if layer and type(layer) == QgsVectorLayer:
+            if layer and type(layer) is QgsVectorLayer:
                 # Prepare transformation polygon coordinates to project EPSG
                 epsg = self.layers.get_epsg(layer)
                 epsg = int(epsg) if epsg else None
@@ -2840,9 +2850,9 @@ class OpenICGC(PluginBase):
             self.log.debug("Download tool user selection (%s)", self.download_type)
 
         # Check selection type
-        is_polygon = (type(geo) == QgsGeometry)
-        is_point = (type(geo) == QgsRectangle and geo.isEmpty())
-        is_area = (type(geo) == QgsRectangle and not geo.isEmpty())
+        is_polygon = (type(geo) is QgsGeometry)
+        is_point = (type(geo) is QgsRectangle and geo.isEmpty())
+        is_area = (type(geo) is QgsRectangle and not geo.isEmpty())
 
         # If not EPSG then gets project epsg
         if not epsg:
@@ -2961,7 +2971,7 @@ class OpenICGC(PluginBase):
         current_layer_id = current_layer.id() if current_layer else None
         # Load reference layer
         layer_name = self.DOWNLOAD_REF_PATTERN % name
-        #layer = self.layers.get_by_id(layer_name.replace(" ", "_"))
+        # layer = self.layers.get_by_id(layer_name.replace(" ", "_"))
         layer = self.layers.get_by_name(layer_name)
         if layer:
             # If exist reference layer, only set visible
@@ -3000,7 +3010,7 @@ class OpenICGC(PluginBase):
                         # Load vector layer from URL
                         layer = self.layers.add_vector_layer(layer_name, url_ref, self.BACKGROUND_MAP_GROUP_NAME, 0, transparency=70, style_file=style_file, only_one_visible_map_on_group=False)
                 # Zoom to reference layer content if not visible
-                visible_ref_layer_element_count = len(list(self.layers.get_features_by_area( \
+                visible_ref_layer_element_count = len(list(self.layers.get_features_by_area(
                     layer, self.iface.mapCanvas().extent(), self.project.get_epsg())))
                 if not visible_ref_layer_element_count:
                     self.layers.zoom_to_full_extent(layer)
@@ -3085,7 +3095,6 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             self.sync_help("docs", "online", "index")
             self.show_help_file("index")
 
-
     ###########################################################################
     # Update help & plugin
 
@@ -3115,7 +3124,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             # Read remote help file metadata tag "last-modified"
             try:
                 remote_data = requests.get(remote_url, verify=check_ssl, timeout=timeout).text
-            except:
+            except Exception:
                 fin = None
             if not fin:
                 continue
@@ -3143,7 +3152,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             try:
                 remote_image_data = requests.get(remote_image_url, verify=check_ssl,
                     timeout=timeout).content
-            except:
+            except Exception:
                 fin = None
             if not fin:
                 continue
@@ -3173,9 +3182,9 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         else:
             # Download plugin to gets version
             try:
-                remote_data = requests.get(remote_url, verify=check_ssl, \
+                remote_data = requests.get(remote_url, verify=check_ssl,
                     timeout=timeout).text
-            except Exception as e:
+            except Exception:
                 remote_data = None
         if not remote_data:
             return None
@@ -3184,7 +3193,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         try:
             zip = zipfile.ZipFile(io.BytesIO(remote_data))
             metadata_data = zip.read('metadata.txt')
-        except Exception as e:
+        except Exception:
             metadata_data = None
         if not metadata_data:
             return None
@@ -3205,20 +3214,15 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         else:
             self.iface.actionManagePlugins().trigger()
 
-
-    ###########################################################################
-    # Shading DTM
-
-
     ###########################################################################
     # Shading DTM
 
     def shading_dtm(self, checked=False):
         """ Change current layer style """
-        title=self.tr("Shading DTM layer")
+        title = self.tr("Shading DTM layer")
         # Load style file in current layer
         layer = self.iface.mapCanvas().currentLayer()
-        if type(layer) != QgsRasterLayer or layer.bandCount() > 1:
+        if type(layer) is not QgsRasterLayer or layer.bandCount() > 1:
             QMessageBox.information(self.iface.mainWindow(), title,
                 self.tr('You must select a DTM layer'))
             return
@@ -3228,7 +3232,6 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         QMessageBox.information(self.iface.mainWindow(), title,
             self.tr('You can modify the angle of the sun in the layer simbology'))
         return layer
-
 
     ###########################################################################
     # Photo library search
@@ -3319,13 +3322,13 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                     layer_name = photo_search_label % municipality
                 else:
                     if x >= 100 and y >= 100:
-                        layer_name = photo_search_label % self.tr("Coord %s %s") % ("%.2f" % x,"%.2f" % y)
+                        layer_name = photo_search_label % self.tr("Coord %s %s") % ("%.2f" % x, "%.2f" % y)
                     else:
                         layer_name = photo_search_label % self.tr("Coord %s %s") % (x, y)
                 # Search point in photo library (EPSG 4326)
                 x, y = self.crs.transform_point(x, y, epsg, 4326)
-                #layer_filter = "SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (x, y)
-                layer_filter ='<fes:Filter xmlns:fes="http://www.opengis.net/fes/2.0" xmlns:gml="http://www.opengis.net/gml/3.2">' \
+                # layer_filter = "SELECT * FROM fotogrames WHERE ST_Intersects(msGeometry, ST_GeometryFromText('POINT(%f %f)'))" % (x, y)
+                layer_filter = '<fes:Filter xmlns:fes="http://www.opengis.net/fes/2.0" xmlns:gml="http://www.opengis.net/gml/3.2">' \
                     '<fes:Intersects>' \
                         '<fes:ValueReference>msGeometry</fes:ValueReference>' \
                         '<gml:Point srsName="urn:ogc:def:crs:EPSG::4326" gml:id="qgis_id_geom_1">' \
@@ -3337,7 +3340,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             # Search by name
             if name and len(name) > 7: # at least flight code and wildcard ...
                 layer_name = photo_search_label % name
-                #layer_filter = "SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name)
+                # layer_filter = "SELECT * FROM fotogrames WHERE name LIKE '%s'" % (name)
                 layer_filter = '<Filter><Or>' \
                     '<PropertyIsEqualTo matchCase=false>' \
                         '<ValueReference>name</ValueReference>' \
@@ -3351,7 +3354,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
 
             # Load photo layer
             if layer_name and layer_filter:
-                #photo_search_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
+                # photo_search_layer = self.layers.add_wfs_layer(layer_name, photolib_wfs,
                 #    ["icgc:fotogrames"], 4326, filter=layer_filter, extra_tags=self.request_referrer_param + "&outputformat=geojson",
                 #    group_name=self.PHOTOS_GROUP_NAME, group_pos=group_pos, only_one_map_on_group=False, only_one_visible_map_on_group=True,
                 #    collapsed=False, visible=True, transparency=None, set_current=True)
@@ -3400,7 +3403,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                })
 
             # Get years of found photograms
-            search_photos_year_list = sorted(list(set([(f[date_field].date().year() if type(f[date_field]) == QDateTime \
+            search_photos_year_list = sorted(list(set([(f[date_field].date().year() if type(f[date_field]) is QDateTime
                 else int(f[date_field].split("-")[0])) for f in photo_search_layer.getFeatures()])), reverse=True)
 
             # Set layer colored by year style
@@ -3426,12 +3429,12 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         # Disable search tool
         self.gui.enable_tool(None)
 
-        ## Show warning if max results
+        # Show warning if max results
         photo_count = photo_search_layer.featureCount() if photo_search_layer else 0
         if photo_count >= max_features:
-            QMessageBox.warning(self.iface.mainWindow(), title, self.tr( \
-                "The maximum number of results (%d) has been reached.\n" \
-                "The query may have more results than are displayed." \
+            QMessageBox.warning(self.iface.mainWindow(), title, self.tr(
+                "The maximum number of results (%d) has been reached.\n"
+                "The query may have more results than are displayed."
                 ) % max_features)
 
     def photo_preview(self, photo_name, rectified=False, stereo=False, only_one=True, photolib_wms=PHOTOLIB_WMS):
@@ -3448,9 +3451,9 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         # Determine WMS layer to load
         layer_name = "anaglif" if stereo else "ortoxpres" if rectified else "fotos"
         if stereo:
-            photo_style = ",".join([photo_name, \
-                str(self.photo_search_dialog.get_parallax()), \
-                ("true" if self.photo_search_dialog.is_inverted_stereo() else "false") \
+            photo_style = ",".join([photo_name,
+                str(self.photo_search_dialog.get_parallax()),
+                ("true" if self.photo_search_dialog.is_inverted_stereo() else "false")
                 ])
         else:
             photo_style = photo_name
@@ -3500,15 +3503,15 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             rectified_preview_callback = lambda photo_id, layer=layer: self.photo_preview(layer.getFeature(photo_id)['name'], rectified=True)
             stereo_preview_callback = lambda photo_id, layer=layer: self.photo_preview(layer.getFeature(photo_id)['name'], stereo=True)
             download_callback = lambda photo_id, layer=layer: self.photo_download_action.trigger()
-            request_certificate_callback = None #lambda photo_id, layer=layer: self.send_email(
-                #"OpenICGC QGIS plugin. certificate %s" % layer.getFeature(photo_id)['name'],
-                #self.tr("Certificate request for photogram: %s") % layer.getFeature(photo_id)['name'])
-            request_scan_callback = None #lambda photo_id, layer=layer: self.send_email(
-                #"OpenICGC QGIS plugin. scan %s" % layer.getFeature(photo_id)['name'],
-                #self.tr("Scan request for photogram: %s") % layer.getFeature(photo_id)['name'])
-            report_photo_bug_callback = lambda photo_id, layer=layer: self.report_photo_bug(layer.getFeature(photo_id)['name'], \
-                layer.getFeature(photo_id)['flight_code'], \
-                layer.getFeature(photo_id)['flight_date'], \
+            request_certificate_callback = None # lambda photo_id, layer=layer: self.send_email(
+            # "OpenICGC QGIS plugin. certificate %s" % layer.getFeature(photo_id)['name'],
+            # self.tr("Certificate request for photogram: %s") % layer.getFeature(photo_id)['name'])
+            request_scan_callback = None # lambda photo_id, layer=layer: self.send_email(
+            # "OpenICGC QGIS plugin. scan %s" % layer.getFeature(photo_id)['name'],
+            # self.tr("Scan request for photogram: %s") % layer.getFeature(photo_id)['name'])
+            report_photo_bug_callback = lambda photo_id, layer=layer: self.report_photo_bug(layer.getFeature(photo_id)['name'],
+                layer.getFeature(photo_id)['flight_code'],
+                layer.getFeature(photo_id)['flight_date'],
                 layer.getFeature(photo_id)['gsd'])
             if not self.photo_search_dialog:
                 self.photo_search_dialog = PhotoSearchSelectionDialog(layer,
@@ -3522,7 +3525,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.photo_search_dialog)
                 # Map visibility event to refresh any control if necessary. This is implemented in
                 # change layer event that's why i send a change layer signal
-                self.photo_search_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
+                self.photo_search_dialog.visibilityChanged.connect(lambda dummy: self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
             else:
                 # Configure search result information
                 self.photo_search_dialog.set_info(layer,
@@ -3544,7 +3547,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             categories_list = self.layers.get_categories(photo_layer)
             self.layers.set_categories_visible(photo_layer, set(categories_list) - set(year_range), False)
             self.layers.set_categories_visible(photo_layer, year_range, True)
-            #self.layers.set_current_layer(photo_layer) # click in categories of layer can unselect layer... we fix it
+            # self.layers.set_current_layer(photo_layer) # click in categories of layer can unselect layer... we fix it
             self.layers.set_visible(photo_layer) # force visibility of photo layer
             self.legend.set_group_visible_by_name(self.PHOTOS_GROUP_NAME) # force visibility of photo group
 
@@ -3638,9 +3641,9 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
     def get_municipality_and_county(self, x, y, epsg):
         """ Return coodinates municipality and county """
         try:
-            found_dict_list = self.geofinder.find_point_coordinate_icgc(x, y, epsg, \
+            found_dict_list = self.geofinder.find_point_coordinate_icgc(x, y, epsg,
                 layers="topo1,topo2", search_radious_km=None, size=1)
-        except:
+        except Exception:
             error = self.tr("Unknow, service unavailable")
             found_dict_list = [{'nomMunicipi': error, 'nomComarca': error}]
         municipality = found_dict_list[0]['nomMunicipi'] if found_dict_list else ""
@@ -3695,8 +3698,9 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             return
 
         # Set base issue form url (params: lang, coordinates, environment and error)
+        form_id = "V5S73HJB-UO3rUQwD03qJkuaYVuCv_VIuHYZCM2bVrZUOFZRTEpMNUpMRTBGQ1BTRTVYRFlFNDdZUSQlQCN0PWcu" # pragma: allowlist secret
         base_url = "https://forms.office.com/Pages/ResponsePage.aspx?" \
-            "id=V5S73HJB-UO3rUQwD03qJkuaYVuCv_VIuHYZCM2bVrZUOFZRTEpMNUpMRTBGQ1BTRTVYRFlFNDdZUSQlQCN0PWcu" \
+            "id=%s" \
             "&lang=%s" \
             "&r2f8b5d505c5b4b4ab211be61e1cec571=%s" \
             "&rba56d562e5b6473ba99b13a3cefa6673=%s" \
@@ -3712,7 +3716,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
             platform.system(), platform.release(), platform.version(), sys.platform)
 
         # Open issues form
-        url = base_url % (self.translation.get_qgis_language(), coord_text, environment_text, error)
+        url = base_url % (form_id, self.translation.get_qgis_language(), coord_text, environment_text, error)
         self.show_url(url)
 
     def report_issue(self, new_plugin_version=None):
@@ -3720,7 +3724,7 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
         if new_plugin_version:
             # Cannot report issues with obsolete version of plugin
             self.log.debug("Obsolete plugin version detected. Send email cancelled")
-            QMessageBox.warning(self.iface.mainWindow(), self.tr("Report an issue"), \
+            QMessageBox.warning(self.iface.mainWindow(), self.tr("Report an issue"),
                 self.tr("Please, update %s to version %s before report an issue") % (self.metadata.get_name(), new_plugin_version))
             return False
         # Show GitHub issues page

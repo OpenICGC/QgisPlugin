@@ -17,8 +17,8 @@ import sys
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QPalette, QColor, QFontMetrics, QPixmap
-from qgis.PyQt.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication
+from qgis.PyQt.QtGui import QPixmap
+from qgis.PyQt.QtWidgets import QDialog
 
 ui_about, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_about.ui'))
 
@@ -75,7 +75,7 @@ class AboutDialog(QDialog, ui_about):
 
         # Carreguem la informació
         self.label_info.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
-        self.label_info.setWordWrap(True);
+        self.label_info.setWordWrap(True)
         self.label_info.setText("\n" + app_info.replace(new_line, "\n"))
 
         # Mostrem el diàleg

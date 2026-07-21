@@ -91,7 +91,7 @@ class ErrorReportManager():
             Configure dialog size
             """
         self.width = width
- 
+
     def set_height(self, height):
         """ Configura la mida del diàleg
             ---
@@ -99,7 +99,7 @@ class ErrorReportManager():
             """
         self.height = height
 
-    def set_email(self, email_subject, email_to, email_cc = ""):
+    def set_email(self, email_subject, email_to, email_cc=""):
         """ Configura els emails d'informe d'errors
             ---
             Configure error report emails
@@ -108,7 +108,7 @@ class ErrorReportManager():
         self.email_to = email_to
         self.email_cc = email_cc
 
-    def set_console_last_lines(self, console_last_lines = 20):
+    def set_console_last_lines(self, console_last_lines=20):
         """ Configura el nombre de linies de la consola a capturar en els informes d'errors
             ---
             Configure the number of console lines to capture in the bug reports
@@ -124,7 +124,7 @@ class ErrorReportManager():
         if ex and show_param_values:
             try:
                 traceback_info = "".join(traceback.TracebackException.from_exception(ex, capture_locals=True).format()).strip()
-            except:
+            except Exception:
                 show_param_values = False
         if not show_param_values:
             traceback_info = traceback.format_exc().strip()
@@ -137,7 +137,7 @@ class ErrorReportManager():
         # Obtenim informaicó de la capa activa
         layer = qgis.utils.iface.mapCanvas().currentLayer()
         layer_name = layer.name() if layer else None
-        selected_features = (u", ".join([unicode(feature.id()) for feature in layer.selectedFeatures()])) if layer and 'selectedFeatures' in dir(layer) else None
+        selected_features = (", ".join([feature.id() for feature in layer.selectedFeatures()])) if layer and 'selectedFeatures' in dir(layer) else None
         layer_info = u"layer: %s, selection obj id: %s" % (layer_name, selected_features) if layer else None
 
         return traceback_info, console_info, db_info, layer_info
@@ -160,7 +160,7 @@ class ErrorReportManager():
             """
         # Preparem un missatge d'error per mostrar a pantalla
         extra_info = "[ERROR:]\n%s\n\n[TRACE:]\n%s\n\n[QGIS CONSOLE:]\n%s" % (message, trace_back_info, console_info.strip())
-        if(db_info):
+        if db_info:
             extra_info += "\n\n[DB:]\n%s" % db_info
         if layer_info:
             extra_info += "\n\n[LAYER:]\n%s" % layer_info
@@ -173,20 +173,20 @@ class ErrorReportManager():
             %s<BR/><BR/>
             <B>QGIS CONSOLE:</B><BR/>
             %s""" % (message.replace("\n", "<BR/>"), trace_back_info.replace("\n", "<BR/>"), console_info.replace("\n", "<BR/>"))
-        if(db_info):
+        if db_info:
             email_info += "<BR/><B>DB:</B><BR/>%s<BR/>" % db_info
         if layer_info:
             email_info += "<BR/><B>LAYER:</B><BR/>%s<BR/>" % layer_info
 
         # Mostrem un diàleg amb la informació
-        dlg = LogInfoDialog(
-            message, extrainfo_or_tupleextrainfolist = extra_info, extrainfohtml_or_tupleextrainfohtmllist = email_info,
-            title = self.dialog_title, mode = LogInfoDialog.mode_error,
-            buttons = LogInfoDialog.buttons_ok, save_button_text = u"Guardar",
-            email_button_text = u"Reportar", email_subject = self.email_subject, email_to = self.email_to, email_cc = self.email_cc,
-            width = self.width, height = self.height, parent = self.parent
+        LogInfoDialog(
+            message, extrainfo_or_tupleextrainfolist=extra_info, extrainfohtml_or_tupleextrainfohtmllist=email_info,
+            title=self.dialog_title, mode=LogInfoDialog.mode_error,
+            buttons=LogInfoDialog.buttons_ok, save_button_text="Guardar",
+            email_button_text="Reportar", email_subject=self.email_subject, email_to=self.email_to, email_cc=self.email_cc,
+            width=self.width, height=self.height, parent=self.parent
             )
-    
+
     def generic_handle_error(self, func):
         """ Funció que decora la gestió d'errors de manera genèrica
             ---
@@ -201,7 +201,7 @@ class ErrorReportManager():
         return handle_error
 
 
-###############################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Gestió d'error global, si es fan servir en dos plugins potser que
 # matxaquin les adreces d'email o el destinatari del emails
 
@@ -218,16 +218,16 @@ def generic_handle_error(func):
             return func(*args, **kwargs)
         except Exception as e:
             QApplication.restoreOverrideCursor()
-            #iface = args[0].iface if args and args[0].__dict__.get('iface', None) else None
+            # iface = args[0].iface if args and args[0].__dict__.get('iface', None) else None
             error_report_manager.manage_exception(e)
 
     return handle_error
 
 
-###############################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Gestió d'errors específica per QGIS
 # Mostra la informació als panells de QGIS (MessageBar, StatusBar i MessageLog)
-
+#
 class QgisError(Exception):
     """ Classe d'error predefinida per mostrar missatge al MessageBar de QGIS
             message: missatge explicant la causa de l'error
@@ -308,12 +308,12 @@ def qgis_handle_error(function):
             return result
         except CancelError as e:
             # L'usuari ha cancel·lat intencionadament
-            title = 'Info' if e.level==Qgis.MessageLevel.Info else ('Atenció' if e.level==Qgis.MessageLevel.Warning else 'Error')
+            title = 'Info' if e.level == Qgis.MessageLevel.Info else ('Atenció' if e.level == Qgis.MessageLevel.Warning else 'Error')
             args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
             message = "Procés cancel·lat."
         except QgisError as e:
             # Error controlat (InputError, ProcessError...)
-            title = 'Info' if e.level==Qgis.MessageLevel.Info else ('Atenció' if e.level==Qgis.MessageLevel.Warning else 'Error')
+            title = 'Info' if e.level == Qgis.MessageLevel.Info else ('Atenció' if e.level == Qgis.MessageLevel.Warning else 'Error')
             args[0].iface.messageBar().pushMessage(title, e.message, level=e.level, duration=e.duration)
             message = "Procés finalitzat amb errors."
         except Exception as e:
@@ -327,8 +327,6 @@ def qgis_handle_error(function):
 
     return handle_error
 
-
-
 if __name__ == '__main__':
     # Test
     ermanager = ErrorReportManager()
@@ -336,8 +334,8 @@ if __name__ == '__main__':
     try:
         1/0
     except Exception as e:
-        ##message, trace_back_info, console_info = get_exception_info(e)
-        ##print "Message:", message, "\n"
-        ##print "Trace:", trace_back_info, "\n"
-        ##print "Console:", console_info
+        # message, trace_back_info, console_info = get_exception_info(e)
+        # print "Message:", message, "\n"
+        # print "Trace:", trace_back_info, "\n"
+        # print "Console:", console_info
         ermanager.manage_exception(e)

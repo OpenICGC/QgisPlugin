@@ -89,19 +89,18 @@ def get_delimitations(url="https://geoserveis.icgc.cat/servei/catalunya/division
     delimitations_id_list = get_wfs_capabilities_info(url, reg_ex_filter)
     # Obtenim un nom de producte simplificat i separem la informació de la escala
     delimitations_info_list = [(
-        layer_id.split("_")[-2 if layer_id.split("_")[-1].isdigit() else -1], \
+        layer_id.split("_")[-2 if layer_id.split("_")[-1].isdigit() else -1],
         int(layer_id.split("_")[-1]) if layer_id.split("_")[-1].isdigit() else None,
-        layer_id \
-        ) \
-        for layer_id in delimitations_id_list]
+        layer_id
+        ) for layer_id in delimitations_id_list]
     # Agrupem les escales de cada producte
     delimitations_dict = {}
     for product_name, scale, layer_id in delimitations_info_list:
         delimitations_dict[product_name] = delimitations_dict.get(product_name, []) + [(scale, layer_id)]
     # Ordenem els productes
-    delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d:order_dict.get(d[0], 10))
+    delimitations_list = sorted(list(delimitations_dict.items()), key=lambda d: order_dict.get(d[0], 10))
     # Ordenem les escales dins de cada producte i afegim arxiu d'estil
-    delimitations_list = [(product_name, sorted(scale_list, key=lambda s:s[0]), style_dict.get(product_name, None)) \
+    delimitations_list = [(product_name, sorted(scale_list, key=lambda s: s[0]), style_dict.get(product_name, None))
         for product_name, scale_list in delimitations_list]
     # retornem les dades
     return url, delimitations_list

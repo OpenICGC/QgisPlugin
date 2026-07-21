@@ -21,7 +21,7 @@ from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QDockWidget, QTableWidgetItem, QHeaderView, QStyle, QMenu
 
 # No cal fer import, està definit en el mateix arxiu ui_photosearchselection.ui
-#from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
+# from qtrangeslider import QRangeSlider # Source: https://pypi.org/project/QtRangeSlider/
 
 from ..base.qtextra import QtExtra
 
@@ -36,9 +36,9 @@ except Exception:
 
 
 class PreviewType:
-    NOMINAL=0
-    RECTIFIED=1
-    STEREO=2
+    NOMINAL = 0
+    RECTIFIED = 1
+    STEREO = 2
 
 class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
     """ Dialog class to show results of photo search and filter it """
@@ -105,8 +105,8 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.tableWidget_photos.keyPressEvent = self.on_table_key_press
 
         # Map year sliders keypress event
-        self.horizontalSlider.keyPressEvent = lambda event:self.on_slider_key_press(event, self.horizontalSlider)
-        self.horizontalSlider_range.keyPressEvent = lambda event:self.on_slider_key_press(event, self.horizontalSlider_range)
+        self.horizontalSlider.keyPressEvent = lambda event: self.on_slider_key_press(event, self.horizontalSlider)
+        self.horizontalSlider_range.keyPressEvent = lambda event: self.on_slider_key_press(event, self.horizontalSlider_range)
 
         # Load button icons
         self.pushButton_report_bug.setIcon(self.UNAVAILABLE_PHOTO_ICON)
@@ -117,23 +117,23 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         self.pushButton_request_scan.setIcon(self.UNSCANNED_PHOTO_ICON)
         self.pushButton_adjust_brightness.setIcon(self.BRIGHTNES_ICON)
         # Add preview options (submenu) to preview button
-        preview_menu = QMenu(self);
+        preview_menu = QMenu(self)
         if preview_callback:
             photo_preview_action = preview_menu.addAction(self.tr("Photogram nominal orientation"))
             photo_preview_action.setIcon(self.DEFAULT_PHOTO_ICON)
-            photo_preview_action.triggered.connect(lambda:self.update_preview_button(\
+            photo_preview_action.triggered.connect(lambda: self.update_preview_button(
                 self.preview, photo_preview_action.text(), photo_preview_action.icon()))
         if rectified_preview_callback:
             rectified_preview_action = preview_menu.addAction(self.tr('Rectified photogram "on the fly"'))
             rectified_preview_action.setIcon(self.RECTIFIED_PREVIEW_ICON)
-            rectified_preview_action.triggered.connect(lambda:self.update_preview_button(\
+            rectified_preview_action.triggered.connect(lambda: self.update_preview_button(
                 self.rectified_preview, rectified_preview_action.text(), rectified_preview_action.icon()))
         if stereo_preview_callback:
             stereo_preview_action = preview_menu.addAction(self.tr('Anaglyph photogram "on the fly"'))
             stereo_preview_action.setIcon(self.STEREO_PREVIEW_ICON)
-            stereo_preview_action.triggered.connect(lambda:self.update_preview_button(\
+            stereo_preview_action.triggered.connect(lambda: self.update_preview_button(
                 self.stereo_preview, stereo_preview_action.text(), stereo_preview_action.icon()))
-        self.pushButton_link_preview_type.setMenu(preview_menu);
+        self.pushButton_link_preview_type.setMenu(preview_menu)
 
         # Translate dialog text
         self.current_value_prefix = self.tr("Year: %s")
@@ -200,7 +200,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
         # Configure delayed stereo parallax change event
         self.parallax_timer = QTimer()
-        self.parallax_timer.timeout.connect(lambda:self.on_parallax_changed(delayed=0))
+        self.parallax_timer.timeout.connect(lambda: self.on_parallax_changed(delayed=0))
 
         # Show dialog
         if autoshow:
@@ -418,8 +418,8 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Return current selected years range (two years) """
         if not self.time_series_list:
             return None, None
-        #current_time = self.time_series_list[self.horizontalSlider.value()]
-        #current_range = self.time_series_list[self.horizontalSlider_range.value()] if self.checkBox_range.isChecked() else None
+        # current_time = self.time_series_list[self.horizontalSlider.value()]
+        # current_range = self.time_series_list[self.horizontalSlider_range.value()] if self.checkBox_range.isChecked() else None
         if self.checkBox_range.isChecked():
             begin, end = self.horizontalSlider_range.value()
             current_time = self.time_series_list[begin]
@@ -462,7 +462,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         # Enable or disable years range slider
         self.horizontalSlider_range.setVisible(enabled)
         if enabled:
-            #self.horizontalSlider_range.setValue(self.horizontalSlider.value())
+            # self.horizontalSlider_range.setValue(self.horizontalSlider.value())
             self.set_range_value(self.horizontalSlider.value())
 
         self.label_begin_range.setVisible(enabled)
@@ -483,7 +483,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Mapped event to update filtered photograms list when change current year """
         self.update_filter(self.horizontalSlider.isSliderDown())
 
-    #def on_range_value_changed(self, value=None):
+    # def on_range_value_changed(self, value=None):
     def on_range_value_changed(self, begin=None, end=None):
         """ Mapped event to update filtered photograms list when change current year range """
         self.update_filter(self.horizontalSlider_range.isSliderDown())
@@ -549,7 +549,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
             # Search photo_id row
             for i in range(self.tableWidget_photos.rowCount()):
                 photo_id2, _image_available, _publishable, _available, _analog = self.tableWidget_photos.item(i, 0).data(Qt.UserRole)
-                if  photo_id2 == photo_id:
+                if photo_id2 == photo_id:
                     row = i
                     break
 
@@ -584,7 +584,8 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         # Select year
         current_time, current_range = self.get_current_time_range()
         if self.update_callback and current_time:
-            new_layer_name = self.update_callback(current_time, current_range)
+            # new_layer_name = self.update_callback(current_time, current_range)
+            self.update_callback(current_time, current_range)
 
         # Select "photo view" type for non rectifiable photograms (disable rectified modes)
         if not rectifiable:

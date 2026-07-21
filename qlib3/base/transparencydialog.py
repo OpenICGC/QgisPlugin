@@ -70,7 +70,7 @@ class TransparencyDialog(QDockWidget, Ui_Transparency):
             opacity = (100 - transparency) / 100
 
             if self.layer.type() == 0: # Si es vectorial
-               self.layer.setOpacity(opacity)
+                self.layer.setOpacity(opacity)
             else:
                 self.layer.renderer().setOpacity(opacity)
             self.layer.triggerRepaint()

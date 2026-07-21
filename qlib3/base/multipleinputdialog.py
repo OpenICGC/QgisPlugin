@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 *******************************************************************************
-Mòdul amb classe diàleg amb multiples input 
+Mòdul amb classe diàleg amb multiples input
 ---
-Module with a dialog class  with multiple input 
+Module with a dialog class  with multiple input
 
                              -------------------
         begin                : 2024-03-13
@@ -15,18 +15,18 @@ Module with a dialog class  with multiple input
 from datetime import date, time, datetime
 
 from qgis.PyQt.QtCore import Qt, QTime, QDate, QDateTime
-from qgis.PyQt.QtWidgets import QApplication, QLineEdit, QCheckBox, QComboBox, QDialogButtonBox
+from qgis.PyQt.QtWidgets import QLineEdit, QCheckBox, QComboBox, QDialogButtonBox
 from qgis.PyQt.QtWidgets import QFormLayout, QDialog, QMessageBox, QLabel, QTimeEdit, QDateEdit, QDateTimeEdit
 
 
 class MultipleInputDialog(QDialog):
-    """ Classe per generar diàlegs dinàmics a partir d'una llista de camps a demanar 
+    """ Classe per generar diàlegs dinàmics a partir d'una llista de camps a demanar
 
         El paràmetre labels és una llista de valors o tuples de 2 o 3 elements:
             labels = [<label1:str>, <label2:str>, ...]
             labels = [(<label1:str>, <data_type:type>|<value>|<list of values:list>),  ...]
             labels = [(<label1:str>, <data_type:type>|<value>|<list of values:list>, <required:bool>),  ...]
-        
+
         Si s'especifica un tipus (2n valor) es validarà que les dades introduides es corresponguin amb el tipus
         Si s'especifica un valor (2n valor) s'assignarà com valor per defecte i validarà les dades segons el seu tipus
         Si s'especifica una llista (2n valor) validarà les dades segons el seu tipus del primer element
@@ -37,12 +37,12 @@ class MultipleInputDialog(QDialog):
 
         Exemples:
             dlg = MultipleInputDialog(labels=[ # (Etiqueta, tipus_valor_llista, requerit)
-                ('Text', str, True), 
-                ('Text2', "hola", True), 
-                ('Int', int, True), 
-                ('Int2', 10, True), 
-                ('Real', float, True), 
-                ('Real2', 1.2, True), 
+                ('Text', str, True),
+                ('Text2', "hola", True),
+                ('Int', int, True),
+                ('Int2', 10, True),
+                ('Real', float, True),
+                ('Real2', 1.2, True),
                 ('Check', bool, False), # Requerit a false activa tristate
                 ('Check2', True, True),
                 ('Llista', [1,2,3], False), # Requerit a false afegeix un element buit al principi
@@ -54,7 +54,7 @@ class MultipleInputDialog(QDialog):
                 values_list = dlg.get_values()
 
             dlg = MultipleInputDialog(labels=[
-                ('Passada', str), 
+                ('Passada', str),
                 ('Codi de planificació', [11231,22323,3346]),
                 ], title="Planificació de la pasada")
             status_ok = dlg.do_modal()
@@ -62,7 +62,7 @@ class MultipleInputDialog(QDialog):
                 values_list = dlg.get_values()
 
             dlg = MultipleInputDialog(labels=[
-                'Passada', 
+                'Passada',
                 'Codi de planificació'
                 ], title="Planificació de la pasada")
             status_ok = dlg.do_modal()
@@ -80,13 +80,13 @@ class MultipleInputDialog(QDialog):
         # Preparem una llista de valors resultats i errors tots a None
         self.value_list = [None] * len(self.label_list)
         self.error_list = [None] * len(self.label_list)
-        
+
         # Afegim controls dinàmicament al diàleg
         self.layout, self.item_list = self.create_items(self.label_list)
-    
+
     def parse_labels(self, label_list):
-        """ Retorna una llista amb la configuració del items a generar dinàmicament 
-            a partir de la llista d'informació de labels que passa l'usuari 
+        """ Retorna una llista amb la configuració del items a generar dinàmicament
+            a partir de la llista d'informació de labels que passa l'usuari
             label_list = [(Label:str, [type_or_value_or_list_of_values, [required:bool]]), ...]
             """
         label_config_list = [] # [(label, label_type, label_default_value, label_list_type, label_required), ...]
@@ -94,7 +94,7 @@ class MultipleInputDialog(QDialog):
         # obtenim la configuració per cada una de les etiquets
         for label_info in label_list:
             label, label_type, label_default_value, label_list_type, label_required = None, None, None, None, None
-            
+
             # Segons el tipus del label_info, deduim la informació necessària
             if type(label_info) is str:
                 label, label_type, label_required = label_info, str, False
@@ -118,7 +118,7 @@ class MultipleInputDialog(QDialog):
             else:
                 # Si no hem pogut deduir la configuració d'un element tornem error
                 raise Exception("Definició d'etiqueta desconeguda: %s" % str(label_info))
-        
+
         return label_config_list
 
     def create_items(self, label_list):
@@ -164,24 +164,22 @@ class MultipleInputDialog(QDialog):
             layout.addRow(label, item)
             # Ens guardem l'item perquè no es destrueixi
             item_list.append(item)
-        
+
         # Afegim els botons d'acceptar/cancel·lar
         buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        layout.addWidget(buttonBox)        
+        layout.addWidget(buttonBox)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
         return layout, item_list
 
-    def parse_values(self, label_list, item_list, error_pattern="Camp \"%s\" (%s): \"%s\" - %s", \
+    def parse_values(self, label_list, item_list, error_pattern="Camp \"%s\" (%s): \"%s\" - %s",
         format_error="Format incorrecte", required_error="Valor requerit"):
         """ Retorna les llistes de valors i errors segons les dades introduides
             """
         value_list = []
         error_list = []
-        for (label, label_type, label_default_value, label_list_type, label_required), item\
-            in zip(label_list, item_list):
-            
+        for (label, label_type, label_default_value, label_list_type, label_required), item in zip(label_list, item_list):
             error = None
             try:
                 if label_type is str:
@@ -192,30 +190,30 @@ class MultipleInputDialog(QDialog):
                     value = item.text()
                     try:
                         value = int(value) if value else None
-                    except:
+                    except Exception:
                         raise Exception(format_error)
                 elif label_type is float:
                     value = item.text()
                     try:
                         value = float(value) if value else None
-                    except:
+                    except Exception:
                         raise Exception(format_error)
                 elif label_type is list:
-                    value = item.currentText()               
+                    value = item.currentText()
                     if label_list_type is bool:
                         try:
                             value = (value == "True") if value else None
-                        except:
+                        except Exception:
                             raise Exception(format_error)
                     elif label_list_type is int:
                         try:
                             value = int(value) if value else None
-                        except:
+                        except Exception:
                             raise Exception(format_error)
                     elif label_list_type is float:
                         try:
                             value = float(value) if value else None
-                        except:
+                        except Exception:
                             raise Exception(format_error)
                 elif label_type is date:
                     value = item.date().toPyDate()
@@ -242,7 +240,7 @@ class MultipleInputDialog(QDialog):
         """ Event d'acceptació del diàleg que valida els valors introduits """
         # Carreguem la llista de valors i d'errors
         self.value_list, self.error_list = self.parse_values(self.label_list, self.item_list)
-        
+
         # Detectem errors (error de label diferent de None) i els mostrem
         display_error_list = [error for error in self.error_list if error]
         if display_error_list:
@@ -261,7 +259,7 @@ class MultipleInputDialog(QDialog):
 
     @classmethod
     def get_inputs(cls, parent, title, labels):
-        """ Funció estàtica per crear un diàleg multicamp en una linia, retorna 
+        """ Funció estàtica per crear un diàleg multicamp en una linia, retorna
             tots els paràmetres demanats més un boleà d'acceptació o cancel·lació
             del diàleg """
         dlg = cls(labels, title, parent)
@@ -269,4 +267,3 @@ class MultipleInputDialog(QDialog):
         values_list = dlg.get_values()
         values_list.append(status_ok)
         return values_list
-        

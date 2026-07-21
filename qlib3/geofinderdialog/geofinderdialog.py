@@ -11,7 +11,6 @@ of the spatial searches
 """
 
 import os
-from importlib import reload
 
 # Import the PyQt and QGIS libraries
 from qgis.PyQt import uic
@@ -29,20 +28,20 @@ class GeoFinderDialog(QDialog, ui_geofinder):
 
     # We prepare a toponym mapping with the icon to show
     TOPOICONS_DICT = {
-        1:'town.png', 2:'town.png', #Cap municipi, municipi
-        3:'flag.png', 17:'flag.png', #Entitat de població, comarca
-        4:'build.png', #Edifici
-        20:'history.png', #Edifici històric
-        21:'house.png', 16:'house.png', #Nucli, barri
-        18:'crossroad.png', 19:'crossroad.png', 22:'crossroad.png', 99:'crossroad.png', #diss., diss., e.m.d., llogaret carrerer
-        6:'mountain.png', 7:'mountain.png', 8:'mountain.png', 9:'mountain.png', 10:'mountain.png', #Serra, orografia, cim, coll, litoral
-        11:'pin.png', #Indret
-        12:'equipment.png', #Equipaments
-        13:'communications.png', #Comunicacions
-        14:'river.png', 15:'river.png', #Curs fluvial, hidrografia
-        1000:'address.png', #Adreça (codi propi del geofinder)
-        1001:'road.png', #Carretera (codi propi del geofinder)
-        1002:'cadastral.png' #Carretera (codi propi del geofinder)
+        1: 'town.png', 2: 'town.png', # Cap municipi, municipi
+        3: 'flag.png', 17: 'flag.png', # Entitat de població, comarca
+        4: 'build.png', # Edifici
+        20: 'history.png', # Edifici històric
+        21: 'house.png', 16: 'house.png', # Nucli, barri
+        18: 'crossroad.png', 19: 'crossroad.png', 22: 'crossroad.png', 99: 'crossroad.png', # diss., diss., e.m.d., llogaret carrerer
+        6: 'mountain.png', 7: 'mountain.png', 8: 'mountain.png', 9: 'mountain.png', 10: 'mountain.png', # Serra, orografia, cim, coll, litoral
+        11: 'pin.png', # Indret
+        12: 'equipment.png', # Equipaments
+        13: 'communications.png', # Comunicacions
+        14: 'river.png', 15: 'river.png', # Curs fluvial, hidrografia
+        1000: 'address.png', # Adreça (codi propi del geofinder)
+        1001: 'road.png', # Carretera (codi propi del geofinder)
+        1002: 'cadastral.png' # Carretera (codi propi del geofinder)
         }
 
     def __init__(self, geofinder_instance, geofinder_dict_list=[], title=None, columns_list=[], keep_scale_text=None, default_scale=1000, create_layer_text=None, default_create_layer=True, auto_show=False, parent=None):
@@ -115,11 +114,11 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.tableWidget.setItem(i, 0, QTableWidgetItem(QIcon(
                 os.path.dirname(__file__) + "/images/%s" %
                 self.TOPOICONS_DICT.get(topodata['idTipus'], "geofinder.png")), topodata['nom']))
-            self.tableWidget.setItem(i, 1, QTableWidgetItem(topodata['nomTipus'])) ## + " (" + topodata['idTipus'] + ")"))
+            self.tableWidget.setItem(i, 1, QTableWidgetItem(topodata['nomTipus'])) # + " (" + topodata['idTipus'] + ")"))
             self.tableWidget.setItem(i, 2, QTableWidgetItem(topodata['nomMunicipi']))
             self.tableWidget.setItem(i, 3, QTableWidgetItem(topodata['nomComarca']))
             # Ens guardem la posició original de l'item per si després s'ordena la llista i canvia l'index
-            self.tableWidget.item(i, 0).setData(Qt.UserRole, i);
+            self.tableWidget.item(i, 0).setData(Qt.UserRole, i)
 
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
@@ -162,7 +161,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         self.selected = self.get_selection_index()
         if self.selected < 0:
             return False
-        ##print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
+        # print("Selected: %s" % self.geofinder_dict_list[self.selected]['nom'])
 
         return True
 

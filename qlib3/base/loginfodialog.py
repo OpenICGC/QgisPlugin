@@ -12,22 +12,21 @@ Module with a dialog class to display multi-line information
 *******************************************************************************
 """
 
-
 import os
 try:
     import win32clipboard as clipboard
     clipboard_available = True
-except:
+except Exception:
     clipboard_available = False
 try:
     import utilities.email
     email_available = True
-except:
+except Exception:
     email_available = False
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QPalette, QColor, QFontMetrics, QFont
+from qgis.PyQt.QtGui import QPalette, QColor, QFontMetrics
 from qgis.PyQt.QtWidgets import QStyle, QDialogButtonBox, QDialog, QApplication, QFrame, QFileDialog, QMessageBox
 
 ui_loginfo, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_loginfo.ui'))
@@ -175,7 +174,7 @@ class LogInfoDialog(QDialog, ui_loginfo):
         palette = self.ui.plainTextEdit.palette()
         palette.setColor(QPalette.ColorRole.Base, QColor('transparent'))
         self.ui.plainTextEdit.setPalette(palette)
-        #self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size)) # NO COMPATIBLE QT6/QGIS4
+        # self.ui.plainTextEdit.setFont(QFont(self.ui.plainTextEdit.font().rawName(), font_size)) # NO COMPATIBLE QT6/QGIS4
         if not border:
             self.ui.plainTextEdit.setFrameStyle(QFrame.Shape.NoFrame)
 
@@ -283,10 +282,10 @@ class LogInfoDialog(QDialog, ui_loginfo):
 
         email_info = self.get_report_info(html_format=True)
         try:
-            email_object = utilities.email.eMail(self.email_to, self.email_cc, self.email_subject, htmlbody = email_info, attachment_files = [])
+            email_object = utilities.email.eMail(self.email_to, self.email_cc, self.email_subject, htmlbody=email_info, attachment_files=[])
             email_object.open()
-        except:
-            QMessageBox.warning(None, u"Enviar informe", u"Error no es pot obrir el programa d'email per enviar l'informe")
+        except Exception:
+            QMessageBox.warning(None, "Enviar informe", "Error no es pot obrir el programa d'email per enviar l'informe")
 
     def show_extra_info(self):
         """ Mostra la informació addicional en el diàleg
@@ -295,8 +294,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
             """
         # Mostrem la informació extesa al diàleg
         extra_info = self.get_report_info()
-        self.ui.plainTextEdit.clear();
-        self.ui.plainTextEdit.appendPlainText(extra_info);
+        self.ui.plainTextEdit.clear()
+        self.ui.plainTextEdit.appendPlainText(extra_info)
         # Fem el diàleg més gran
         extra_width = 400
         extra_height = 400

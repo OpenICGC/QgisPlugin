@@ -65,7 +65,6 @@ def get_http_files(url, file_regex_pattern, replace_list=[], timeout_seconds=0.5
         Gets file list of web page from a regular expression
         Returns: list of regex matches
         """
-    global url_response_dict
     t0 = datetime.datetime.now()
 
     # Mirem si tenim la URL cachejada, si ja tenim les dades no cal fer res
@@ -120,7 +119,7 @@ def get_products(urlbase_list, subproduct_separator="\n", subproduct_reverse=Tru
                 product_subname = subproduct_separator.join(product_info[1:][::-1 if subproduct_reverse else 1])
             else:
                 continue
-            #product_file = sorted(files_list, reverse=True)[0]
+            # product_file = sorted(files_list, reverse=True)[0]
             product_url = "%s/%s" % (urlbase, product_file)
             product_list.append((product_name + product_subname, product_url))
 
@@ -226,19 +225,19 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     else:
         final_dtm_list = dtm_list
     if dtm_name:
-        final_dtm_list = [(dtm_id, dtm_url) \
+        final_dtm_list = [(dtm_id, dtm_url)
             for dtm_id, dtm_url in final_dtm_list if dtm_id.split("-")[0] == dtm_name]
     if remove_prefix:
-        final_dtm_list = [("-".join(dtm_id.split("-")[1:]), dtm_url) \
+        final_dtm_list = [("-".join(dtm_id.split("-")[1:]), dtm_url)
             for dtm_id, dtm_url in final_dtm_list]
     if not json_not_tiff:
-        final_dtm_list = [(dtm_id, dtm_url.replace("json_unzip", "tif_unzip").replace(".json", ".tif")) \
+        final_dtm_list = [(dtm_id, dtm_url.replace("json_unzip", "tif_unzip").replace(".json", ".tif"))
             for dtm_id, dtm_url in final_dtm_list]
 
     # ATENCIÓ el nom dels DTMS [(nom, url), ...] té la forma: <data0>-<data1>[\nlloc]
     # i volem ordenar per la segona data
     return sorted(final_dtm_list,
-        key=lambda dtm_info: dtm_info[0].split("\n")[0].split("-")[1] ) \
+        key=lambda dtm_info: dtm_info[0].split("\n")[0].split("-")[1]) \
         if sort_by_key else final_dtm_list
 
 def get_dtm_time(dtm_name, group_by_product_not_gsd=False):
@@ -247,10 +246,10 @@ def get_dtm_time(dtm_name, group_by_product_not_gsd=False):
         Gets available dtm time ranges
     """
     dtm_prefix = dtm_name + "-"
-    time_list = [time_code.replace(dtm_prefix, "") \
+    time_list = [time_code.replace(dtm_prefix, "")
         for time_code, _url in get_dtms(dtm_name, group_by_product_not_gsd)]
     # En cas de tenir rang de dates ordenem per últim valor de rang
-    return sorted(time_list, key=lambda t: t.split("-")[-1] if str(t).find("-") >=0 else t)
+    return sorted(time_list, key=lambda t: t.split("-")[-1] if str(t).find("-") >= 0 else t)
 
 def get_dtm_time_layers(dtm_name, group_by_product_not_gsd=False):
     """ Retorna les franjes temporals disponibles de mets i la capa WMS associada
@@ -258,9 +257,9 @@ def get_dtm_time_layers(dtm_name, group_by_product_not_gsd=False):
         Gets available dtm time ranges and associated WMS layer
     """
     dtm_prefix = dtm_name + "-"
-    time_list = [
-        (time_code.replace(dtm_prefix, ""), os.path.splitext(url.split("/")[-1])[0]) \
-        for time_code, url in get_dtms(dtm_name, group_by_product_not_gsd)]
+    time_list = [(
+        time_code.replace(dtm_prefix, ""), os.path.splitext(url.split("/")[-1])[0]
+        ) for time_code, url in get_dtms(dtm_name, group_by_product_not_gsd)]
     return sorted(time_list)
 
 def get_dtm_ref(dtm_name_gsd, time_code):
@@ -292,7 +291,7 @@ def get_dtm_filename(dtm_name, time_code):
     return filename
 
 coastline_list = None # Cached data
-def get_coastlines(urlbase_list = [
+def get_coastlines(urlbase_list=[
     ("", "https://datacloud.icgc.cat/datacloud/linia-costa/gpkg_unzip/", r"(linia-costa-v\d+r\d+-(\d+-\d+(?:-\w+)*)\.gpkg)")
     ]):
     """ Obté les URLs dels arxius de linia de costa disponibles de l'ICGC
@@ -303,8 +302,8 @@ def get_coastlines(urlbase_list = [
         """
     global coastline_list
     if not coastline_list:
-        coastlist_list = get_products(urlbase_list)
-    return coastlist_list
+        coastline_list = get_products(urlbase_list)
+    return coastline_list
 
 def get_coastline_filename_dict():
     """ Retorna els arxius disponibles de linia de costa
@@ -322,7 +321,7 @@ def get_coastline_years():
     return [time for time, url in coastline_list]
 
 coast_orthophoto_list = None # Cached data
-def get_coast_orthophotos(urlbase_list = [
+def get_coast_orthophotos(urlbase_list=[
     ("", "https://datacloud.icgc.cat/datacloud/orto-costa/gpkg_unzip/", r"(orto-costa-(?:rgb|irc)-\d+cm-(\d+-\d+(?:-\w+)*)\.gpkg)")
     ]):
     """ Obté les URLs dels arxius de linia de costa disponibles de l'ICGC
@@ -354,7 +353,7 @@ def get_coast_orthophoto_years():
     return [time_tag for time_tag, url in coast_orthophoto_list]
 
 def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89/vigent/fgb_unzip_EPSG25831",
-    scale_list=[1,2,5,10,25,50,100]):
+    scale_list=[1, 2, 5, 10, 25, 50, 100]):
     """ Obté les URLs dels arxius de talls disponibles de l'ICGC
         Retorna: [(sheet_name, sheet_url)]
         ---
@@ -371,7 +370,7 @@ def get_sheets(sheets_urlbase="https://datacloud.icgc.cat/datacloud/talls_ETRS89
     return sheets_list
 
 def get_grids(grid_urlbase="https://datacloud.icgc.cat/datacloud/quadricules-utm/vigent/fgb_unzip_EPSG25831/",
-    scale_list=[1,10]):
+    scale_list=[1, 10]):
     """ Obté les URLs dels arxius de quadricules disponibles de l'ICGC.
         Retorna: [(sheet_name, sheet_url)]
         ---
@@ -405,9 +404,9 @@ def get_delimitations(
         name,
         [(
             scale,
-            delimitations_urlbase + \
-                "/divisions-administratives-%s.fgb" % "-".join([name] + ([str(scale)] if scale else [])),
-            ) for scale in scale_list],
+            delimitations_urlbase +
+            "/divisions-administratives-%s.fgb" % "-".join([name] + ([str(scale)] if scale else [])),
+        ) for scale in scale_list],
         os.path.join(
             styles_path, # Variable global
             "divisions-administratives-%s-ref.qml" % name)
@@ -426,7 +425,7 @@ def get_ndvis(urlbase="https://datacloud.icgc.cat/datacloud/ndvi/tif",
     # Cerquem links a arxius json
     info_list = get_http_files(urlbase, http_file_pattern)
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
-    file_tuple_list.sort(key=lambda f : f[0]) # Ordenem per any
+    file_tuple_list.sort(key=lambda f: f[0]) # Ordenem per any
     return file_tuple_list
 
 def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-territorial/tif_unzip",
@@ -439,11 +438,11 @@ def get_topographic_5k(urlbase="https://datacloud.icgc.cat/datacloud/topografia-
         """
     info_list = get_http_files(urlbase, http_file_pattern)
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename)) for filename, year in info_list]
-    file_tuple_list.sort(key=lambda f : f[0], reverse=True) # Ordenem per any
+    file_tuple_list.sort(key=lambda f: f[0], reverse=True) # Ordenem per any
     return file_tuple_list
 
 historic_ortho_dict = None # Result cache
-def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-territorial/gpkg_unzip", \
+def get_historic_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-territorial/gpkg_unzip",
         file_pattern=r"(ortofoto-(\w+)-(\d+)(c*m)-(\w+)-(\d{4})\.gpkg)"):
     """ Obté un diccionari amb les ortofotos históriques disponibles per descarregar:
         Retorna dict[color_not_irc][gsd][year] = (filename, source_gsd)
@@ -472,8 +471,9 @@ def get_historic_dict(urlbase, file_pattern, default_gsd_list=[]):
             gsd_dict[gsd] = {}
         year_dict = gsd_dict[gsd]
         year_dict[year] = (filename, source_gsd) # Tuple (filename, source_gsd)
+
     def get_source_gsd(data_dict, color_not_irc, gsd, year):
-        if not color_not_irc in data_dict or not gsd in data_dict[color_not_irc] or not year in data_dict[color_not_irc][gsd]:
+        if color_not_irc not in data_dict or gsd not in data_dict[color_not_irc] or year not in data_dict[color_not_irc][gsd]:
             return None
         source_gsd = data_dict[color_not_irc][gsd][year][1] # Tuple (filename, source_gsd)
         return source_gsd
@@ -545,7 +545,7 @@ def get_historic_ortho_ref(rgb_not_irc, gsd, year):
     return get_historic_ortho_file(rgb_not_irc, gsd, year)
 
 historic_local_ortho_dict = None # Result cache
-def get_historic_local_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-local/json_unzip", \
+def get_historic_local_ortho_dict(urlbase="https://datacloud.icgc.cat/datacloud/orto-local/json_unzip",
         file_pattern=r"(orto-local-(rgb|irc)-(\d+)(cm)-()(\d{4})\.json)"):
     """ Obté un diccionari amb les ortofotos históriques locals disponibles per descarregar:
         Retorna dict[color_not_irc][gsd][year] = (filename, source_gsd)
@@ -616,7 +616,7 @@ def get_lidar_ortho(urlbase="https://datacloud.icgc.cat/datacloud/lidar-territor
     # Cerquem links a arxius json
     info_list = get_http_files(urlbase, http_file_pattern)
     file_tuple_list = [(year, "%s/%s" % (urlbase, filename), color.lower()) for filename, color, year in info_list]
-    file_tuple_list.sort(key=lambda f : f[0]) # Ordenem per any
+    file_tuple_list.sort(key=lambda f: f[0]) # Ordenem per any
     return file_tuple_list
 
 def get_census_tracts(urlbase="https://datacloud.icgc.cat/datacloud/bseccen_etrs89/vigent/fgb_unzip_EPSG25831"):
@@ -653,7 +653,7 @@ def get_population_zones(urlbase="https://datacloud.icgc.cat/datacloud/arees-pob
     return url
 
 coast_lidar_list = None # Cached data
-def get_coast_lidar(urlbase_list = [
+def get_coast_lidar(urlbase_list=[
     ("", "https://datacloud.icgc.cat/datacloud/lidar-litoral/json/", r"(lidar-litoral-tall-\dkm-(\d{6}-\d{6})\.json)")
     ]):
     """ Obté les URLs dels arxius de lidar de costa disponibles de l'ICGC

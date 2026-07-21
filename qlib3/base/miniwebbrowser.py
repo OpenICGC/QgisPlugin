@@ -11,7 +11,7 @@ Mòdul amb una classe diàleg per mostrar una pàgina web
 """
 
 from qgis.PyQt.QtCore import QUrl
-from qgis.PyQt.QtWebKitWidgets import QWebView, QWebPage
+from qgis.PyQt.QtWebKitWidgets import QWebView
 from qgis.PyQt.QtWebKit import QWebSettings
 
 class MiniWebBrowser(QWebView):

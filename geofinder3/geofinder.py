@@ -33,6 +33,7 @@ class GeoFinder(object):
     cadastral_epsg = 25381
 
     cadastral_coordinates_client = None
+
     def get_cadastral_coordinates_client(self):
         """ Gets API rest Catastro client """
         if not self.cadastral_coordinates_client:
@@ -41,6 +42,7 @@ class GeoFinder(object):
         return self.cadastral_coordinates_client
 
     icgc_geoencoder_client = None
+
     def get_icgc_geoencoder_client(self):
         """ Gets API rest ICGC's GeoEncoder (Pelias) client """
         if not self.icgc_geoencoder_client:
@@ -50,7 +52,6 @@ class GeoFinder(object):
                 default_search_call="cerca", default_reverse_call="invers",
                 default_autocomplete_call="autocompletar")
         return self.icgc_geoencoder_client
-
 
     def __init__(self, logger=None, timeout=5, check_ssl=CHECK_SSL):
         # Initialize connection defaults
@@ -64,13 +65,12 @@ class GeoFinder(object):
             self.log = logging.getLogger('dummy')
             self.log.addHandler(logging.NullHandler())
 
-
     ###########################################################################
     # Search implementation
 
     def find(self, user_text, default_epsg):
         """ Find the text indicated in the different web services available.
-            Show results in a dialog and center the map on the item selected by the user """
+            Show results in a dialog and center the map on the item selected by the user """
         # Find text and return a list of dictionaries with results
         self.log.info("Geoencoder find text: %s", user_text)
         dict_list = self.find_data(user_text, default_epsg)
@@ -100,15 +100,15 @@ class GeoFinder(object):
         # if municipality and name1 and name2:
         #     return self.find_crossing(municipality, type1, name1, type2, name2, find_all)
 
-	    # Let's see if we pass an address
+        # Let's see if we pass an address
         municipality, adress_type, name, number = self.get_address(text)
         if municipality and name and number:
             return self.find_address(municipality, adress_type, name, number)
 
-	    # We detect if we pass a cadastral reference
+        # We detect if we pass a cadastral reference
         cadastral_ref = self.get_cadastral_ref(text)
         if cadastral_ref:
-            return self.find_cadastral_ref(cadastral_ref);
+            return self.find_cadastral_ref(cadastral_ref)
 
         # If you do not meet any of the above, we are looking for a place name
         return self.find_placename(text)
@@ -270,7 +270,7 @@ class GeoFinder(object):
         # If not results, inject an entry with point
         if add_rect_to_res:
             dict_list.append({
-                'nom':'Rectangle (%s %s %s %s) EPSG:%s' % (west, north, east, south, epsg),
+                'nom': 'Rectangle (%s %s %s %s) EPSG:%s' % (west, north, east, south, epsg),
                 'idTipus': u'',
                 'nomTipus': u'',
                 'nomMunicipi': u'',
@@ -285,7 +285,7 @@ class GeoFinder(object):
                 })
         return dict_list
 
-    def find_point_coordinate(self, x, y, epsg, \
+    def find_point_coordinate(self, x, y, epsg,
         search_icgc=True, search_cadastral_ref=True, add_point_to_res=True, show_log=True):
         """ Returns a list of dictionaries with the sites found at the indicated point """
         if show_log:
@@ -295,10 +295,10 @@ class GeoFinder(object):
         # Search ICGC geocoder on point
         if search_icgc:
             # First search streets and roads
-            dict_list += self.find_point_coordinate_icgc(x, y, epsg, \
+            dict_list += self.find_point_coordinate_icgc(x, y, epsg,
                 layers="address,pk", search_radious_km=0.05, size=1)
             # Second generic placements
-            dict_list += self.find_point_coordinate_icgc(x, y, epsg, \
+            dict_list += self.find_point_coordinate_icgc(x, y, epsg,
                 layers="tops", search_radious_km=None, size=9)
 
             # Search cadastral ref on point
@@ -310,9 +310,8 @@ class GeoFinder(object):
             municipality = dict_list[0].get('nomMunicipi', "") if dict_list else ""
             county = dict_list[0].get('nomComarca', "") if dict_list else ""
             dict_list.append({
-                'nom': ("Punt %.2f %.2f EPSG:%s" if x > 100 \
-                    else "Punt %.8f %.8f EPSG:%s") % ( \
-                    x, y, epsg),
+                'nom': ("Punt %.2f %.2f EPSG:%s" if x > 100
+                    else "Punt %.8f %.8f EPSG:%s") % (x, y, epsg),
                 'idTipus': '',
                 'nomTipus': 'Coordenada',
                 'nomMunicipi': municipality,
@@ -323,7 +322,7 @@ class GeoFinder(object):
                 })
         return dict_list
 
-    def find_point_coordinate_icgc(self, x, y, epsg, \
+    def find_point_coordinate_icgc(self, x, y, epsg,
         layers="address,tops,pk", search_radious_km=0.05, size=2):
         """ Returns a list of dictionaries with the sites found at the indicated point """
 
@@ -332,7 +331,7 @@ class GeoFinder(object):
         query_x, query_y = self.transform_point(x, y, epsg, self.geoencoder_epsg)
         if query_x is None or query_y is None:
             self.log.exception("Coordinates error: %s %s EPSG:%s", x, y, epsg)
-            raise(Exception("Coordinates error: %s %s EPSG:%s" % (x, y, epsg)))
+            raise Exception("Coordinates error: %s %s EPSG:%s" % (x, y, epsg))
 
         # We execute the query
         self.log.debug("Geoencoder URL: %s", self.get_icgc_geoencoder_client().url)
@@ -533,19 +532,19 @@ class GeoFinder(object):
         """ Returns standard response for ICGC geocoder queries """
         dict_list = [{
             'nom': feature_dict['properties'].get('addendum', {}).get('scn', {}).get('label', None)
-                or feature_dict['properties']['etiqueta'],
-            'idTipus': feature_dict['properties'].get('addendum',{}).get('id_tipus', None)
-                or (1000 if feature_dict['properties'].get("tipus_via", None) else None) # CODI 1000 i 1001 PROPI DE GEOFINDER!
-                or (1001 if feature_dict['properties'].get("km", None) else None), # CODI 1001 PROPI DE GEOFINDER!
+            or feature_dict['properties']['etiqueta'],
+            'idTipus': feature_dict['properties'].get('addendum', {}).get('id_tipus', None)
+            or (1000 if feature_dict['properties'].get("tipus_via", None) else None) # CODI 1000 i 1001 PROPI DE GEOFINDER!
+            or (1001 if feature_dict['properties'].get("km", None) else None), # CODI 1001 PROPI DE GEOFINDER!
             'nomTipus': feature_dict['properties'].get('addendum', {}).get('tipus', default_type)
-                or feature_dict['properties'].get("tipus_via", default_type)
-                or ("Punt quilomètric" if feature_dict['properties'].get("km", None) else default_type),
+            or feature_dict['properties'].get("tipus_via", default_type)
+            or ("Punt quilomètric" if feature_dict['properties'].get("km", None) else default_type),
             'nomMunicipi': feature_dict['properties'].get('municipi', None),
             'nomComarca': feature_dict['properties'].get('comarca', None),
             'x': feature_dict['geometry']['coordinates'][0],
             'y': feature_dict['geometry']['coordinates'][1],
             'epsg': self.geoencoder_epsg
-            } for feature_dict in res_dict["features"]]
+        } for feature_dict in res_dict["features"]]
         return dict_list
 
     def is_rectangle(self, dict_list):

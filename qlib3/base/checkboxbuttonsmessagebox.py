@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from qgis.PyQt import QtCore, QtGui
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QMessageBox, QCheckBox
 
-
-def show_checkboxbuttons_messagebox(icon, title, text, standard_buttons, extra_checkbuttons_title_list, parent, flags = Qt.WindowType.Dialog | Qt.WindowType.MSWindowsFixedSizeDialogHint):
+def show_checkboxbuttons_messagebox(icon, title, text, standard_buttons, extra_checkbuttons_title_list, parent, flags=Qt.WindowType.Dialog | Qt.WindowType.MSWindowsFixedSizeDialogHint):
     # Creem un objecte diàleg Yes/No
     # QMessageBox(QMessageBox.Icon, QString, QString, QMessageBox.StandardButtons buttons=QMessageBox.NoButton, QWidget parent=None, Qt.WindowFlags flags=Qt.Dialog|Qt.MSWindowsFixedSizeDialogHint): argument 4 has unexpected type 'list'
     mb = QMessageBox(icon, title, text, standard_buttons, parent, flags)

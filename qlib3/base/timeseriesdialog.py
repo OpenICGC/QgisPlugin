@@ -15,9 +15,8 @@ Module with a dialog class to manage temporal series
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtGui import QPainter, QPen, QFont
-from qgis.PyQt.QtCore import Qt, QPoint, QTimer
-from qgis.PyQt.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip, QStyleFactory
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtWidgets import QDockWidget
 
 from .qtextra import QtExtra
 
@@ -89,7 +88,7 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         self.label_end.setText(time_series_list[-1])
         self.label_current.setText(self.current_value_prefix + current_time)
         # Assignem el slider
-        ##self.horizontalSlider = MySlider(self.horizontalSlider)
+        # self.horizontalSlider = MySlider(self.horizontalSlider)
         self.horizontalSlider.setTickInterval(1)
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(len(time_series_list) - 1)

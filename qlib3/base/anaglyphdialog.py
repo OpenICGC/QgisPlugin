@@ -15,15 +15,12 @@ Module with a dialog class to manage temporal series
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtGui import QPainter, QPen, QFont
-from qgis.PyQt.QtCore import Qt, QPoint, QTimer
-from qgis.PyQt.QtWidgets import QDockWidget, QSlider, QApplication, QStyleOptionSlider, QToolTip
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QDockWidget
 
 from .qtextra import QtExtra
 
 Ui_Anaglyph, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui_anaglyph.ui'))
-
-
 
 
 class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
@@ -32,7 +29,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
         Class dialog to show anaglyph visualization options
         """
 
-    def __init__(self, layer_name, update_callback=None, anaglyph_percent=100, inverted_stereo=False, \
+    def __init__(self, layer_name, update_callback=None, anaglyph_percent=100, inverted_stereo=False,
         title="", parallax_label="", inverted_stereo_label="", autoshow=True, parent=None):
         """ Inicialització del diàleg "about", cal informar de:
             - layer_name: capa a modificar
@@ -47,16 +44,16 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
             - parent: Especifica la finestra pare del diàleg
             ---
             Initialization of the "about" dialog, you need to report:
-            - layer_name: layer to modify
-            Optionally:
+            - layer_name: layer to modify
+            Optionally:
             - update_callback: callback function to call when options are modified
             - anaglyph_percent: Anaglyph initial value
             - inverted_stereo: Inverted stereo initial value
-            - title: Title of the dialog
+            - title: Title of the dialog
             - parallax_label: Anaglyph label
             - inverted_stereo_label: Inverted stereo label
-            - autoshow: Show the dialog automatically when you create it
-            - parent: Specifies the parent window of the dialog
+            - autoshow: Show the dialog automatically when you create it
+            - parent: Specifies the parent window of the dialog
             """
         super().__init__(parent)
         self.setupUi(self)
@@ -67,7 +64,7 @@ class AnaglyphDialog(QDockWidget, Ui_Anaglyph):
         self.update_callback = update_callback
         # Configurem un temporizador per fer un refresc retardat a l'utilitzar el slider
         self.parallax_timer = QTimer()
-        self.parallax_timer.timeout.connect(lambda:self.on_parallax_changed(delayed=0))
+        self.parallax_timer.timeout.connect(lambda: self.on_parallax_changed(delayed=0))
 
         # Canviem el títol
         if title:

@@ -28,7 +28,10 @@ def get_main_window():
         """
     # QGIS té MÉS D'UNA MAINWINDOW (La finestra principal i els reports de mapes...)
     # Per distinguir-los, de moment utilitzo el nombre de fills que té cada un i ens quedem amb el que en té més (la finestra principal...)
-    main_window = max([(w, len(w.children())) for w in QApplication.instance().topLevelWidgets() if w.inherits("QMainWindow")] , key=operator.itemgetter(1))[0]
+    main_window = max([(w, len(w.children()))
+        for w in QApplication.instance().topLevelWidgets()
+        if w.inherits("QMainWindow")],
+        key=operator.itemgetter(1))[0]
     return main_window
 
 def process_events():
@@ -50,12 +53,12 @@ class ProgressDialog(object):
             - parent: finestra pare del diàleg
             ---
             Initializes a dialog with a progressbar inside, you must indicate the label to show and the number of steps in the bar.
-            Optionally you can specify:
-            - title: dialog title
-            - cancel_button_text: add a cancellation button with the indicated text
-            - autoclose: indicates if it is automatically closed when reaching 100% (set autoclose=True to ensure a full progress bar at 100%)
-            - time_info: text template with the elapsed and remaining time information (requires 2 %s)
-            - parent: parent window of the dialog
+            Optionally you can specify:
+            - title: dialog title
+            - cancel_button_text: add a cancellation button with the indicated text
+            - autoclose: indicates if it is automatically closed when reaching 100% (set autoclose=True to ensure a full progress bar at 100%)
+            - time_info: text template with the elapsed and remaining time information (requires 2 %s)
+            - parent: parent window of the dialog
             """
         self.time_info = time_info
         self.app = QApplication.instance()
@@ -70,40 +73,40 @@ class ProgressDialog(object):
                     if not parent:
                         parent = get_main_window()
                     if self.isMinimized():
-                        ##print("minimize")
+                        # print("minimize")
                         parent.setWindowState(Qt.WindowMinimized)
                     else:
-                        ##print("restore")
+                        # print("restore")
                         parent.setWindowState(Qt.WindowNoState)
             #    elif event.type() == event.Close:
-            #        ##print("close")
+            #        # print("close")
             #        pass
             #    elif event.type() == event.Hide:
-            #        ##print("hide")
+            #        # print("hide")
             #        pass
-            #def closeEvent(self, event):
-            #    ##print("close2")
+            # def closeEvent(self, event):
+            #    # print("close2")
             #    pass
-            #def reject(self):
-            #    ##print("reject")
+            # def reject(self):
+            #    # print("reject")
             #    pass
-            #def cancel(self):
-            #    ##print("cancel")
+            # def cancel(self):
+            #    # print("cancel")
             #    pass
-            #def canceled(self):
-            #    ##print("canceled")
+            # def canceled(self):
+            #    # print("canceled")
             #    pass
         self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent, Qt.Dialog | Qt.WindowTitleHint | Qt.WindowMinimizeButtonHint)
 
         # Configurem el diàleg
-        self.dlg.setWindowState(Qt.WindowNoState if self.parent != None and not self.parent.isMinimized() else Qt.WindowMinimized)
+        self.dlg.setWindowState(Qt.WindowNoState if self.parent is not None and not self.parent.isMinimized() else Qt.WindowMinimized)
         self.dlg.setWindowModality(Qt.WindowModal)
         self.dlg.setWindowTitle(title)
         self.dlg.setAutoClose(autoclose)
-        #self.dlg.setValue(0)
+        # self.dlg.setValue(0)
 
         # Obtinc un apuntador a la barra de progres
-        self.bar = [c for c in self.dlg.children() if type(c) == QProgressBar][0]
+        self.bar = [c for c in self.dlg.children() if type(c) is QProgressBar][0]
 
         # Inicialitza el progrés
         self.time_begin = datetime.datetime.now()
@@ -128,7 +131,7 @@ class ProgressDialog(object):
             """
         if self.parent_was_enabled:
             self.parent.setEnabled(False)
-            ##print "Disabled!", self.parent, self.parent.windowTitle()
+            # print "Disabled!", self.parent, self.parent.windowTitle()
         self.dlg.resize(400, self.dlg.height())
         self.dlg.setEnabled(True)
         self.dlg.show()
@@ -151,7 +154,7 @@ class ProgressDialog(object):
             """
         if self.parent_was_enabled:
             self.parent.setEnabled(True)
-            ##print "Enabled!", self.parent, self.parent.windowTitle()
+            # print "Enabled!", self.parent, self.parent.windowTitle()
         self.app.processEvents()
 
     def set_steps(self, num_steps):
@@ -177,8 +180,8 @@ class ProgressDialog(object):
         if self.autoclose:
             if not self.dlg.isVisible():
                 self.__post_close__()
-            #if self.dlg.value() == self.dlg.maximum():
-            #  self.close()
+            # if self.dlg.value() == self.dlg.maximum():
+            #     self.close()
 
     def get_value(self):
         """ Retorna la posició actual de progress bar
@@ -301,13 +304,13 @@ class ProgressDialog(object):
             info.append(str(h))
         if m:
             info.append("%2d" % m if h else str(m))
-        info.append("%2d" %s if m else str(s))
+        info.append("%2d" % s if m else str(s))
         # Obtenim les unitats
-        ##if h:
-        ##    suffix = "h"
-        ##elif m:
-        ##    suffix = "min"
-        ##else:
+        # if h:
+        #     suffix = "h"
+        # elif m:
+        #     suffix = "min"
+        # else:
         suffix = "s"
         # Retornem el temps am unitats
         return ":".join(info) + suffix
@@ -336,31 +339,33 @@ class WorkingDialog(ProgressDialog):
             - parent: finestra pare del diàleg
             ---
             Initializes a dialog with a progressbar inside, you must indicate the label to show and the number of steps in the bar.
-            Optionally you can specify:
-            - title: dialog title
-            - cancel_button_text: add a cancellation button with the indicated text
-            - Autoclose: indicates if it is automatically closed when reaching 100%
-            - time_info: text template with the elapsed and remaining time information (requires 1 %s)
-            - parent: parent window of the dialog
+            Optionally you can specify:
+            - title: dialog title
+            - cancel_button_text: add a cancellation button with the indicated text
+            - Autoclose: indicates if it is automatically closed when reaching 100%
+            - time_info: text template with the elapsed and remaining time information (requires 1 %s)
+            - parent: parent window of the dialog
             """
         # Creem un progressdialog amb nombre de passos 0
-        super(self.__class__, self).__init__(label, 0, title, cancel_button_text, autoclose, time_info, parent )
+        super(self.__class__, self).__init__(label, 0, title, cancel_button_text, autoclose, time_info, parent)
         # Amaguem el percentatge de la progressbar
         self.bar.setTextVisible(False)
 
-def execute_fx_with_workingbar(fx, label, title = u"Processant...", cancel_button_text = None):
+def execute_fx_with_workingbar(fx, label, title="Processant...", cancel_button_text=None):
     """ Executa una funció obrint prèviament un working dialog i tancant-lo al finalitzar
         ---
         Run a function by opening a working dialog and closing it at the end
         """
     class FxReturn:
         return_value = None
+
         def run(self):
             self.return_value = fx() # Afaga fx com a global a la subfunció
+
     fx_return = FxReturn()
 
     with WorkingDialog(label, title, cancel_button_text) as progress:
-        t1 = threading.Thread(target = fx_return.run)
+        t1 = threading.Thread(target=fx_return.run)
         t1.start()
         while t1.is_alive() and not progress.was_canceled():
             progress.step_it()

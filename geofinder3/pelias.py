@@ -12,8 +12,8 @@ class PeliasClient:
         Doc: https://eines.icgc.cat/geocodificador/api-docs/#/geocodificador/cercappp
              https://www.icgc.cat/es/Herramientas-y-visores/Herramientas/Geocodificador-ICGC
         """
-    def __init__(self, url, timeout=5, check_ssl=CHECK_SSL, \
-        default_search_call="/v1/search", default_reverse_call="/v1/reverse", \
+    def __init__(self, url, timeout=5, check_ssl=CHECK_SSL,
+        default_search_call="/v1/search", default_reverse_call="/v1/reverse",
         default_autocomplete_call="/v1/autocomplete"):
         """ Configure server connection and calls """
         self.url = url + ("" if url.endswith("/") else "/")
@@ -57,7 +57,7 @@ class PeliasClient:
         # Atenció en alguns equips dóna error de certificat al fer la consulta!!
         # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
-            "&".join([f"{key}={quote_plus(value) if value_encode else value}" \
+            "&".join([f"{key}={quote_plus(value) if value_encode else value}"
             for key, value in params_dict.items() if value is not None])
         try:
             response_data = requests.get(self.last_request, verify=self.check_ssl, timeout=self.timeout).text

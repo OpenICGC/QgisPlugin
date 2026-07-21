@@ -119,7 +119,7 @@ class DownloadDialog(QDialog, ui_download):
             if self.current_year:
                 self.label_year.setText("%s: %s" % (self.label_year.text().split(":")[0], str(self.current_year)))
 
-            show_gsd = True if self.gsd_list else False #or self.year_list  else False
+            show_gsd = True if self.gsd_list else False # or self.year_list  else False
             enable_gsd = True if self.gsd_list else False
             self.label_gsd.setVisible(show_gsd)
             self.comboBox_gsd.setVisible(show_gsd)

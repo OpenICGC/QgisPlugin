@@ -50,7 +50,7 @@ class CatastroClient:
         # Atenció en alguns equips dóna error de certificat al fer la consulta!!
         # ... se li pot especificar que no validi el certificat del servidor amb verify=False
         self.last_request = self.url + call_name + "?" + \
-            "&".join([f"{key}={quote_plus(value) if value_encode else value}" \
+            "&".join([f"{key}={quote_plus(value) if value_encode else value}"
             for key, value in params_dict.items() if value is not None])
         try:
             response_data = requests.get(self.last_request, verify=self.check_ssl, timeout=self.timeout).text

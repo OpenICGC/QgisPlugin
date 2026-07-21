@@ -75,11 +75,11 @@ def get_full_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/orto-territ
     wms_ex_list = [(
         layer_id,
         layer_name,
-        #("ortofoto" if re.findall(r"ortofoto", layer_id) else "superexpedita" if re.findall(r"ortoxpres.+\d{4}", layer_id) else "ortoxpres"),
+        # ("ortofoto" if re.findall(r"ortofoto", layer_id) else "superexpedita" if re.findall(r"ortoxpres.+\d{4}", layer_id) else "ortoxpres"),
         ("ortoxpres" if re.findall(r"provisional", layer_id) else "ortofoto"),
-        ("irc" if layer_id.lower().find("infraroig") >= 0 else "rgb" if layer_id.lower().find("color") >= 0 else "bw" if layer_id.lower().find("blanc_i_negre") >= 0 else None ),
+        ("irc" if layer_id.lower().find("infraroig") >= 0 else "rgb" if layer_id.lower().find("color") >= 0 else "bw" if layer_id.lower().find("blanc_i_negre") >= 0 else None),
         (re.findall(r"(\d{4}(?:\-\d{4})*)", layer_id) + re.findall(r"(\d{4}(?:\-\d{4})*)", layer_name) + [None])[0]
-        #) for layer_id, layer_name in wms_list if re.findall("(^(ortoxpres)|^(ortofoto))_((color)|(infraroig)|(blanc_i_negre))", layer_id)]
+        # ) for layer_id, layer_name in wms_list if re.findall("(^(ortoxpres)|^(ortofoto))_((color)|(infraroig)|(blanc_i_negre))", layer_id)]
         ) for layer_id, layer_name in wms_list if re.findall(r"^(ortofoto)_((color)|(infraroig)|(blanc_i_negre))", layer_id) and
             (re.findall(r"(\d{4}(?:\-\d{4})*)", layer_id) + re.findall(r"(\d{4}(?:\-\d{4})*)", layer_name))]
 
@@ -151,9 +151,9 @@ def get_historic_ortho(url="https://geoserveis.icgc.cat/icc_ortohistorica/wms/se
         for layer_id, layer_name, scale_list, year_list in wms_ex_list
         if year_list]
 
-    ## Netegem resolucions redundants
-    #wms_names_list = [layer_name for layer_id, layer_name in wms_list]
-    #clean_wms_ex_list = [(layer_id, layer_name, color_type, scale, year)
+    # Netegem resolucions redundants
+    # wms_names_list = [layer_name for layer_id, layer_name in wms_list]
+    # clean_wms_ex_list = [(layer_id, layer_name, color_type, scale, year)
     #    for layer_id, layer_name, color_type, scale, year in wms_ex_list
     #    if scale in (1000, 2500, 5000, 10000)
     #    and (scale != 5000 or layer_name.replace(":5.000", ":2.500") not in wms_names_list)
@@ -166,7 +166,7 @@ def get_historic_ortho(url="https://geoserveis.icgc.cat/icc_ortohistorica/wms/se
             or (color_type != "irc" and scale == 25000 and year in (1993, 2008))
             or (year < 1960)
             or (color_type == "irc" and scale == 5000 and year >= 2008 and year not in (2010, 2011))
-            ##or (color_type == "irc" and scale == 2500 and year in (2016,))
+            # or (color_type == "irc" and scale == 2500 and year in (2016,))
             ]
     else:
         clean_wms_ex_list = wms_ex_list
@@ -183,8 +183,8 @@ def get_lastest_ortoxpres(url="https://geoserveis.icgc.cat/icc_ortoxpres/wms/ser
         color_type: "rgb"|"ir"|"bw"
         ---
         Gets the URL of the ICGC ortoXpres server and the list of lastest layers
-            Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
-            color_type: "rgb" | "go" | "bw"
+        Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
+        color_type: "rgb" | "go" | "bw"
         """
 
     # Recuperem les capes
@@ -207,7 +207,7 @@ def get_superexpedita_ortho(url="https://geoserveis.icgc.cat/servei/catalunya/or
         ---
         Gets the URL of the ICGC ortofoto superexpèdita server and the list of lastest layers
         Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
-        color_type: "rgb" | "go" | "bw"
+        color_type: "rgb" | "go" | "bw"
         """
     if not force_layers:
         # Recuperem les capes
@@ -232,8 +232,8 @@ def get_historic_satelite_ortho(url="https://geoserveis.icgc.cat/icgc_sentinel2/
         color_type: "rgb"|"ir"|"bw"
         ---
         Gets the URL of the ICGC historical satelite orthophotos server and the "list of available layers
-            Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
-            color_type: "rgb" | "go" | "bw"
+        Returns: URL, [(layer_id, layer_name, color_type, date_tag)]
+        color_type: "rgb" | "go" | "bw"
         """
     # Recuperem les capes històriques
     wms_list = get_wms_capabilities_info(url, reg_ex_filter)
@@ -277,7 +277,7 @@ def get_coast_orthos(url="https://geoserveis.icgc.cat/servei/catalunya/orto-cost
     wms_list = get_wms_capabilities_info(url, reg_ex_filter)
 
     # Reorganitzem la informació
-    wms_ex_list = [(layer_id, layer_name.replace("&#39;", "'"), color_type, date_tag) \
+    wms_ex_list = [(layer_id, layer_name.replace("&#39;", "'"), color_type, date_tag)
         for layer_id, color_type, date_tag, layer_name in wms_list]
 
     # Ordenem per any

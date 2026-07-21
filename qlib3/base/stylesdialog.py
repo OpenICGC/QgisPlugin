@@ -95,7 +95,7 @@ class StylesDialog(QDialog, ui_loginfo):
             itemColumn = QTableWidgetItem(layer_name)
             itemColumn.setWhatsThis(layer_id)
             itemColumn.setFlags(Qt.ItemIsEnabled)
-            self.ui.tableWidget.setItem(index ,1, itemColumn)
+            self.ui.tableWidget.setItem(index, 1, itemColumn)
             # Mostrem un combobox amb els estils disponibles
             combo = QComboBox()
             current_style_pos = -1
@@ -140,7 +140,7 @@ class StylesDialog(QDialog, ui_loginfo):
         # Canviem l'estil de totes les capes que poguem
         for row in range(0, self.tableWidget.rowCount()):
             combo = self.tableWidget.cellWidget(row, 2)
-            index = combo.findText(style_name) #, QtCore.Qt.MatchFixedString)
+            index = combo.findText(style_name) # , QtCore.Qt.MatchFixedString)
             if index >= 0:
                 combo.setCurrentIndex(index)
 

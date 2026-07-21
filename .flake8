@@ -1,0 +1,12 @@
+[flake8]
+# Ignore line-length and unused-import warnings project-wide
+# extend-ignore = E501, F401
+# Info: https://www.flake8rules.com/rules/E501.html
+extend-ignore = E125,E127,E128,E129,E261,E302,E305,E402,E501,E731
+
+# Per-file ignores for generated or vendored code
+# per-file-ignores =
+#     vendor/*.py: E501,F401,F811
+#     *_generated.py: E501
+per-file-ignores =
+    lib/qtrangeslider*.py: E501,F405,F403

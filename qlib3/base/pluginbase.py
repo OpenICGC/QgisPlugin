@@ -26,7 +26,7 @@ import fnmatch
 import pathlib
 import socket
 import configparser
-import subprocess
+import subprocess # nosec B404
 import zipfile
 import io
 import tempfile
@@ -37,7 +37,7 @@ from urllib.parse import quote, unquote
 from importlib import reload
 try:
     from osgeo import ogr
-except:
+except Exception:
     import ogr
 import unittest
 reload(unittest)
@@ -46,19 +46,19 @@ from qgis.PyQt.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersio
 from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread, QEvent
 from qgis.PyQt.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from qgis.PyQt.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
-from qgis.PyQt.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog, QSizePolicy
-from qgis.PyQt.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase
+from qgis.PyQt.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog
+from qgis.PyQt.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDesktopServices, QFontDatabase, QImage
 from qgis.PyQt.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
 from qgis.core import QgsCoordinateReferenceSystem, QgsGeometry, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
 from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap, QgsContrastEnhancement
-from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext, QgsRendererRangeLabelFormat
+from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext
 from qgis.core import QgsSymbol, QgsMarkerSymbol, QgsFillSymbol, QgsBilinearRasterResampler, QgsCubicRasterResampler, QgsSimpleLineSymbolLayer
-from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsSpatialIndex, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
+from qgis.core import QgsEditorWidgetSetup, QgsPrintLayout, QgsFeatureRequest, QgsMapLayer, QgsField, QgsVectorFileWriter
 from qgis.core import QgsLayoutExporter, QgsFields, Qgis, QgsExpression, QgsDateTimeRange
-from qgis.utils import plugins, reloadPlugin, showPluginHelp
+from qgis.utils import plugins, reloadPlugin # , showPluginHelp
 
 from . import progressdialog
 reload(progressdialog)
@@ -99,8 +99,9 @@ from .log import PluginLogger
 CHECK_SSL = os.environ.get("CHECK_SSL", "true").lower() in ["true", "1"]
 
 
-###############################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Overwrite QGIS function than it don't works in QGIS3.18/windows
+#
 def showPluginHelp(packageName: str = None, filename: str = "index", section: str = ""):
     """Open help in the user's html browser. The help file should be named index-ll_CC.html or index-ll.html or index.html.
 
@@ -116,7 +117,7 @@ def showPluginHelp(packageName: str = None, filename: str = "index", section: st
             source = inspect.currentframe().f_back.f_code.co_filename
         else:
             source = sys.modules[packageName].__file__
-    except:
+    except Exception:
         return
     path = os.path.dirname(source)
     locale = str(QLocale().name())
@@ -134,7 +135,7 @@ def showPluginHelp(packageName: str = None, filename: str = "index", section: st
         if section != "":
             url.setFragment(section)
         QDesktopServices.openUrl(url)
-###############################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 class WaitCursor:
@@ -265,29 +266,29 @@ class GuiBase(object):
 
         def eventFilter(self, object, event):
             # Changes style when inFocus or outFocus by cursors
-            if event.type()== QEvent.FocusIn:
-                #print("widget has gained keyboard focus", event)
+            if event.type() == QEvent.FocusIn:
+                # print("widget has gained keyboard focus", event)
                 self.setStyleSheet(self.highlight_style)
-            elif event.type()== QEvent.FocusOut:
-                #print("widget has lost keyboard focus")
+            elif event.type() == QEvent.FocusOut:
+                # print("widget has lost keyboard focus")
                 self.setStyleSheet(self.normal_style)
 
             # Set focus when move over and change style when leaves
-            elif event.type()== QEvent.HoverEnter:
-                #print("hover enter")
-                #self.setStyleSheet(self.highlight_style)
+            elif event.type() == QEvent.HoverEnter:
+                # print("hover enter")
+                # self.setStyleSheet(self.highlight_style)
                 self.setFocus()
             elif event.type() == QEvent.HoverLeave:
-                #print("hover leave", event)
-                #self.setStyleSheet(self.normal_style)
+                # print("hover leave", event)
+                # self.setStyleSheet(self.normal_style)
                 self.parent.setFocus()
 
             # Lost focus when accept a menu entry by mouse click or enter key
             elif event.type() == QEvent.MouseButtonRelease:
-                #print("mouse button release")
+                # print("mouse button release")
                 self.parent.setFocus()
             elif event.type() == QEvent.KeyPress and event.key() in [Qt.Key_Enter, Qt.Key_Return]:
-                #print("enter")
+                # print("enter")
                 self.parent.setFocus()
 
             return False
@@ -297,7 +298,6 @@ class GuiBase(object):
                 ---
                 Returns element text """
             return self.label_text.text()
-
 
     def __init__(self, parent):
         """ Inicialització de variables membre apuntant al pare i a l'iface.
@@ -371,10 +371,10 @@ class GuiBase(object):
             self.iface.removeToolBarIcon(self.action_plugin)
             self.action_plugin = None
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Plugins menú
     #
-    def configure_plugin(self, name=None, callback=None, icon=None, \
+    def configure_plugin(self, name=None, callback=None, icon=None,
         add_to_plugins_toolbar=True, add_to_plugins_menu=True, standard_menu_or_button_menu=True):
         """ Crea una entrada en el menú de plugins, amb una funcionalitat i icona associada
             Per defecte utilitza el nom del plugin, icona i obre l'about
@@ -403,7 +403,7 @@ class GuiBase(object):
                 self.iface.pluginMenu().addAction(self.action_plugin) # Afegeix l'acció com un botó al menú de complements
         return self.action_plugin
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Toolbars & Menús
     #
     def configure_GUI(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None, append_if_exist=True, add_separator=True):
@@ -426,7 +426,7 @@ class GuiBase(object):
             """
         # Determinem on cal insertar els items al menú
         ref_action = None
-        if position != None and position < len(menu_or_toolbar.actions()):
+        if position is not None and position < len(menu_or_toolbar.actions()):
             ref_action = menu_or_toolbar.actions()[position]
 
         for entry in names_callbacks:
@@ -437,46 +437,46 @@ class GuiBase(object):
             eseparator, elabel, eaction, econtrol, name, callback, toggle_callback, icon, enabled, checkable, id, tooltip, subentries_list, subentries_as_buttons = self.__parse_entry(entry)
 
             # Creem el menu o toolbar
-            if eseparator != None:
+            if eseparator is not None:
                 # Ens passen un separador
                 if ref_action:
                     action = menu_or_toolbar.insertSeparator(ref_action)
                 else:
                     action = menu_or_toolbar.addSeparator()
-            elif elabel != None:
+            elif elabel is not None:
                 # Ens passen només un text
                 label = QLabel(" " + elabel + " ")
-                if type(menu_or_toolbar) == QToolBar:
+                if type(menu_or_toolbar) is QToolBar:
                     if ref_action:
                         action = menu_or_toolbar.insertWidget(ref_action, label)
                     else:
                         action = menu_or_toolbar.addWidget(label)
-                elif type(menu_or_toolbar) == QMenu:
+                elif type(menu_or_toolbar) is QMenu:
                     action = QWidgetAction(menu_or_toolbar)
                     action.setDefaultWidget(label)
                     if ref_action:
                         menu_or_toolbar.insertAction(ref_action, action)
                     else:
                         menu_or_toolbar.addAction(action)
-            elif eaction != None:
+            elif eaction is not None:
                 # Ens passen una acció
                 if ref_action:
                     action = menu_or_toolbar.insertAction(ref_action, eaction)
                 else:
                     action = menu_or_toolbar.addAction(eaction)
-            elif econtrol != None:
+            elif econtrol is not None:
                 # És passen un control
                 # ATENCIÓ, NOMÉS EL PODEM FER SERVIR UN COP, SI NO ANUL·LA ELS DOS!!
                 if econtrol in self.widget_actions_set:
                     continue
                 self.widget_actions_set.add(econtrol)
                 # Inserim el control
-                if type(menu_or_toolbar) == QToolBar:
+                if type(menu_or_toolbar) is QToolBar:
                     if ref_action:
                         action = menu_or_toolbar.insertWidget(ref_action, econtrol)
                     else:
                         action = menu_or_toolbar.addWidget(econtrol)
-                elif type(menu_or_toolbar) == QMenu:
+                elif type(menu_or_toolbar) is QMenu:
                     action = QWidgetAction(menu_or_toolbar)
                     action.setDefaultWidget(econtrol)
                     if ref_action:
@@ -504,23 +504,19 @@ class GuiBase(object):
                 elif subentries_as_buttons:
                     # Menú amb botons a la dreta
                     # Obtenim tots els botons a generar
-                    buttons_list = [(name, callback, icon) \
-                        for _eseparator, _elabel, _eaction, _econtrol, name, callback, _toggle_callback, icon, _enabled, _checkable, _id, _tooltip, _subentries_list, _subentries_as_buttons \
+                    buttons_list = [(name, callback, icon)
+                        for _eseparator, _elabel, _eaction, _econtrol, name, callback, _toggle_callback, icon, _enabled, _checkable, _id, _tooltip, _subentries_list, _subentries_as_buttons
                         in [self.__parse_entry(entry) for entry in subentries_list]]
                     # Creem el control d'entrada de menú amb els botons extra
-
-#            font_size = parent.font().pointSize() * (1 if parent.check_qgis_version(40000) else self.devicePixelRatioF())
-
-
                     menu_item = self.MenuItemWidget(name, icon, buttons_list, menu_or_toolbar)
                     self.widget_actions_set.add(menu_item)
                     # Inserim el control
-                    if type(menu_or_toolbar) == QToolBar:
+                    if type(menu_or_toolbar) is QToolBar:
                         if ref_action:
                             button_action = menu_or_toolbar.insertWidget(ref_action, menu_item)
                         else:
                             button_action = menu_or_toolbar.addWidget(menu_item)
-                    elif type(menu_or_toolbar) == QMenu:
+                    elif type(menu_or_toolbar) is QMenu:
                         button_action = QWidgetAction(menu_or_toolbar)
                         button_action.setDefaultWidget(menu_item)
                         if ref_action:
@@ -541,7 +537,7 @@ class GuiBase(object):
                     # Guardem el submenu (si no, si està buit, dóna problemes afegint-lo a un menú)
                     self.menus.append(submenu)
                     # Depenent de si tenim toolbar o menu pare, fem una cosa o un altre
-                    if type(menu_or_toolbar) == QToolBar:
+                    if type(menu_or_toolbar) is QToolBar:
                         toolButton = QToolButton()
                         toolButton.setMenu(submenu)
                         toolButton.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
@@ -553,10 +549,10 @@ class GuiBase(object):
                         else:
                             subaction = menu_or_toolbar.addWidget(toolButton)
                     # Depenent de si tenim toolbar o menu pare, fem una cosa o un altre
-                    elif type(menu_or_toolbar) == QMenu:
+                    elif type(menu_or_toolbar) is QMenu:
                         action.setMenu(submenu)
-                        #submenu.setTitle(name)
-                        #if icon:
+                        # submenu.setTitle(name)
+                        # if icon:
                         #    submenu.setIcon(icon)
                         if ref_action:
                             subaction = menu_or_toolbar.insertMenu(ref_action, submenu)
@@ -577,12 +573,12 @@ class GuiBase(object):
                 action.setCheckable(True)
             if tooltip:
                 menu_or_toolbar.setToolTipsVisible(True)
-                if type(action) == QWidgetAction and not subentries_as_buttons:
+                if type(action) is QWidgetAction and not subentries_as_buttons:
                     action.defaultWidget().defaultAction().setToolTip(tooltip)
                 else:
                     action.setToolTip(tooltip)
 
-            #Ens guardem els items de menu o toolbar, si no no apareix...
+            # Ens guardem els items de menu o toolbar, si no no apareix...
             self.actions.append((menu_or_toolbar, action))
 
     def __parse_entry(self, entry):
@@ -630,7 +626,7 @@ class GuiBase(object):
                     ("blablabla", ...)
             """
 
-        ##self.iniConsole()
+        # self.iniConsole()
         separator = None
         label = None
         action = None
@@ -646,57 +642,57 @@ class GuiBase(object):
         subentries_list = None
         subentries_as_buttons = False
 
-        if type(entry) != tuple:
-            if entry == None or entry == "---" or entry == "":
-                ##print("separator", entry)
+        if type(entry) is not tuple:
+            if entry is None or entry == "---" or entry == "":
+                # print("separator", entry)
                 separator = True
-            elif type(entry) in [str, unicode]:
-                ##print("label", entry)
+            elif type(entry) is str:
+                # print("label", entry)
                 label = entry
-            elif type(entry) == QAction:
-                ##print("label", action)
+            elif type(entry) is QAction:
+                # print("label", action)
                 action = entry
             else:
-                ##print("control", entry)
+                # print("control", entry)
                 control = entry
         else:
-            ##print("user")
+            # print("user")
             name = entry[0] # Nom del menú
             if name == "---":
                 separator = True
             if len(entry) > 1:
-                if type(entry[1]) == tuple: # Crida + Crida d'activació de botó
+                if type(entry[1]) is tuple: # Crida + Crida d'activació de botó
                     callback, toggle_callback = entry[1]
                 else:
                     callback = entry[1] # Crida
                 if len(entry) > 2:
                     icon = entry[2] # Icona
                 if len(entry) > 3:
-                    if type(entry[3]) == list:
+                    if type(entry[3]) is list:
                         subentries_list = entry[3] # Submenú d'opcions
                         subentries_as_buttons = entry[4] if len(entry) > 4 else False # El submenú anterior són botons bool)
                     else:
                         enabled = entry[3] # Activació (bool)
                         if len(entry) > 4:
-                            if type(entry[4]) == list:
+                            if type(entry[4]) is list:
                                 subentries_list = entry[4] # Submenú d'opcions
                                 subentries_as_buttons = entry[5] if len(entry) > 5 else False # El submenú anterior són botons bool)
                             else:
                                 checkable = entry[4] # Marcable (checkable bool)
                                 if len(entry) > 5:
-                                    if type(entry[5]) == list:
+                                    if type(entry[5]) is list:
                                         subentries_list = entry[5] # Submenú d'opcions
                                         subentries_as_buttons = entry[6] if len(entry) > 6 else False # El submenú anterior són botons bool)
                                     else:
                                         id = entry[5] # Id d'entrada de menú (per poder fer cerques)
                                         if len(entry) > 6:
-                                            if type(entry[6]) == list:
+                                            if type(entry[6]) is list:
                                                 subentries_list = entry[6] # Submenú d'opcions
                                                 subentries_as_buttons = entry[7] if len(entry) > 7 else False # El submenú anterior són botons bool)
                                             else:
                                                 tooltip = entry[6] # Text de tooptip
                                                 if len(entry) > 7:
-                                                    if type(entry[7]) == list:
+                                                    if type(entry[7]) is list:
                                                         subentries_list = entry[7] # Submenú d'opcions
                                                         subentries_as_buttons = entry[8] if len(entry) > 8 else False # El submenú anterior són botons bool)
         # Si la icona no és de tipus QIcon, suposem que és un identificador d'icona i intentem carregar-la
@@ -713,16 +709,16 @@ class GuiBase(object):
             ---
             Find a action by objectName
             """
-        if actions_list == None:
+        if actions_list is None:
             actions_list = [action for menu_or_toolbar, action in self.actions]
         for action in actions_list:
             if action:
                 if action.objectName() == id:
                     return action
                 if action.menu():
-                   subaction = self.find_action(id, action.menu().actions())
-                   if subaction:
-                       return subaction
+                    subaction = self.find_action(id, action.menu().actions())
+                    if subaction:
+                        return subaction
         return None
 
     def enable_gui_items(self, menu_or_toolbar, items_id_list, enable=True, recursive=True):
@@ -732,7 +728,7 @@ class GuiBase(object):
             """
         actions_count = 0
         for action in menu_or_toolbar.actions():
-            if type(action) == QWidgetAction:
+            if type(action) is QWidgetAction:
                 if recursive:
                     self.enable_gui_items(action.defaultWidget().menu(), items_id_list, enable, recursive)
                 if action.objectName() in items_id_list:
@@ -744,7 +740,7 @@ class GuiBase(object):
                     actions_count += 1
         return actions_count
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Menus
     #
     def configure_menu(self, title, names_callbacks, parent_menu=None, parent_menu_pos=None, menu_icon=None, position=None, append_if_exist=True, add_separator=True):
@@ -765,7 +761,7 @@ class GuiBase(object):
             # Associem el nou menu com una entrada de la barra de menu principal
             if not parent_menu:
                 parent_menu = self.iface.mainWindow().menuBar()
-            if parent_menu_pos != None:
+            if parent_menu_pos is not None:
                 before = parent_menu.actions()[parent_menu_pos]
                 action = parent_menu.insertMenu(before, menu)
             else:
@@ -775,7 +771,7 @@ class GuiBase(object):
             self.add_to_menu(menu, names_callbacks)
         else:
             # Li associem les seves entrades
-            if position != None:
+            if position is not None:
                 is_separator = len(menu.actions()) == 0 or menu.actions()[0].isSeparator()
                 self.insert_at_menu(menu, position, names_callbacks if is_separator or not add_separator else names_callbacks + ["---"])
             else:
@@ -821,7 +817,7 @@ class GuiBase(object):
             Returns a menu object from its name
             """
         menus = self.get_menus()
-        menus_names = [unicode(m.title()) for m in menus]
+        menus_names = [m.title() for m in menus]
         if name in menus_names:
             pos = menus_names.index(name)
             return menus[pos]
@@ -841,7 +837,7 @@ class GuiBase(object):
             return 0
         return self.enable_menu_items(menu, items_id_list, enable)
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Toolbars
     #
     def configure_toolbar(self, title, names_callbacks, toolbar_droplist_name=None, toolbar_droplist_icon=None, position=None, add_separator=True):
@@ -859,7 +855,7 @@ class GuiBase(object):
             toolbar = self.iface.addToolBar(title)
             self.add_to_toolbar(toolbar, names_callbacks)
         else:
-            if position != None:
+            if position is not None:
                 is_separator = len(toolbar.actions()) == 0 or toolbar.actions()[0].isSeparator()
                 self.insert_at_toolbar(toolbar, position, names_callbacks if is_separator or not add_separator else names_callbacks + ["---"])
             else:
@@ -887,7 +883,7 @@ class GuiBase(object):
             ---
             Returns the list of QGIS toolbars
             """
-        return [t for t in self.iface.mainWindow().children() if type(t) == QToolBar]
+        return [t for t in self.iface.mainWindow().children() if type(t) is QToolBar]
 
     def get_toolbar_by_object_name(self, name):
         """ Retorna un objecte toolbar a partir del seu nom d'objecte
@@ -895,7 +891,7 @@ class GuiBase(object):
             Returns a toolbar from its object's name
             """
         toolbars_list = self.get_toolbars()
-        toolbars_names = [unicode(t.objectName()) for t in toolbars_list]
+        toolbars_names = [t.objectName() for t in toolbars_list]
         if name in toolbars_names:
             pos = toolbars_names.index(name)
             return toolbars_list[pos]
@@ -908,7 +904,7 @@ class GuiBase(object):
             Returns a toolbar from its name
             """
         toolbars_list = self.get_toolbars()
-        toolbars_names = [unicode(t.windowTitle()) for t in toolbars_list]
+        toolbars_names = [t.windowTitle() for t in toolbars_list]
         if name in toolbars_names:
             pos = toolbars_names.index(name)
             toolbar = toolbars_list[pos]
@@ -936,7 +932,7 @@ class GuiBase(object):
             widget = toolbar.widgetForAction(action)
             if widget:
                 actions_list += widget.actions() # Botó
-                if type(widget) == QToolButton:
+                if type(widget) is QToolButton:
                     menu = widget.menu()
                     if menu:
                         actions_list += menu.actions() # Menú
@@ -972,7 +968,7 @@ class GuiBase(object):
         action = self.find_action(item_id)
         if not action:
             return False
-        if type(action) == QWidgetAction:
+        if type(action) is QWidgetAction:
             action = action.defaultWidget().defaultAction()
         # Si la icona no és de tipus QIcon, suposem que és un identificador d'icona i intentem carregar-la
         if icon and type(icon) is not QIcon:
@@ -992,7 +988,7 @@ class GuiBase(object):
         action = self.find_action(item_id)
         if not action:
             return False
-        if type(action) == QWidgetAction:
+        if type(action) is QWidgetAction:
             action = action.defaultWidget().defaultAction()
         action.setCheckable(True)
         if check is None:
@@ -1010,7 +1006,7 @@ class GuiBase(object):
         action = self.get_toolbar_action_by_item_name(toolbar, item_name, item_pos)
         if not action:
             return False
-        if type(action) == QWidgetAction:
+        if type(action) is QWidgetAction:
             action = action.defaultWidget().defaultAction()
         action.setCheckable(True)
         if check is None:
@@ -1067,12 +1063,12 @@ class GuiBase(object):
             ---
             Organize the toolbars within available space
             """
-        toolbars = [t for t in self.iface.mainWindow().children() if type(t) == QToolBar and t.isVisible()]
-        toolbars.sort(key=lambda t:(t.y()*1000000+t.x())) # Ordenem les toolbars per colocació a pantalla
+        toolbars = [t for t in self.iface.mainWindow().children() if type(t) is QToolBar and t.isVisible()]
+        toolbars.sort(key=lambda t: (t.y()*1000000+t.x())) # Ordenem les toolbars per colocació a pantalla
         mainwindow_width = self.iface.mainWindow().size().width()
         pos_x = 0
         for toolbar in toolbars:
-            ##print("toolbar:", unicode(toolbar.windowTitle()), "sizeHint", toolbar.sizeHint(), "size", toolbar.size(), "left", toolbar.x(), "right", toolbar.x() + toolbar.sizeHint().width())
+            # print("toolbar:", unicode(toolbar.windowTitle()), "sizeHint", toolbar.sizeHint(), "size", toolbar.size(), "left", toolbar.x(), "right", toolbar.x() + toolbar.sizeHint().width())
             self.iface.mainWindow().removeToolBarBreak(toolbar)
             pos_x += (toolbar.sizeHint().width() + 25)
             if pos_x >= mainwindow_width:
@@ -1105,8 +1101,7 @@ class GuiBase(object):
         else:
             toolbar.hide()
 
-
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Shortcuts
     #
     def configure_shortcuts(self, shortcuts_callbacks_list):
@@ -1142,7 +1137,7 @@ class GuiBase(object):
             Returns a text with information about all the mapped shortcuts
             """
         if this_plugin_not_all_plugins:
-            plugin_info_list = [(u'Self', self.parent)]
+            plugin_info_list = [('Self', self.parent)]
         else:
             plugin_info_list = plugins.items()
 
@@ -1171,8 +1166,7 @@ class GuiBase(object):
         shortcuts_info = self.get_all_shortcuts_description()
         QMessageBox.information(self.iface.mainWindow(), title, shortcuts_info)
 
-
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Tools
     #
     def enable_tool(self, map_tool):
@@ -1185,7 +1179,7 @@ class GuiBase(object):
         else:
             self.iface.actionPan().trigger()
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DockWidgets
     #
     def get_dock_widgets(self):
@@ -1193,9 +1187,9 @@ class GuiBase(object):
             ---
             Returns a list of all QGIS DockWidgets
             """
-        return [w for w in self.iface.mainWindow().children() if type(w) == QDockWidget]
+        return [w for w in self.iface.mainWindow().children() if type(w) is QDockWidget]
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Other
     #
     def get_icon(self, icon_name):
@@ -1240,10 +1234,10 @@ class GuiBase(object):
             Open folder or file with system associated application
             """
         if sys.platform == "win32":
-            os.startfile(file_or_folder)
+            os.startfile(file_or_folder) # nosec B606
         else:
-            opener ="open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.call([opener, file_or_folder])
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, file_or_folder]) # nosec B603
 
 
 class ProjectBase(object):
@@ -1279,7 +1273,7 @@ class ProjectBase(object):
         self.iface.mapCanvas().mapSettings().setDestinationCrs(crs)
         QgsProject.instance().setCrs(crs)
 
-    def create_qgis_project_file(self, project_file, template_file, host, dbname, dbusername, excluded_users_list = [], excluded_db_list = []):
+    def create_qgis_project_file(self, project_file, template_file, host, dbname, dbusername, excluded_users_list=[], excluded_db_list=[]):
         """ Crea un projecte QGIS (.qgs) a partir de:
             - Plantilla projecte amb connexions a BBDD
             - Connexió a BBDD (host, dbname, username)
@@ -1291,9 +1285,9 @@ class ProjectBase(object):
             Replace existing BBDD connections for the specified BBDD (skipping users and BBDD excluded)
             """
         # Llegim la plantilla de projecte
-        ##print("Template", template_file)
-        ##print("DB", dbname)
-        ##print("Temporal project", project_file, "\n")
+        # print("Template", template_file)
+        # print("DB", dbname)
+        # print("Temporal project", project_file, "\n")
         with open(template_file, "r") as ftemplate:
             lines = ftemplate.readlines()
 
@@ -1306,13 +1300,13 @@ class ProjectBase(object):
                 old_dbname = found.groups()[0]
                 if old_dbname not in excluded_db_list:
                     line = line.replace(old_dbname, dbname)
-                    ##print("user", old_dbname, dbname)
+                    # print("user", old_dbname, dbname)
                     # Canviem el host
                     found = re.search(r"host=([\w\-.$]+) ", line)
                     if found:
                         old_host = found.groups()[0]
                         line = line.replace(old_host, host)
-                        ##print("user", old_host, host)
+                        # print("user", old_host, host)
 
             # Canviem tots els usaris pel nostre
             found = re.search(r"user='(\w+)'", line)
@@ -1320,13 +1314,13 @@ class ProjectBase(object):
                 old_dbusername = found.groups()[0]
                 if old_dbusername not in excluded_users_list:
                     line = line.replace(old_dbusername, dbusername)
-                    ##print("user", old_dbusername, getuser(), excluded_users_list)
+                    # print("user", old_dbusername, getuser(), excluded_users_list)
                     # Canviem tots els passwords
                     found = re.search(r"password='([\w.$]+)'", line)
                     if found:
                         old_dbpassword = found.groups()[0]
                         line = line.replace(old_dbpassword, 'User123$')
-                        ##print("password", old_dbpassword, 'User123$')
+                        # print("password", old_dbpassword, 'User123$')
 
             # Canviem els path relatius per paths absoluts al template
             line = line.replace('<datasource>./', '<datasource>%s/' % os.path.dirname(template_file))
@@ -1553,8 +1547,8 @@ class LayersBase(object):
             ---
             Returns feature from specified id
             """
-        expression = QgsExpression("%s = %s" % ( \
-            field_name, "'%s'" % field_value if type(field_value)==str else field_value))
+        expression = QgsExpression("%s = %s" % (
+            field_name, "'%s'" % field_value if type(field_value) is str else field_value))
         feature_request = QgsFeatureRequest(expression)
         feature_list = list(layer.getFeatures(feature_request))
         return feature_list[0] if feature_list else None
@@ -1677,7 +1671,7 @@ class LayersBase(object):
             Pex: error_funciton=lambda res_list: len(res_list) < 1, error_message="A selected item is required" """
         return self.__get_attributes_selection_by_id(layer_idprefix_list, field_name, error_function, error_message, max_items)
 
-    def get_attribute_selection_by_list(self, layers_list, field_name, error_function = None, error_message = None, max_items = None):
+    def get_attribute_selection_by_list(self, layers_list, field_name, error_function=None, error_message=None, max_items=None):
         """ Retorna una llista amb l'atribut especificats dels elements seleccionats a QGIS de la llista de capes indicada
             Se li pot especificar una funció error_function(res_list) que retorna un booleà, que evalua casos d'error
             i automàticament mostra error_message si cal
@@ -1701,7 +1695,7 @@ class LayersBase(object):
             Pex: error_funciton=lambda res_list: len(res_list) < 1, error_message="A selected item is required" """
         return self.__get_attributes_selection_by_id(layer_idprefix_list, fields_name_list, error_function, error_message, max_items)
 
-    def get_attributes_selection_by_list(self, layers_list, fields_name_list, error_function = None, error_message = None, max_items = None):
+    def get_attributes_selection_by_list(self, layers_list, fields_name_list, error_function=None, error_message=None, max_items=None):
         """ Retorna una llista de tuples amb els atributs especificats dels elements seleccionats a QGIS de la llista de capes indicada
             Se li pot especificar una funció error_function(res_list) que retorna un booleà, que evalua casos d'error
             i automàticament mostra error_message si cal
@@ -1713,7 +1707,7 @@ class LayersBase(object):
             Pex: error_funciton=lambda res_list: len(res_list) < 1, error_message="A selected item is required" """
         return self.__get_attributes_selection(layers_list, fields_name_list, error_function, error_message, max_items)
 
-    def __get_attributes_selection_by_id(self, layer_idprefix_or_list, field_name_or_list, error_function = None, error_message = None, max_items = None):
+    def __get_attributes_selection_by_id(self, layer_idprefix_or_list, field_name_or_list, error_function=None, error_message=None, max_items=None):
         """ Retorna una llista de tuples amb els atributs especificats dels elements seleccionats a QGIS de la llista de capes indicada
             o de la capa activa.
             Se li pot especificar una funció error_function(res_list) que retorna un booleà, que evalua casos d'error
@@ -1726,7 +1720,7 @@ class LayersBase(object):
             ---
             Pex: error_funciton=lambda res_list: len(res_list) < 1, error_message="A selected item is required" """
         # Validem el tipus de dades del idprefix (acceptem llista o valor)
-        if type(layer_idprefix_or_list) != list:
+        if type(layer_idprefix_or_list) is not list:
             layer_idprefix_or_list = [layer_idprefix_or_list]
         selected_layers = [self.get_by_id(layer_idprefix) for layer_idprefix in layer_idprefix_or_list]
         return self.__get_attributes_selection(selected_layers, field_name_or_list, error_function, error_message, max_items)
@@ -1765,7 +1759,7 @@ class LayersBase(object):
         # Treballem amb llista i si no en tenim la generem
         if not layer_or_list_or_none:
             layers_list = [self.iface.activeLayer()]
-        elif type(layer_or_list_or_none) != list:
+        elif type(layer_or_list_or_none) is not list:
             layers_list = [layer_or_list_or_none]
         else:
             layers_list = layer_or_list_or_none
@@ -1779,30 +1773,30 @@ class LayersBase(object):
                 else:
                     selected_features = list(layer.getFeatures())[:max_items]
                 # Obtenim la selecció de la capa fields_name_or_list (acceptem llista o valor)
-                if type(field_name_or_list) != list:
+                if type(field_name_or_list) is not list:
                     layer_selection = [self.get_feature_attribute(layer, feature, field_name_or_list) for feature in selected_features]
                 else:
                     layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in field_name_or_list]) for feature in selected_features]
                 selection += layer_selection
                 # Comptem quantes capes tenen selecció
                 if len(layer_selection) > 0:
-                    layers_selected.append(unicode(layer.name()))
+                    layers_selected.append(layer.name())
                 # Si és la capa activa, ens guardem la selecció a part
                 if layer == current_layer:
                     current_layer_selection = layer_selection
 
         # No volem tenir seleccions a múltiples capes
         if len(layers_selected) > 1:
-           # Si no hi ha capa activa (dins la nostra llista) sortim
+            # Si no hi ha capa activa (dins la nostra llista) sortim
             if not current_layer_selection:
                 QMessageBox.warning(self.iface.mainWindow(),
                     "Selection multilayer",
                     "There are selected elements on %d differents layers:\n   - %s\n\nThe operation will be cancelled" % (len(layers_selected), "\n   - ".join(layers_selected)))
                 return None
-           # Si tenim seleccions a múltiples capes, proposem la selecció de la capa activa
+            # Si tenim seleccions a múltiples capes, proposem la selecció de la capa activa
             if QMessageBox.warning(self.iface.mainWindow(),
                 "Selection multilayer",
-                "There are selected elements on %d differents layers:\n   - %s\n\nDo you want continue with current layer?:\n   - %s" % (len(layers_selected), "\n   - ".join(layers_selected), unicode(current_layer.name())),
+                "There are selected elements on %d differents layers:\n   - %s\n\nDo you want continue with current layer?:\n   - %s" % (len(layers_selected), "\n   - ".join(layers_selected), current_layer.name()),
                 QMessageBox.Yes | QMessageBox.No) != QMessageBox.Yes:
                 return None
             return current_layer_selection
@@ -1863,10 +1857,10 @@ class LayersBase(object):
 
         # Recuperem els camps demanats
         if len(fields_name_list) == 1:
-            layer_selection = [self.get_feature_attribute(layer, feature, fields_name_list[0]) \
+            layer_selection = [self.get_feature_attribute(layer, feature, fields_name_list[0])
                 for feature in feature_list if feature.geometry().intersects(area)]
         else:
-            layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in fields_name_list]) \
+            layer_selection = [tuple([self.get_feature_attribute(layer, feature, field_name) for field_name in fields_name_list])
                 for feature in feature_list if feature.geometry().intersects(area)]
         return layer_selection
 
@@ -1893,7 +1887,7 @@ class LayersBase(object):
 
         # Desactivo la crida a refresh_map perquè la funció refreshAllLayers (que es crida dins)
         # deselecciona a pinyó tots els elements de totes les capes a QGIS 3.22 (a QGIS 3.10 no passava)
-        #self.refresh_map()
+        # self.refresh_map()
 
     def set_selection_by_id(self, layer_idprefix, values_list, field_name=None, pos=0):
         """ Selecciona els elements de la capa vectorial especificada indicats a la llista "values_list".
@@ -1915,7 +1909,7 @@ class LayersBase(object):
             If you do not specify the field to compare "id" is used
             """
         # Si la capa no és vectorial no va la selecció...
-        if type(layer) != QgsVectorLayer:
+        if type(layer) is not QgsVectorLayer:
             return False
 
         # Si ens passem camps buits, deseleccionem tot
@@ -2055,7 +2049,7 @@ class LayersBase(object):
 
         # Carreguem l'estil
         text = layer.loadNamedStyle(style_pathname)
-        ##print("Style status: %s %s %s" % (unicode(layer.name()), style_pathname, text))
+        # print("Style status: %s %s %s" % (unicode(layer.name()), style_pathname, text))
 
         # Esborrem arxius temporals si cal
         if tmp_style_pathname and os.path.exists(tmp_style_pathname):
@@ -2329,7 +2323,7 @@ class LayersBase(object):
         cat_nodes_list = model.layerLegendNodes(layer_node)
         return cat_nodes_list
 
-    #def classification_by_id(self, layer_basename, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0):
+    # def classification_by_id(self, layer_basename, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None, pos=0):
     #    """ Classifica els valors d'una capa per id segons la llista de valors.
     #        Addicionalment se li pot passar una llista de colors, transparencia o amplada a aplicar
     #        (si és més curta que el nombre de valors, es repetiran colors utilitzant l'operador de mòdul)
@@ -2344,7 +2338,7 @@ class LayersBase(object):
     #    self.classification(layer, values_list, color_list, border_color_list, transparency_list, width_list)
     #    return True
 
-    #def classification(self, layer, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None):
+    # def classification(self, layer, values_list, color_list=None, border_color_list=None, transparency_list=None, width_list=None):
     #    """ Classifica els valors d'una capa segons la llista de valors.
     #        Addicionalment se li pot passar una llista de colors, transparència o amplada a aplicar
     #        (si és més curta que el nombre de valors, es repetiran colors utilitzant mòdul)
@@ -2428,7 +2422,7 @@ class LayersBase(object):
                 symbol.setOpacity(transparency)
             if width_list:
                 width = width_list[i % len(width_list)]
-                if type(symbol) == QgsMarkerSymbol:
+                if type(symbol) is QgsMarkerSymbol:
                     symbol.setSize(width)
                 else:
                     symbol.setWidth(width)
@@ -2557,9 +2551,9 @@ class LayersBase(object):
             field_pos = layer.fields().indexFromName(class_attribute)
             values_list = list(set([f.attributes()[field_pos] for f in layer.getFeatures() if f.attributes()[field_pos]]))
 
-        ## Partim de la classificació existent i mirem si falten o sobren categories
-        #delete_list = []
-        #if len(renderer.categories()):
+        #  Partim de la classificació existent i mirem si falten o sobren categories
+        # delete_list = []
+        # if len(renderer.categories()):
         #    old_categories_list = [c.value() for c in renderer.categories()]
         #    delete_list = [c for c in old_categories_list if not c in values_list] # Categories que sobren (les eliminarem)
         #    values_list = [v for v in values_list if not v in old_categories_list] # Categories que falten (les crearem)
@@ -2594,7 +2588,8 @@ class LayersBase(object):
                 # Calculem un color random no repetit
                 color = None
                 while color in used_colors or not color:
-                    color = QColor.fromRgb(random.randint(0,255), random.randint(0,255), random.randint(0,255)) # Color aleatori
+                    # Color aleatori
+                    color = QColor.fromRgb(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) # nosec random
                 used_colors.append(color)
             # Obtenim el color de borde
             if border_color_list:
@@ -2605,7 +2600,7 @@ class LayersBase(object):
                 border_color = None
 
             # Recupera la transparència del color d'emplenament original (en crear un nou color es perd)
-            #if base_symbol:
+            # if base_symbol:
             #    color.setAlpha(base_symbol.color().alpha())
 
             # Generem el símbol
@@ -2624,7 +2619,7 @@ class LayersBase(object):
                 color.setAlphaF(alpha)
                 symbol.symbolLayer(0).setFillColor(color)
             if width is not None:
-                if type(symbol) == QgsFillSymbol:
+                if type(symbol) is QgsFillSymbol:
                     # gruix del borde dels polígons
                     if type(symbol.symbolLayer(0)) == QgsSimpleLineSymbolLayer:
                         symbol.symbolLayer(0).setWidth(width)
@@ -2633,19 +2628,19 @@ class LayersBase(object):
                 else:
                     # gruix per línies
                     symbol.setWidth(width)
-            if size is not None and type(symbol) == QgsMarkerSymbol:
+            if size is not None and type(symbol) is QgsMarkerSymbol:
                 # Mida dels punts
                 symbol.setSize(size)
 
             # Generem l'etiqueta a partir del valor
-            label = label_function(value) if label_function else value
+            label = label_function(value) if label_function else str(value)
 
             # Creem la categoria
-            cat = QgsRendererCategory(value, symbol, unicode(label))
+            cat = QgsRendererCategory(value, symbol, label)
             renderer.addCategory(cat)
 
-        ## Eliminem categories sense dades
-        #if len(delete_list):
+        #  Eliminem categories sense dades
+        # if len(delete_list):
         #    for value in delete_list:
         #        index = renderer.categoryIndexForValue(value)
         #        renderer.deleteCategory(index)
@@ -2663,7 +2658,7 @@ class LayersBase(object):
         layer.triggerRepaint()
 
         # Refresquem la llegenda
-        self.refresh_legend(layer, expanded = expand if expand is not None else layer_is_expanded)
+        self.refresh_legend(layer, expanded=(expand if expand is not None else layer_is_expanded))
 
     def get_interpolated_color_list(self, base_color_list, steps):
         """ Returns a interpolated colors list from initial n colors and a number of steps """
@@ -2846,7 +2841,7 @@ class LayersBase(object):
         # Refresca la llegenda
         self.refresh_legend(layer, expanded=self.is_expanded(layer))
 
-    #def enable_categories_by_id(self, layer_basename, enable=True, categories_filter_list=[], pos=0):
+    # def enable_categories_by_id(self, layer_basename, enable=True, categories_filter_list=[], pos=0):
     #    """ Activa o desactiva les categories d'una capa per id
     #        ---
     #        Enable or disable layer categories by id
@@ -2856,7 +2851,7 @@ class LayersBase(object):
     #        return False
     #    return self.layerEnableCategories2(layer, enable, categories_filter_list)
 
-    #def enable_categories(self, layer, enable=True, categories_filter_list=[]):
+    # def enable_categories(self, layer, enable=True, categories_filter_list=[]):
     #    """ Activa o desactiva les categories d'una capa
     #        ---
     #        Enable or disable layer categories
@@ -2984,8 +2979,8 @@ class LayersBase(object):
         group = self.root.findGroup(group_id)
         if group is None:
             return []
-        return [c.layer() if type(c) == QgsLayerTreeLayer else c for c in group.children() \
-            if (type(c) == QgsLayerTreeLayer or not only_layers) and (type(c) == QgsLayerTreeGroup or not only_groups)]
+        return [c.layer() if type(c) is QgsLayerTreeLayer else c for c in group.children()
+            if (type(c) is QgsLayerTreeLayer or not only_layers) and (type(c) is QgsLayerTreeGroup or not only_groups)]
 
     def get_group_layer_by_id(self, group_id, layer_id):
         """ Retorna les capes d'un grup
@@ -3034,7 +3029,7 @@ class LayersBase(object):
             """
         return layer.subsetString()
 
-    def set_filter_by_id(self, layer_prefix, sql_filter, pos = 0):
+    def set_filter_by_id(self, layer_prefix, sql_filter, pos=0):
         """ Assigna el filtre d'una capa per id (Equivalent a set_subset_string)
             ---
             Assign the filter of a layer by id (Equivalent to set_subset_string)
@@ -3183,7 +3178,7 @@ class LayersBase(object):
             ---
             Set alias of field layers
             """
-        for field_name, alias in  alias_dict.items():
+        for field_name, alias in alias_dict.items():
             layer.setFieldAlias(layer.fields().indexFromName(field_name), alias)
 
     def delete_fields_by_id(self, idprefix, names_list, pos=0):
@@ -3353,7 +3348,7 @@ class LayersBase(object):
             - properties_dict: define custom properties
             """
         # Canviem la visiblitat per escala si cal
-        if min_scale != None and max_scale != None:
+        if min_scale is not None and max_scale is not None:
             self.set_scale_based_visibility(layer, min_scale, max_scale)
         # Canviem la transparència si cal
         if transparency is not None:
@@ -3440,7 +3435,7 @@ class LayersBase(object):
         # Si cal "netegem" el grup abans d'utilitzar-lo
         if only_one_map_on_group:
             self.parent.legend.empty_group(group)
-        if  only_one_visible_map_on_group:
+        if only_one_visible_map_on_group:
             self.parent.legend.set_group_items_visible(group, False)
 
         # Carreguem el QLR
@@ -3460,7 +3455,7 @@ class LayersBase(object):
                     return False
                 qlr_pathname = pathnames_list[0]
                 # Carreguem les capes del QLR a partir del fitxer QLR descomprimit
-                ##print("Arxiu QLR: %s" % (qlr_pathname))
+                # print("Arxiu QLR: %s" % (qlr_pathname))
                 status, error = QgsLayerDefinition().loadLayerDefinition(qlr_pathname, QgsProject.instance(), group)
             else:
                 # ATENCIÓ!! Treballar amb QLRs dins de zips sense descomprimir fa que els shapes associats no siguin editables
@@ -3469,7 +3464,7 @@ class LayersBase(object):
                     pathnames_list = [compressed_file for compressed_file in zip_file.namelist() if os.path.splitext(compressed_file.lower())[1] == ".qlr"]
                     if not pathnames_list:
                         return False
-                    ##print("Arxiu QLR: %s/%s" % (qlr_pathname, pathnames_list[0]))
+                    # print("Arxiu QLR: %s/%s" % (qlr_pathname, pathnames_list[0]))
                     # Llegim el primer QLR que trobem, els altres els IGNORA
                     with zip_file.open(pathnames_list[0]) as qlr_file:
                         qlr_data = qlr_file.read().decode('utf-8')
@@ -3548,8 +3543,8 @@ class LayersBase(object):
         # Ens guardem la capa activa
         active_layer = self.iface.activeLayer()
 
-        ### Recuperem les capes que hi ha dins el grup (si ens el passen)
-        ##layers_list = self.get_group_layers_id(group_name) if group_name else []
+        # # Recuperem les capes que hi ha dins el grup (si ens el passen)
+        # layers_list = self.get_group_layers_id(group_name) if group_name else []
 
         # Obtenim el min i max escala de visualitzacio
         if not min_scale or not max_scale:
@@ -3570,9 +3565,9 @@ class LayersBase(object):
                 name = (layer_name % os.path.splitext(os.path.basename(filename))[0])
             else:
                 name = layer_name
-            ### Si existeix la capa no cal afegir-la
-            ##if any([str(layer).startswith(name) for layer in layers_list]):
-            ##    continue
+            # # Si existeix la capa no cal afegir-la
+            # if any([str(layer).startswith(name) for layer in layers_list]):
+            #     continue
 
             # Detectem si existeix el fitxer
             if not os.path.exists(filename):
@@ -3840,8 +3835,8 @@ class LayersBase(object):
         # Ens guardem la capa activa
         active_layer = self.iface.activeLayer()
 
-        ### Recuperem les capes que hi ha dins el grup (si ens el passen)
-        ##layers_list = self.get_group_layers_id(group_name) if group_name else []
+        # # Recuperem les capes que hi ha dins el grup (si ens el passen)
+        # layers_list = self.get_group_layers_id(group_name) if group_name else []
 
         # Afegim totes les imatges que ens passin
         layers_list = []
@@ -3855,9 +3850,9 @@ class LayersBase(object):
                 name = (layer_name % os.path.splitext(os.path.basename(filename))[0])
             else:
                 name = layer_name
-            ### Si existeix la capa, ens la saltem
-            ##if any([str(layer).startswith(name) for layer in layers_list]):
-            ##    continue
+            # # Si existeix la capa, ens la saltem
+            # if any([str(layer).startswith(name) for layer in layers_list]):
+            #     continue
 
             # Detectem si existeix el fitxer
             if not os.path.exists(filename):
@@ -3868,7 +3863,7 @@ class LayersBase(object):
             # Creem la capa (alguns arxius multicapa, no retornen la capa)
             last_layer = self.add_vector_layer(name, filename, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
             if not last_layer:
-                 error_files.append(filename)
+                error_files.append(filename)
             layers_list.append(last_layer)
 
         # Mostrem errors
@@ -3942,7 +3937,7 @@ class LayersBase(object):
                         filename = os.path.basename(pathname)
                         for index, (style_regex, _style_qml) in enumerate(regex_styles_list):
                             if re.match(style_regex, filename):
-                                ##print("Filename order", index, filename)
+                                # print("Filename order", index, filename)
                                 return index
                         return 9999
                     pathnames_list.sort(key=sort_file_index, reverse=True)
@@ -4017,7 +4012,7 @@ class LayersBase(object):
                     layer.setName(layer_name)
                 # Canviem l'estil de la capa si cal
                 if style_file:
-                    ##print("Style file", style_file)
+                    # print("Style file", style_file)
                     # Si tenim un fitxer d'estil el carreguem
                     self.load_style(layer, style_file, refresh=True)
                 else:
@@ -4027,7 +4022,7 @@ class LayersBase(object):
                         layer_name = os.path.splitext(os.path.basename(vector_pathname))[0]
                         xml_style = styles_dict.get(layer_name, None)
                         if xml_style:
-                            ##print("Style XML", "%s.qml" % (os.path.splitext(vector_pathname)[0]))
+                            # print("Style XML", "%s.qml" % (os.path.splitext(vector_pathname)[0]))
                             self.load_xml_style(layer, xml_style, refresh=True)
                     # Si tenim una expressió regular que concordi amb la capa, carreguem el seu estil
                     regex_style_file = None
@@ -4044,7 +4039,7 @@ class LayersBase(object):
                                     regex_style_file = style_qml
                                 else:
                                     visible = False # Si l'estil es None, fem no visualitzem la capa
-                                ##print("Style regex", regex_style_file)
+                                # print("Style regex", regex_style_file)
                                 break
                         if regex_style_file:
                             self.load_style(layer, regex_style_file, refresh=True)
@@ -4136,7 +4131,7 @@ class LayersBase(object):
 
         # Canviem l'estil de la capa si cal
         if style_file:
-            ##print("Style file", style_file)
+            # print("Style file", style_file)
             # Si tenim un fitxer d'estil el carreguem
             self.load_style(layer, style_file, refresh=True)
 
@@ -4150,13 +4145,21 @@ class LayersBase(object):
                         regex_style_file = style_qml
                     else:
                         visible = False # Si l'estil es None, fem no visualitzem la capa
-                    ##print("Style regex", regex_style_file)
+                    # print("Style regex", regex_style_file)
                     break
             if regex_style_file:
                 self.load_style(layer, regex_style_file, refresh=True)
 
         # Canviem les propiedats de la capa i movem la capa a un grup si cal
-        self.set_properties(layer, visible, not expanded, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, min_scale, max_scale, transparency, None, set_current, properties_dict_list[i] if properties_dict_list else None)
+        self.set_properties(layer, visible, not expanded,
+            group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group,
+            min_scale, max_scale, transparency, None, set_current,
+            properties_dict_list[0] if properties_dict_list else None)
+
+        # Si he mogut la capa dins un grup, no volem que s'expandeix el grup que hi havia seleccionat
+        if group_name:
+            if collapsed_parent_group:
+                parent_group.setExpanded(False)
 
         return layer
 
@@ -4192,8 +4195,8 @@ class LayersBase(object):
         # Ens guardem la capa activa
         active_layer = self.iface.activeLayer()
 
-        ### Recuperem les capes que hi ha dins el grup (si ens el passen)
-        ##layers_list = self.get_group_layers_id(group_name) if group_name else []
+        # # Recuperem les capes que hi ha dins el grup (si ens el passen)
+        # layers_list = self.get_group_layers_id(group_name) if group_name else []
 
         # Afegim totes les imatges que ens passin
         layers_list = []
@@ -4207,9 +4210,9 @@ class LayersBase(object):
                 name = (layer_name % os.path.splitext(os.path.basename(filename))[0])
             else:
                 name = layer_name
-            ### Si existeix la capa, ens la saltem
-            ##if any([str(layer).startswith(name) for layer in layers_list]):
-            ##    continue
+            # # Si existeix la capa, ens la saltem
+            # if any([str(layer).startswith(name) for layer in layers_list]):
+            #     continue
 
             # Detectem si existeix el fitxer
             if not os.path.exists(filename):
@@ -4220,7 +4223,7 @@ class LayersBase(object):
             # Creem la capa (alguns arxius multicapa, no retornen la capa)
             last_layer = self.add_point_cloud_layer(name, filename, group_name, group_pos, min_scale, max_scale, visible, expanded, transparency, set_current, style_file, regex_styles_list, properties_dict_list, only_one_map_on_group, only_one_visible_map_on_group)
             if not last_layer:
-                 error_files.append(filename)
+                error_files.append(filename)
             layers_list.append(last_layer)
 
         # Mostrem errors
@@ -4313,8 +4316,7 @@ class LayersBase(object):
             if use_qgis_time_controller:
                 # Doc: https://gis.stackexchange.com/questions/444332/pyqgis-selecting-wms-timestamp-in-a-standalone-script
                 extra_tags = (extra_tags or "") + ("&" if extra_tags else "") \
-                    + "allowTemporalUpdates=true&temporalSource=provider&type=wmst"
-                    #+ "&timeDimensionExtent=time=2006/2024/P1Y"
+                    + "allowTemporalUpdates=true&temporalSource=provider&type=wmst" # + "&timeDimensionExtent=time=2006/2024/P1Y"
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
@@ -4427,11 +4429,11 @@ class LayersBase(object):
         # Llegim el capabilities del servei
         is_question_mark = url.find("?") >= 0
         capabilities_request = "%s%sREQUEST=GetCapabilities&SERVICE=WMS&VERSION=%s" % (url, "&" if is_question_mark else "?", version)
-        ##print("request", capabilities_request)
+        # print("request", capabilities_request)
         capabilities_xml = None
         while retries:
             try:
-                capabilities_xml = requests.get(capabilities_request, \
+                capabilities_xml = requests.get(capabilities_request,
                     verify=check_ssl, timeout=timeout_seconds).text
                 retries = 0
             except socket.timeout:
@@ -4442,7 +4444,7 @@ class LayersBase(object):
                 self.parent.log.exception("Error WMS-T: %s", e)
         if not capabilities_xml:
             return [], None
-        ##print("xml", capabilities_xml)
+        # print("xml", capabilities_xml)
 
         # Cerquem les capes amb el camp "Dimension" tipus "time" o "Dimension" + "Extent" tipus "time"
         time_series_list = []
@@ -4454,25 +4456,25 @@ class LayersBase(object):
             if layer_id:
                 if layer.find("Name").text != layer_id:
                     continue
-                ##print("layer", layer_id)
+                # print("layer", layer_id)
 
                 dimension = layer.find("Dimension")
                 if dimension is None or dimension.get("name") != "time":
                     continue
                 if dimension.text:
-                    #<Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
-                    #2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
-                    #</Dimension>
+                    # <Dimension name="time" units="ISO8601" default="2018-09" nearestValue="0">
+                    # 2015-12,2016-03,2016-04,2016-05,2016-06,2016-07,2016-08,2016-09,2016-10,2016-11,2016-12,2017-01,2017-02,2017-03,2017-04,2017-05,2017-06,2017-07,2017-08,2017-09,2017-10,2017-11,2017-12,2018-01,2018-02,2018-03,2018-04,2018-05,2018-06,2018-07,2018-08,2018-09
+                    # </Dimension>
                     dimension_text = dimension.text
                     default_time = dimension.get("default")
                 else:
-                    #<Extent name="time" default="2018" nearestValue="0">#2015-12,...</Extent>
+                    # <Extent name="time" default="2018" nearestValue="0">#2015-12,...</Extent>
                     extent = layer.find("Extent")
                     if extent is None or extent.get("name") != "time" or not extent.text:
                         continue
                     dimension_text = extent.text
                     default_time = extent.get("default")
-                ##print("Dimensions", layer_id, dimension_text, default_time)
+                # print("Dimensions", layer_id, dimension_text, default_time)
 
                 # Recuperem les dimension (de tipus llista d1,d2... o de tipus rang d1/d2 o d1-d2)
                 # Els rangs de moment només funcionen per anys!
@@ -4485,8 +4487,8 @@ class LayersBase(object):
                             if time_begin.isdigit() and time_end.isdigit():
                                 time_series_list = [(str(time), layer_id) for time in range(int(time_begin), int(time_end) + 1)]
                                 break
-                ##print("time series", time_series_list)
-                ##print("Default time", default_time)
+                # print("time series", time_series_list)
+                # print("Default time", default_time)
                 break
 
             # Si ens passen una expressió regular, cerquem totes les capes que compleixin amb la expressió
@@ -4599,7 +4601,7 @@ class LayersBase(object):
         if layer.dataProvider():
             if self.parent.check_qgis_version(31600):
                 # Incompatible with version 3.4 and 3.10 (not updated)
-                    layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
+                layer.setDataSource(new_uri, layer.name(), layer.dataProvider().name(), layer.dataProvider().ProviderOptions())
             else:
                 layer.dataProvider().setDataSourceUri(new_uri)
                 layer.dataProvider().reloadData()
@@ -4687,7 +4689,7 @@ class LayersBase(object):
             Adds a raster layer from a URI and data provider (wms, oracle ...). Returns the layer.
             See add_wms_layer for options
             """
-        ##print("URI", uri)
+        # print("URI", uri)
         # Creem la capa
         layer = self.iface.addRasterLayer(uri, layer_name, provider)
         if not layer:
@@ -4717,7 +4719,7 @@ class LayersBase(object):
         # Configurem el nom de la capa WMS del servidor a la que accedirem
         wms_layer = "Catalunya %dcm. %d" % (gsd * 100, year)
         layer_name = "%s %s" % (layer_prefix, wms_layer)
-        ##print("WMS ortoXpres, capa:", layer_name)
+        # print("WMS ortoXpres, capa:", layer_name)
         # Afegim la capa
         layer = self.add_wms_layer(layer_name, url, [wms_layer], styles_list, image_format, epsg, extra_tags, group_name, group_pos, only_one_map)
         return layer
@@ -4963,12 +4965,12 @@ class LayersBase(object):
             Refresh the legend of a layer by id.
             You can update the visibility and expansion of the layer's legend
             """
-        #if layer.providerType() != "memory": # Si faig el refresc en una capa de memòria s'esborren les dades...
+        # if layer.providerType() != "memory": # Si faig el refresc en una capa de memòria s'esborren les dades...
         #    layer.setDataSource(layer.source(), layer.name(), layer.providerType(), layer.dataProvider().ProviderOptions()) # Force layer counter update
         if type(layer) is QgsVectorLayer:
             try: # Force layer counter update
                 layer.countSymbolFeatures(True)
-            except: # En linux i versions antigues de QGIS3 va sense paràmetres?
+            except Exception: # En linux i versions antigues de QGIS3 va sense paràmetres?
                 layer.countSymbolFeatures()
         self.iface.layerTreeView().refreshLayerSymbology(layer.id())
         if visible is not None:
@@ -5020,9 +5022,9 @@ class LayersBase(object):
                 layer.setEditorWidgetSetup(field_index, hidden_setup)
 
             # montem un desplegable si existeixen més d'un valor
-            if values_list and  len(values_list) > 1:
+            if values_list and len(values_list) > 1:
                 values_dict = dict([(item[0], item[1]) for item in values_list])
-                editor_widget_setup = QgsEditorWidgetSetup('ValueMap', {'map' : values_dict})
+                editor_widget_setup = QgsEditorWidgetSetup('ValueMap', {'map': values_dict})
                 layer.setEditorWidgetSetup(field_index, editor_widget_setup)
 
     def copy_vector_layer_to_memory(self, source_layer, include_fields_list=[], rename_fields_dict={}, qdate_format=None, qdatetime_format=None, date_text_len=10, add_to_legend=True):
@@ -5060,9 +5062,9 @@ class LayersBase(object):
         features_list = []
         for feature in source_layer.getFeatures():
             for i, attribute in enumerate(feature.attributes()):
-                if qdatetime_format and type(attribute) == QDateTime:
+                if qdatetime_format and type(attribute) is QDateTime:
                     feature.setAttribute(i, attribute.toString(qdatetime_format))
-                elif qdate_format and type(attribute) == QDate:
+                elif qdate_format and type(attribute) is QDate:
                     feature.setAttribute(i, attribute.toString(qdate_format))
             features_list.append(feature)
         layer.addFeatures(features_list)
@@ -5078,7 +5080,7 @@ class LayersBase(object):
 
         # Registrem la capa i la retornem
         if add_to_legend:
-            QgsMapLayerRegistry.instance().addMapLayer(layer)
+            QgsProject.instance().addMapLayer(layer)
         return layer
 
 
@@ -5111,7 +5113,7 @@ class LegendBase(object):
             ---
             Return selected layers
             """
-        group_list = [g for g in self.iface.layerTreeView().selectedNodes() if type(g) == QgsLayerTreeGroup]
+        group_list = [g for g in self.iface.layerTreeView().selectedNodes() if type(g) is QgsLayerTreeGroup]
         return group_list
 
     def get_group_layer(self, layer):
@@ -5134,7 +5136,7 @@ class LegendBase(object):
             return None
         return self.get_group_layer(layer)
 
-    #def set_selected_group_by_name(self, group_name):
+    # def set_selected_group_by_name(self, group_name):
     #    """ Selecciona el grup indicat
     #        ---
     #        Select group
@@ -5142,7 +5144,7 @@ class LegendBase(object):
     #    group = self.get_group_by_name(group_name)
     #    self.set_selected_group(group)
 
-    #def set_selected_group(self, group):
+    # def set_selected_group(self, group):
     #    """ Selecciona el grup indicat
     #        ---
     #        Select group
@@ -5155,7 +5157,7 @@ class LegendBase(object):
             ---
             Verify that an item is group type
             """
-        return item is not None and type(item) == QgsLayerTreeGroup
+        return item is not None and type(item) is QgsLayerTreeGroup
 
     def is_group_by_name(self, group_name):
         """ Indica si el nom de grup correspon realment a un grup existent
@@ -5371,7 +5373,7 @@ class LegendBase(object):
                 return None
             parent_group = self.add_group(parent_group_name, group_pos=parent_group_pos)
             if parent_group is None:
-               return None
+                return None
         return self.move_group_to_group(group, parent_group)
 
     def move_group_to_group(self, group, parent_group, pos=0):
@@ -5493,7 +5495,7 @@ class LegendBase(object):
             """
         return group.isExpanded()
 
-    #def collapse_all(self):
+    # def collapse_all(self):
     #    """ Colapsa tots els elements de la llegenda
     #        ---
     #        Collapse all legend elements
@@ -5555,7 +5557,7 @@ class LegendBase(object):
             ---
             Refresh all the elements of the legend (except raster layers)
             """
-        #for layer in self.iface.mapCanvas().layers():
+        # for layer in self.iface.mapCanvas().layers():
         for layer in QgsProject.instance().mapLayers().values():
             if not isinstance(layer, QgsRasterLayer):
                 self.parent.layers.refresh_legend(layer)
@@ -5587,7 +5589,7 @@ class ComposerBase(object):
             ---
             Gets a map item of the composer from its position
             """
-        selected_items = [item for item in composer_view.items() if type(item) == QgsLayoutItemMap]
+        selected_items = [item for item in composer_view.items() if type(item) is QgsLayoutItemMap]
         return selected_items[map_pos] if len(selected_items) > map_pos else None
 
     def get_composer_view(self, title):
@@ -5599,7 +5601,7 @@ class ComposerBase(object):
         selected_layout_list = [layout for layout in layouts_list if layout.name() == title]
         return selected_layout_list[0] if len(selected_layout_list) > 0 else None
 
-    #def get_composer_view(self, composer_name):
+    # def get_composer_view(self, composer_name):
     #    composer_views = self.iface.activeComposers()
     #    composer_titles = [view.composerWindow().windowTitle() for view in composer_views]
     #    if not composer_name in composer_titles:
@@ -5678,7 +5680,7 @@ class ComposerBase(object):
         # Refresquem els objectes tipus mapa
         if zoom_to_view:
             for item in layout.items():
-               if type(item) is QgsLayoutItemMap and (item.id() in zoom_to_view_map_id_list or not zoom_to_view_map_id_list):
+                if type(item) is QgsLayoutItemMap and (item.id() in zoom_to_view_map_id_list or not zoom_to_view_map_id_list):
                     item.zoomToExtent(self.parent.iface.mapCanvas().extent().buffered(zoom_to_view_buffer))
                     item.setMapRotation(self.iface.mapCanvas().rotation())
             layout.refresh()
@@ -5774,7 +5776,7 @@ class CrsToolsBase(object):
             else:
                 return text
 
-    def select_epsg(self, asPrefixedText = False):
+    def select_epsg(self, asPrefixedText=False):
         """ Obté un codi epsg a escollir en el diàleg estàndar QGIS
             ---
             Get an epsg code to choose from the standard QGIS dialog
@@ -5869,10 +5871,10 @@ class CrsToolsBase(object):
 
         # Preparem la transformació de les coordenades
         ct = self.get_transform(source_epsg, destination_epsg)
-        if type(geo) == QgsPointXY:
+        if type(geo) is QgsPointXY:
             # Tranformació de punt
             new_geo = ct.transform(geo)
-        elif type(geo) == QgsRectangle:
+        elif type(geo) is QgsRectangle:
             # Tranformació de rectangle
             new_geo = ct.transformBoundingBox(geo)
         else:
@@ -5908,7 +5910,7 @@ class DebugBase(object):
         """ Indica si estem executant l'appQ des del repositori de desenvolupament """
         return __file__.find("pyrepo") >= 0
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de consola QGIS
     #
     def ini_console(self):
@@ -5920,11 +5922,11 @@ class DebugBase(object):
         # puguin printar logs i l'amaguem
         if console.console._console is None:
             parent = self.iface.mainWindow() if self.iface else None
-            console.console._console = console.console.PythonConsole( parent )
-            ##console.console._console.hide()
+            console.console._console = console.console.PythonConsole(parent)
+            # console.console._console.hide()
             self.show_console(False)
 
-    def show_console(self, show = True):
+    def show_console(self, show=True):
         """ Mostra / Oculta la consola de QGIS
             ---
             Show / Hide the QGIS console
@@ -5939,7 +5941,7 @@ class DebugBase(object):
             """
         console.show_console() # Fa toggle
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Recàrrega de plugins
     #
     def reload_plugins(self, plugins_list=None, plugins_id_wildcard="qp*"):
@@ -5950,7 +5952,8 @@ class DebugBase(object):
         # Recarreguem els plugins
         if not plugins_list:
             plugins_list = [plugin_id for plugin_id in plugins.keys() if fnmatch.fnmatch(plugin_id, plugins_id_wildcard)]
-        with ProgressDialog('Llegint geometries...', len(plugins_list), "Recarregant plugins", cancel_button_text = "Cancel·lar", autoclose = True) as progress:
+        with ProgressDialog('Llegint geometries...', len(plugins_list), "Recarregant plugins",
+            cancel_button_text="Cancel·lar", autoclose=True) as progress:
             for plugin_id in plugins_list:
                 progress.set_label("Recarregant %s" % plugin_id)
                 self.reload_plugin(plugin_id)
@@ -5970,7 +5973,7 @@ class DebugBase(object):
         # Restaurem el cursor, per si algún plugin l'ha deixat penjat
         QApplication.restoreOverrideCursor()
 
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Unit tests
     #
     def is_test_available(self, plugin_subfolder="test", test_files_pattern="test*.py"):
@@ -6052,8 +6055,7 @@ class DebugBase(object):
         log_info_mode = LogInfoDialog.mode_info if not test_result.errors and not test_result.failures else LogInfoDialog.mode_error
         LogInfoDialog(test_text, title, log_info_mode, width=1000, height=800)
 
-
-    ###########################################################################
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de timestamps
     #
     def ini_timestamps(self, description=None, timestamp_env='QGIS_STARTUP', timestamp_format="%d/%m/%Y %H:%M:%S.%f"):
@@ -6074,12 +6076,12 @@ class DebugBase(object):
             timestamp_text = " ".join([v for v in timestamp_text.replace(",", ".").split()[-2:] if v])
             # Obtenim la data i la hora
             timestamp = datetime.datetime.strptime(timestamp_text, timestamp_format) if timestamp_text else None
-        except Exception as e:
+        except Exception:
             timestamp = None
         if timestamp:
             self.add_timestamp(description if description else "QGIS ini\t", timestamp)
 
-    def add_timestamp(self, description, timestamp = None):
+    def add_timestamp(self, description, timestamp=None):
         """ Afegeix una timestamp a la llista de timestamps a mostrar
             ---
             Add a timestamp to the list of timestamps to show
@@ -6095,18 +6097,18 @@ class DebugBase(object):
             return None
         return self.timestamps[-1][1] - self.timestamps[0][1]
 
-    def get_timestamps_info(self, info = "Load times"):
+    def get_timestamps_info(self, info="Load times"):
         """ Obté informació dels timestamps existents
             ---
             Get information about existing timestamps
             """
-        times_list = ["%s\t%s %s %s" % (description, timestamp, \
-            ("(%s)" % (timestamp - self.timestamps[i-1][1]) if i > 0 else ""), \
-            ("(%s)" % (timestamp - self.timestamps[0][1]) if i > 0 else "")) \
+        times_list = ["%s\t%s %s %s" % (description, timestamp,
+            ("(%s)" % (timestamp - self.timestamps[i-1][1]) if i > 0 else ""),
+            ("(%s)" % (timestamp - self.timestamps[0][1]) if i > 0 else ""))
             for i, (description, timestamp) in enumerate(self.timestamps)]
         return "%s:\n   %s\nTotal: %s" % (info, "\n   ".join(times_list), self.timestamps[-1][1] - self.timestamps[0][1])
 
-    def print_timestamps_info(self, info = "Load times"):
+    def print_timestamps_info(self, info="Load times"):
         """ Mostra per consola informació dels timestamps existents
             ---
             Prints console information for existing timestamps
@@ -6120,52 +6122,51 @@ class ToolsBase(object):
         Class with high level tools to optionally add to QGIS
         """
     # Components a desactivar de QGIS per defecte
-    disable_menus_ids = [u'mProjectMenu', u'mEditMenu', u'mViewMenu', u'mLayerMenu', u'mSettingsMenu', u'mPluginMenu', u'mVectorMenu',
-        u'mRasterMenu', u'processing', u'mHelpMenu', u'mDatabaseMenu', u'mWebMenu', u'mMeshMenu'
-        ]
-    #disable_menus_titles = [
-    #    u'P&roject', u'&Edit', u'&View', u'&Layer', u'&Settings', u'&Plugins', u'Vect&or',
-    #    u'&Raster', u'&Database', u'&Web', u'Processing',
-    #    ##u'&Help',
-    #    u'P&royecto', u'&Edición', u'&Ver', u'&Capa', u'C&onfiguración', u'Co&mplementos',
-    #    ##u'Vect&orial', u'&Ráster',
-    #    u'Base de &datos', u'&Web', u'Procesado',
-    #    u'A&yuda'
+    disable_menus_ids = ['mProjectMen', 'mEditMen', 'mViewMen', 'mLayerMen', 'mSettingsMen', 'mPluginMen', 'mVectorMen',
+        'mRasterMen', 'processing', 'mHelpMen', 'mDatabaseMen', 'mWebMen', 'mMeshMen']
+    # disable_menus_titles = [
+    #    'P&roject', '&Edit', '&View', '&Layer', '&Settings', '&Plugins', 'Vect&or',
+    #    '&Raster', '&Database', '&Web', 'Processing',
+    #    # '&Help',
+    #    'P&royecto', '&Edición', '&Ver', '&Capa', 'C&onfiguración', 'Co&mplementos',
+    #    # 'Vect&orial', '&Ráster',
+    #    'Base de &datos', '&Web', 'Procesado',
+    #    'A&yuda'
     #    ]
     disable_toolbars_ids = [
-        u'mFileToolBar', u'mLayerToolBar',
-        # u'mDigitizeToolBar',
-        u'mAdvancedDigitizeToolBar',
-        # u'mMapNavToolBar', u'mAttributesToolBar',
-        u'mPluginToolBar', u'mHelpToolBar', u'mRasterToolBar', u'mLabelToolBar', u'mVectorToolBar', u'mDatabaseToolBar', u'mWebToolBar',
-        u'mSnappingToolBar', u'mDataSourceManagerToolBar', u'mShapeDigitizeToolBar'
+        'mFileToolBar', 'mLayerToolBar',
+        # 'mDigitizeToolBar',
+        'mAdvancedDigitizeToolBar',
+        # 'mMapNavToolBar', 'mAttributesToolBar',
+        'mPluginToolBar', 'mHelpToolBar', 'mRasterToolBar', 'mLabelToolBar', 'mVectorToolBar', 'mDatabaseToolBar', 'mWebToolBar',
+        'mSnappingToolBar', 'mDataSourceManagerToolBar', 'mShapeDigitizeToolBar'
         ]
-    #disable_toolbars_titles = [
-    #    u'File', u'Manage Layers', u'Digitizing', u'Advanced Digitizing',
-    #    u'Plugins', u'Help', u'Raster', u'Label', u'Vector', u'Database', u'Web', u'GRASS',
-    #    ##u'Map Navigation', u'Attributes',
-    #    u'Archivo', u'Administrar capas',
-    #    ##u'Digitalización',
-    #    u'Digitalización avanzada',
-    #    u'Complementos', u'Ayuda', u'Ráster', u'Etiqueta', u'Vectorial', u'Base de datos', u'Web', u'GRASS',
-    #    ##u'Navegación de mapas', u'Atributos'
+    # disable_toolbars_titles = [
+    #    'File', 'Manage Layers', 'Digitizing', 'Advanced Digitizing',
+    #    'Plugins', 'Help', 'Raster', 'Label', 'Vector', 'Database', 'Web', 'GRASS',
+    #    # 'Map Navigation', 'Attributes',
+    #    'Archivo', 'Administrar capas',
+    #    # 'Digitalización',
+    #    'Digitalización avanzada',
+    #    'Complementos', 'Ayuda', 'Ráster', 'Etiqueta', 'Vectorial', 'Base de datos', 'Web', 'GRASS',
+    #    # 'Navegación de mapas', 'Atributos'
     #    ]
     disable_dockwidgets_ids = [
-        u'UserInputDockWidget', u'undo/redo dock', u'AdvancedDigitizingTools', u'StatistalSummaryDockWidget', u'BookmarksDockWidget',
-        #u'Layers',
-        u'LayerOrder',
-        #u'Overview',
-        u'LayerStyling', u'Browser', u'Browser2', u'GPSInformation',
-        #u'MessageLog',
-        u'CoordinateCapture', u'theTileScaleDock',
+        'UserInputDockWidget', 'undo/redo dock', 'AdvancedDigitizingTools', 'StatistalSummaryDockWidget', 'BookmarksDockWidget',
+        # 'Layers',
+        'LayerOrder',
+        # 'Overview',
+        'LayerStyling', 'Browser', 'Browser2', 'GPSInformation',
+        # 'MessageLog',
+        'CoordinateCapture', 'theTileScaleDock',
         ]
-    #disable_dockwidgets_titles = [
-    #    u'Browser', u'Browser (2)', u'GPS Information',
-    #    u'Layer order', u'Shortest path', u'Tile scale', u'Toolbox', u'Undo/Redo'
-    #    ##u'Layers', u'Overview', u'Log Messages', u'Coordinate Capture',
-    #    u'Explorador', u'Explorador (2)', u'Información de GPS',
-    #    u'Orden de capas', u'Ruta más corta', u'Escala de tesela', u'Caja de herramientas', u'Deshacer/Rehacer',
-    #    ##u'Capas', u'Vista general', u'Mensajes de, registro', u'Captura de coordenadas']
+    # disable_dockwidgets_titles = [
+    #    'Browser', 'Browser (2)', 'GPS Information',
+    #    'Layer order', 'Shortest path', 'Tile scale', 'Toolbox', 'Undo/Redo'
+    #    # 'Layers', 'Overview', 'Log Messages', 'Coordinate Capture',
+    #    'Explorador', 'Explorador (2)', 'Información de GPS',
+    #    'Orden de capas', 'Ruta más corta', 'Escala de tesela', 'Caja de herramientas', 'Deshacer/Rehacer',
+    #    # 'Capas', 'Vista general', 'Mensajes de, registro', 'Captura de coordenadas']
     #    ]
 
     def __init__(self, parent):
@@ -6213,12 +6214,12 @@ class ToolsBase(object):
             self.iface.removeDockWidget(self.anaglyph_dialog)
             self.anaglyph_dialog = None
 
-    def add_shortcut_QGIS_options(self, description = "Eines QGIS", keyseq = "Ctrl+Alt+F12"):
+    def add_shortcut_QGIS_options(self, description="Eines QGIS", keyseq="Ctrl+Alt+F12"):
         """ Afegeix un shortcut per mostrar / ocultar els menús / toolbars de QGIS
             ---
             Add a shortcut to show / hide QGIS menus / toolbars
             """
-        #Creem un shortcut per activer les opcions per defecte de QGIS
+        # Creem un shortcut per activer les opcions per defecte de QGIS
         self.parent.gui.add_shortcut(description, keyseq, self.toggle_QGIS_options)
 
     def toggle_QGIS_options(self, hide_not_remove=None):
@@ -6236,7 +6237,7 @@ class ToolsBase(object):
             # Afegim opcions al menú
             self.enable_QGIS_options(True, hide_not_remove)
 
-    def enable_QGIS_options(self, enable, hide_not_remove = True, menus_ids = None, toolbars_ids = None, dockwidgets_ids = None):
+    def enable_QGIS_options(self, enable, hide_not_remove=True, menus_ids=None, toolbars_ids=None, dockwidgets_ids=None):
         """ Mostra / Oculta els menús / toolbars de QGIS
             ---
             Show / Hide QGIS menus / toolbars
@@ -6250,7 +6251,7 @@ class ToolsBase(object):
             self.initial_dockwidgets_and_areas = [(w, self.iface.mainWindow().dockWidgetArea(w)) for w in self.parent.gui.get_dock_widgets()]
 
         # Determinem quins components amagar (si no hi ha els agafem per defecte)
-        if hide_not_remove == None:
+        if hide_not_remove is None:
             hide_not_remove = self.last_disable_mode
         else:
             self.last_disable_mode = hide_not_remove
@@ -6285,24 +6286,24 @@ class ToolsBase(object):
         for toolbar in self.initial_toolbars:
             if toolbar.objectName() in toolbars_ids:
                 if enable:
-                    ##print("Toolbar show", toolbar.windowTitle())
-                    ##if toolbar not in current_toolbars: # Sempre estan??
+                    # print("Toolbar show", toolbar.windowTitle())
+                    # if toolbar not in current_toolbars: # Sempre estan??
                     self.iface.addToolBar(toolbar)
                     toolbar.show()
                 else:
                     if toolbar in current_toolbars:
                         if hide_not_remove:
-                            ##print("Toolbar hide", toolbar.windowTitle())
+                            # print("Toolbar hide", toolbar.windowTitle())
                             toolbar.hide()
                         else:
-                            ##print("Toolbar remove", toolbar.windowTitle())
+                            # print("Toolbar remove", toolbar.windowTitle())
                             self.iface.mainWindow().removeToolBar(toolbar)
 
         # Desactivem/Activem els dockwidtgets
         for widget, area in self.initial_dockwidgets_and_areas:
             if widget.objectName() in dockwidgets_ids:
                 if enable:
-                    ##if widget not in current_dockwidgets: # Sempre estan??
+                    # if widget not in current_dockwidgets: # Sempre estan??
                     self.iface.addDockWidget(area, widget)
                     widget.hide() # Per defecte es visualitzen i molesten...
                 else:
@@ -6315,14 +6316,14 @@ class ToolsBase(object):
         # Reorganitzem les toolbars
         self.parent.gui.organize_toolbars()
 
-    def add_shortcut_organize_toolbars(self, description = "Organitzar toolbar", keyseq = "Ctrl+Alt+F10"):
+    def add_shortcut_organize_toolbars(self, description="Organitzar toolbar", keyseq="Ctrl+Alt+F10"):
         """ Afegeix un shortcut per organitzar la toolbar de QGIS
             ---
             Add a shortcut to organize the QGIS toolbar
             """
         self.parent.gui.add_shortcut(description, keyseq, self.parent.gui.organize_toolbars)
 
-    def add_shortcut_console(self, description = "Consola python", keyseq = "Ctrl+Alt+F9"):
+    def add_shortcut_console(self, description="Consola python", keyseq="Ctrl+Alt+F9"):
         """ Afegeix un shortcut per mostrar la consola de QGIS
             ---
             Add a shortcut to display the QGIS console
@@ -6343,13 +6344,13 @@ class ToolsBase(object):
                 (tool_name, self.parent.debug.toggle_console, "console.png")
                 ], add_separator=add_separator)
 
-    def add_tool_reload_plugins(self, plugins_id_list=[], plugins_id_wildcard = "*Q", tool_name="&Recarregar plugins ICGC", toolbar_and_menu_name="&Manteniment"):
+    def add_tool_reload_plugins(self, plugins_id_list=[], plugins_id_wildcard="*Q", tool_name="&Recarregar plugins ICGC", toolbar_and_menu_name="&Manteniment"):
         """ Afegeix eina per recarregar els plugins que coincideixin amb el wildcard
             ---
             Add tool to reload plugins that match the wildcard
             """
         self.parent.gui.configure_GUI(toolbar_and_menu_name, [
-            (tool_name, lambda l=plugins_id_list, w=plugins_id_wildcard : self.parent.debug.reload_plugins(l, w), "python.png")
+            (tool_name, lambda plugins_id_list=plugins_id_list, plugins_id_wildcard=plugins_id_wildcard: self.parent.debug.reload_plugins(plugins_id_list, plugins_id_wildcard), "python.png")
             ])
 
     def add_tool_refresh_map_and_legend(self, tool_name, remove_refresh_map, id="ToolRefreshMapAndLegend"):
@@ -6423,7 +6424,8 @@ class ToolsBase(object):
                 # algun botó si cal... en principi això està implementat en l'event de canvi de capa
                 # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè
                 # s'executi
-                self.time_series_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
+                self.time_series_dialog.visibilityChanged.connect(
+                    lambda dummy: self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
             else:
                 # Configurem el diàleg
                 if title:
@@ -6456,11 +6458,12 @@ class ToolsBase(object):
             if found:
                 anaglyph_params_list = found.groups()[0].split(",")
                 if len(anaglyph_params_list) == 3:
-                    photo_id =  anaglyph_params_list[0]
+                    photo_id = anaglyph_params_list[0]
                     parallax = int(anaglyph_params_list[1])
                     inverted_stereo = anaglyph_params_list[2] == "true"
             # Si no tenim el diàleg el creem i el mostrem
-            update_callback = lambda parallax, inverted_stereo: self.parent.layers.update_wms_layer(layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
+            update_callback = lambda parallax, inverted_stereo: self.parent.layers.update_wms_layer(
+                layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
             if not self.anaglyph_dialog:
                 self.anaglyph_dialog = AnaglyphDialog(layer.name() if layer else "", update_callback, parallax, inverted_stereo,
                     title, parallax_label, inverted_stereo_label, True, self.iface.mainWindow())
@@ -6469,7 +6472,7 @@ class ToolsBase(object):
                 # algun botó si cal... en principi això està implementat en l'event de canvi de capa
                 # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè
                 # s'executi
-                #self.anaglyph_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
+                # self.anaglyph_dialog.visibilityChanged.connect(lambda dummy:self.iface.layerTreeView().currentLayerChanged.emit(self.iface.mapCanvas().currentLayer()))
             else:
                 # Configurem el diàleg
                 if title:
@@ -6517,7 +6520,7 @@ class ToolsBase(object):
             if time_series_list:
                 self.parent.layers.time_series_dict.pop(layer)
 
-    #def is_selected_db_styled_layers(self):
+    # def is_selected_db_styled_layers(self):
     #    """ Obtenim hi ha alguna capa seleccionada amb estil de bbdd, incloent grups
     #        ---
     #        Gets if there are any db styled layer includes layers in groups
@@ -6542,7 +6545,8 @@ class ToolsBase(object):
         for group in selected_groups_list:
             layers_list += self.parent.layers.get_group_layers_by_id(group.name())
         layers_list += self.parent.layers.get_selected_layers()
-        layers_list = [layer for layer in list(set(layers_list)) if type(layer) == QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
+        layers_list = [layer for layer in list(set(layers_list))
+            if type(layer) is QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
 
         return layers_list
 
@@ -6552,7 +6556,8 @@ class ToolsBase(object):
             Gets layers with db styles from a group
             """
         layers_list = self.parent.layers.get_group_layers_by_id(group.name())
-        db_layers_list = [layer for layer in layers_list if type(layer) == QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
+        db_layers_list = [layer for layer in layers_list
+            if type(layer) is QgsVectorLayer and self.parent.layers.get_db_styles(layer)]
         return db_layers_list
 
     def is_current_group_db_styled_layers(self):
@@ -6561,7 +6566,7 @@ class ToolsBase(object):
             Gets if current group has layers with db styles
             """
         node = self.iface.layerTreeView().currentNode()
-        is_geopackage_layer = type(node) == QgsLayerTreeGroup and len(self.get_group_db_styled_layers(node)) > 0
+        is_geopackage_layer = type(node) is QgsLayerTreeGroup and len(self.get_group_db_styled_layers(node)) > 0
         return is_geopackage_layer
 
     def show_db_styles_dialog(self, title=None, show=True):
@@ -6574,7 +6579,7 @@ class ToolsBase(object):
 
         # Generem una llista de capes amb un diccionari amb l'id d'estil i tupla de (nom, descripció)
         layers_styles_dict_list = [(layer.id(), layer.name(), self.parent.layers.is_visible(layer), None, self.parent.layers.get_db_styles(layer)) for layer in layers_list]
-        layers_styles_dict_list.sort(key = lambda v:v[1])
+        layers_styles_dict_list.sort(key=lambda v: v[1])
 
         # Mostrem el diàleg d'stils
         dlg = StylesDialog(layers_styles_dict_list, title, True, self.iface.mainWindow())
@@ -6655,8 +6660,8 @@ class MetadataBase(object):
             ---
             Gets plugin default QIcon object (:/plugins/<plugin_name>/icon.png)
             """
-        #icon_ref = ":/plugins/%s/%s" % (self.parent.plugin_id.lower(), icon_name)
-        #icon = QIcon(icon_ref)
+        # icon_ref = ":/plugins/%s/%s" % (self.parent.plugin_id.lower(), icon_name)
+        # icon = QIcon(icon_ref)
         if not os.path.splitext(icon_name)[1]:
             icon_name += ".png"
         if not os.path.isabs(icon_name):
@@ -6692,7 +6697,7 @@ class MetadataBase(object):
             description = self.get("description_en")
         if not description:
             # Si no agafem la descripció estàndar que hem fet servir en el metadata.txt
-            description =self.get("description")
+            description = self.get("description")
 
         return description
 
@@ -6771,22 +6776,22 @@ class MetadataBase(object):
             """
         # Llegim la pàgina web del plugin en el repository de qgis
         if not plugin_tag:
-            plugin_tag=self.get_name().replace(" ", "")
+            plugin_tag = self.get_name().replace(" ", "")
         repository_plugin_url = repository_plugin_template % plugin_tag
         try:
-            html = requests.get(repository_plugin_url, verify=check_ssl, \
+            html = requests.get(repository_plugin_url, verify=check_ssl,
                 timeout=timeout_seconds).text
         except socket.timeout:
             return None
-        except Exception as e:
+        except Exception:
             return None
         # Busco la última versió del plugin pujada
         regex_version = regex_version_template % plugin_tag if regex_version_template.find("%") >= 0 else regex_version_template
         found = re.search(regex_version, html)
         return found.groups()[0] if found else None
 
-    def get_qgis_repository_plugin_version(self, plugin_tag=None, \
-            repository_plugin_template="https://plugins.qgis.org/plugins/%s", \
+    def get_qgis_repository_plugin_version(self, plugin_tag=None,
+            repository_plugin_template="https://plugins.qgis.org/plugins/%s",
             regex_version_template=r"\/plugins\/%s\/version\/(.+)\/download", timeout_seconds=5):
         """ Retorna la versió del plugin hostajat en el repositori de plugins QGIS
             ---
@@ -6809,8 +6814,8 @@ class MetadataBase(object):
             return None
         return repo_version if get_version_number(repo_version) > get_version_number(current_version) else None
 
-    def get_github_repository_plugin_version(self, plugin_tag=None, \
-            repository_plugin_template="https://raw.githubusercontent.com/%s/master/metadata.txt", \
+    def get_github_repository_plugin_version(self, plugin_tag=None,
+            repository_plugin_template="https://raw.githubusercontent.com/%s/master/metadata.txt",
             regex_version_template=r"version=(.+)\s", timeout_seconds=5):
         """ Retorna la versió del plugin hostajat en el repositori GitHub
             ---
@@ -7015,7 +7020,7 @@ class PluginBase(QObject):
         if not os.path.isabs(path):
             path = os.path.join(self.plugin_path, path)
         pathname = os.path.join(path, basename)
-        filename, ext = os.path.splitext(basename)
+        _filename, ext = os.path.splitext(basename)
         if not ext or ext == ".html":
             showPluginHelp(filename=pathname)
         else:
@@ -7045,13 +7050,13 @@ class PluginBase(QObject):
             Reproject the coordinate to the project reference system if necessary
             """
         # Cal, transformem les coordenades al sistema del projecte
-        ##print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
+        # print("Coordinate: %s %s EPSG:%s" % (x, y, epsg))
         if epsg and epsg != int(self.project.get_epsg()):
             x, y = self.crs.transform_point(x, y, epsg)
-            ##print("Coordinate: %s %s EPSG:%s" % (x, y, self.project.get_epsg()))
+            # print("Coordinate: %s %s EPSG:%s" % (x, y, self.project.get_epsg()))
 
-        ## Detectem si estem en geogràfiques o no i configurem la escala
-        #if not scale:
+        # Detectem si estem en geogràfiques o no i configurem la escala
+        # if not scale:
         #    scale = 0.01 if x < 100 else 1000
 
         # Situem el centre del mapa i la escala
@@ -7070,11 +7075,11 @@ class PluginBase(QObject):
             Reproject the coordinates to the project reference system if necessary
             """
         # Cal, transformem les coordenades al sistema del projecte
-        ##print("Rectangle: %s %s %s %s EPSG:%s" % west, north, east, south, epsg)
+        # print("Rectangle: %s %s %s %s EPSG:%s" % west, north, east, south, epsg)
         if epsg and epsg != int(self.project.get_epsg()):
             west, north = self.crs.transform_point(west, north, epsg)
             east, south = self.crs.transform_point(east, south, epsg)
-            ##print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
+            # print("Rectangle: %s %s %s %s EPSG:%s" % (west, north, east, south, self.project.get_epsg()))
 
         # Resituem el mapa
         rect = QgsRectangle(west, south, east, north) # minx, miny, maxx, maxy
@@ -7109,7 +7114,7 @@ class PluginBase(QObject):
         # When setting file qgis.ini has values "@Invalid()" function "value" ignore default_value...
         if value is None:
             value = default_value
-        self.settings.endGroup();
+        self.settings.endGroup()
         return value
 
     def set_settings(self, settings_dict, group_name=None):
@@ -7123,7 +7128,7 @@ class PluginBase(QObject):
                 self.settings.remove(key)
             else:
                 self.settings.setValue(key, value)
-        self.settings.endGroup();
+        self.settings.endGroup()
 
     def set_setting_value(self, key, value, group_name=None):
         """ Carrega un valor de configuració del plugin
@@ -7135,9 +7140,9 @@ class PluginBase(QObject):
             self.settings.remove(key)
         else:
             self.settings.setValue(key, value)
-        self.settings.endGroup();
+        self.settings.endGroup()
 
-    #def get_setting_list(self, key, group_name=None):
+    # def get_setting_list(self, key, group_name=None):
     #    values_list = []
     #    self.settings.beginGroup(group_name or self.plugin_id)
     #    count = self.settings.beginReadArray(key)
@@ -7148,7 +7153,7 @@ class PluginBase(QObject):
     #    self.settings.endGroup();
     #    return values_list
 
-    #def set_setting_list(self, key, values_list, group_name=None):
+    # def set_setting_list(self, key, values_list, group_name=None):
     #    self.settings.beginGroup(group_name or self.plugin_id)
     #    if not values_list:
     #        self.settings.remove(key)
@@ -7201,7 +7206,7 @@ class PluginBase(QObject):
                 # Carreguem la font
                 font_id = self.load_font(font_pathname)
                 font_id_list.append(font_id)
-                status &= (font_id >=0)
+                status &= (font_id >= 0)
         return status, font_id_list
 
     def load_font(self, font_pathname_or_filename, file_types_list=["ttf", "otf"]):

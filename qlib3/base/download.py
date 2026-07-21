@@ -14,7 +14,6 @@ bars
 
 from qgis.PyQt import QtNetwork
 from qgis.PyQt.QtCore import QUrl, QTimer
-from qgis.PyQt.QtWidgets import QApplication
 
 import os
 from importlib import reload
@@ -66,7 +65,7 @@ class DownloadManager(object):
 
         # Realitzem la petició de descàrraga al servidor
         reply = self.manager.get(QtNetwork.QNetworkRequest(QUrl(remote_file)))
-        reply.readyRead.connect(lambda:self.__download_ready__(reply, local_file))
+        reply.readyRead.connect(lambda: self.__download_ready__(reply, local_file))
         reply.downloadProgress.connect(lambda read, total, progress=progress: self.__download_progress__(read, total, progress))
 
         # Guardem la petició de descàrrega al diccionari de gestió de descàrregues
@@ -92,7 +91,7 @@ class DownloadManager(object):
             ---
             Data ready event that read and write data in output file
             """
-        ##print("Ready")
+        # print("Ready")
         data = reply.readAll()
         local_file.write(data)
 
@@ -101,7 +100,7 @@ class DownloadManager(object):
             ---
             Read event that update progress bar
             """
-        #print("%s / %s" % (read, total))
+        # print("%s / %s" % (read, total))
         progress.set_steps(total)
         progress.set_value(read)
 
@@ -110,7 +109,7 @@ class DownloadManager(object):
             ---
             Download finished event that free resources
             """
-        ##print("Finished!")
+        # print("Finished!")
         download_key = reply.request().url().url()
         _reply, progress, local_file, callback, running, status_ok, error_msg = self.queries_dict[download_key]
         filename = local_file.name
@@ -129,7 +128,8 @@ class DownloadManager(object):
                 os.rename(filename, filename + ".html")
                 filename += ".html"
                 if debug:
-                    os.startfile(filename) # $$$ Problemes fora de windows
+                    # $$$ Problemes fora de windows
+                    os.startfile(filename) # nosec B606
             # Si hem cancel·lat, el fitxer queda a 0 i no cal guardar-lo
             elif os.path.exists(filename):
                 os.remove(filename)
