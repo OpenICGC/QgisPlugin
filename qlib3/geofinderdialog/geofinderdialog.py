@@ -118,7 +118,7 @@ class GeoFinderDialog(QDialog, ui_geofinder):
             self.tableWidget.setItem(i, 2, QTableWidgetItem(topodata['nomMunicipi']))
             self.tableWidget.setItem(i, 3, QTableWidgetItem(topodata['nomComarca']))
             # Ens guardem la posició original de l'item per si després s'ordena la llista i canvia l'index
-            self.tableWidget.item(i, 0).setData(Qt.UserRole, i)
+            self.tableWidget.item(i, 0).setData(Qt.ItemDataRole.UserRole, i)
 
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
@@ -141,11 +141,11 @@ class GeoFinderDialog(QDialog, ui_geofinder):
         """ Return number of selected dialog row """
         if not self.status or self.tableWidget.currentRow() < 0:
             return -1
-        return self.tableWidget.item(self.tableWidget.currentRow(), 0).data(Qt.UserRole)
+        return self.tableWidget.item(self.tableWidget.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
 
     def find(self, text, default_epsg):
         # Find text
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
         try:
             self.geofinder_dict_list = self.geofinder.find(text, default_epsg)
         except Exception as e:

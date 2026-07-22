@@ -94,7 +94,7 @@ class StylesDialog(QDialog, ui_loginfo):
             # Mostrem el nom de la capa
             itemColumn = QTableWidgetItem(layer_name)
             itemColumn.setWhatsThis(layer_id)
-            itemColumn.setFlags(Qt.ItemIsEnabled)
+            itemColumn.setFlags(Qt.ItemFlag.ItemIsEnabled)
             self.ui.tableWidget.setItem(index, 1, itemColumn)
             # Mostrem un combobox amb els estils disponibles
             combo = QComboBox()

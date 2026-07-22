@@ -140,7 +140,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
         # Mostrem o no el botó de Save
         if save_button_text:
             self.ui.pushButton_save.setText(save_button_text)
-            self.ui.pushButton_save.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(save_button_text) + 20)
+            self.ui.pushButton_save.setMaximumWidth(
+                QFontMetrics(self.ui.pushButton_save.font()).boundingRect(save_button_text).width() + 20)
             self.ui.pushButton_save.setEnabled(True)
             self.ui.pushButton_save.setVisible(True)
         else:
@@ -150,7 +151,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
         # Motrem el botó de copiar al portapapers
         if copy_clipboard_button_text:
             self.ui.pushButton_clipboard.setText(copy_clipboard_button_text)
-            self.ui.pushButton_clipboard.setMaximumWidth(QFontMetrics(self.ui.pushButton_save.font()).width(copy_clipboard_button_text) + 20)
+            self.ui.pushButton_clipboard.setMaximumWidth(
+                QFontMetrics(self.ui.pushButton_clipboard.font()).boundingRect(copy_clipboard_button_text).width() + 20)
             self.ui.pushButton_clipboard.setEnabled(clipboard_available)
             self.ui.pushButton_clipboard.setVisible(True)
         else:
@@ -160,7 +162,8 @@ class LogInfoDialog(QDialog, ui_loginfo):
         # Botó d'email
         if email_button_text:
             self.ui.pushButton_email.setText(email_button_text)
-            self.ui.pushButton_email.setMaximumWidth(QFontMetrics(self.ui.pushButton_email.font()).width(email_button_text) + 20)
+            self.ui.pushButton_email.setMaximumWidth(
+                QFontMetrics(self.ui.pushButton_email.font()).boundingRect(email_button_text).width() + 20)
             self.ui.pushButton_email.setEnabled(email_available)
             self.ui.pushButton_email.setVisible(True)
         else:

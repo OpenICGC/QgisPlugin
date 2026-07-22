@@ -1,8 +1,0 @@
-[bandit]
-# Ignore XML-related warnings — XML usage has been audited and is safe
-# skips = B405,B314,B318
-
-# Do not scan vendored libraries or test fixtures
-# exclude_dirs = vendor,tests/fixtures
-exclude_dirs = ./lib/qtrangeslider
-exclude = ./lib/qtrangeslider

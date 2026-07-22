@@ -143,7 +143,7 @@ class WaitCursor:
         ---
         Class to display the wait cursor in a given context """
     def __enter__(self):
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
 
     def __exit__(self, type, value, traceback):
         QApplication.restoreOverrideCursor()
@@ -218,7 +218,7 @@ class GuiBase(object):
             if icon:
                 self.label_icon.setPixmap(icon.pixmap(QSize(icon_size, icon_size)))
             self.label_icon.setFixedSize(QSize(icon_size, icon_size))
-            self.label_icon.setFocusPolicy(Qt.NoFocus)
+            self.label_icon.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
             # Set menu text
             self.label_text = QLabel(text)
@@ -257,7 +257,7 @@ class GuiBase(object):
             # Assign final layout to this QWidget
             self.setLayout(self.container_layout)
             # Enables keyboard cursors focus event
-            self.setFocusPolicy(Qt.StrongFocus)
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             # Enables hover mouse event
             self.setStyleSheet(self.normal_style)
 
@@ -266,28 +266,28 @@ class GuiBase(object):
 
         def eventFilter(self, object, event):
             # Changes style when inFocus or outFocus by cursors
-            if event.type() == QEvent.FocusIn:
+            if event.type() == QEvent.Type.FocusIn:
                 # print("widget has gained keyboard focus", event)
                 self.setStyleSheet(self.highlight_style)
-            elif event.type() == QEvent.FocusOut:
+            elif event.type() == QEvent.Type.FocusOut:
                 # print("widget has lost keyboard focus")
                 self.setStyleSheet(self.normal_style)
 
             # Set focus when move over and change style when leaves
-            elif event.type() == QEvent.HoverEnter:
+            elif event.type() == QEvent.Type.HoverEnter:
                 # print("hover enter")
                 # self.setStyleSheet(self.highlight_style)
                 self.setFocus()
-            elif event.type() == QEvent.HoverLeave:
+            elif event.type() == QEvent.Type.HoverLeave:
                 # print("hover leave", event)
                 # self.setStyleSheet(self.normal_style)
                 self.parent.setFocus()
 
             # Lost focus when accept a menu entry by mouse click or enter key
-            elif event.type() == QEvent.MouseButtonRelease:
+            elif event.type() == QEvent.Type.MouseButtonRelease:
                 # print("mouse button release")
                 self.parent.setFocus()
-            elif event.type() == QEvent.KeyPress and event.key() in [Qt.Key_Enter, Qt.Key_Return]:
+            elif event.type() == QEvent.Type.KeyPress and event.key() in [Qt.Key.Key_Enter, Qt.Key.Key_Return]:
                 # print("enter")
                 self.parent.setFocus()
 
@@ -1797,7 +1797,7 @@ class LayersBase(object):
             if QMessageBox.warning(self.iface.mainWindow(),
                 "Selection multilayer",
                 "There are selected elements on %d differents layers:\n   - %s\n\nDo you want continue with current layer?:\n   - %s" % (len(layers_selected), "\n   - ".join(layers_selected), current_layer.name()),
-                QMessageBox.Yes | QMessageBox.No) != QMessageBox.Yes:
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
                 return None
             return current_layer_selection
 
@@ -3117,7 +3117,7 @@ class LayersBase(object):
         if not epsg:
             epsg = self.get_epsg(layer)
         crs = self.parent.crs.get_crs(epsg)
-        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, crs, format) == QgsVectorFileWriter.NoError
+        return QgsVectorFileWriter.writeAsVectorFormat(layer, pathname, encoding, crs, format) == QgsVectorFileWriter.WriterError.NoError
 
     def rename_fields_by_id(self, idprefix, rename_dict, pos=0):
         """ Reanomena camps d'una capa a partir del seu id
@@ -3217,9 +3217,10 @@ class LayersBase(object):
             Enable raster layer color expansion
             """
         if enable:
-            layer.setContrastEnhancement(QgsContrastEnhancement.StretchToMinimumMaximum, QgsRasterMinMaxOrigin.MinMax)
+            layer.setContrastEnhancement(QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum,
+                QgsRasterMinMaxOrigin.Limits.MinMax)
         else:
-            layer.setContrastEnhancement(QgsContrastEnhancement.NoEnhancement)
+            layer.setContrastEnhancement(QgsContrastEnhancement.ContrastEnhancementAlgorithm.NoEnhancement)
 
     def set_nodata_by_id(self, idprefix, no_data, pos=0):
         """ Assigna un valor no data a una capa raster per id
@@ -4724,10 +4725,10 @@ class LayersBase(object):
         layer = self.add_wms_layer(layer_name, url, [wms_layer], styles_list, image_format, epsg, extra_tags, group_name, group_pos, only_one_map)
         return layer
 
-    def add_vector_db_layer(self, host, port, dbname, schema, table, user, password, geometry_column=None, filter=None, key_column=None, provider='postgres',
-                            epsg=25831, wkbtype=QgsWkbTypes.Polygon, layer_name=None, group_name="", group_pos=None, only_one_map_on_group=False,
-                            only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, set_current=False, style_file=None,
-                            if_empty_retry_without_geo=False):
+    def add_vector_db_layer(self, host, port, dbname, schema, table, user, password,
+        geometry_column=None, filter=None, key_column=None, provider='postgres', epsg=25831, wkbtype=QgsWkbTypes.Type.Polygon,
+        layer_name=None, group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True,
+        collapsed=True, visible=True, transparency=None, set_current=False, style_file=None, if_empty_retry_without_geo=False):
         """ Afegeix una capa tipus BBDD. Retorna la capa
             Paràmetres de la connexió: host, port, dbname, schema, table, user, password, geometry_column, filter, key_column
             Veure add_wms_layer per opcions de capa
@@ -4858,7 +4859,7 @@ class LayersBase(object):
                 model.sort(model.sortColumn(), not model.sortOrder())
                 model.sort(model.sortColumn(), not model.sortOrder())
             else:
-                model.sort(0, Qt.DescendingOrder)
+                model.sort(0, Qt.SortOrder.DescendingOrder)
                 model.sort(model.sortColumn(), not model.sortOrder())
 
     def show_attributes_table_by_id(self, idprefix, multiinstance=False, filter_expression=None, pos=0):
@@ -4931,7 +4932,7 @@ class LayersBase(object):
         else:
             dlg.adjustSize()
         if modal_mode or edit_mode:
-            status_ok = (dlg.exec() == QDialog.Accepted)
+            status_ok = (dlg.exec() == QDialog.DialogCode.Accepted)
         else:
             dlg.show()
             status_ok = dlg.isVisible()
@@ -5034,12 +5035,12 @@ class LayersBase(object):
             """
         # Creem una nova capa del mateix tipus a memòria
         layer_name = source_layer.name()
-        if source_layer.type() == QgsMapLayer.VectorLayer:
-            if source_layer.geometryType() == QgsWkbTypes .PointGeometry:
+        if source_layer.type() == QgsMapLayer.LayerType.VectorLayer:
+            if source_layer.geometryType() == QgsWkbTypes.GeometryType.PointGeometry:
                 creation_text = "Point"
-            elif source_layer.geometryType() == QgsWkbTypes .LineGeometry:
+            elif source_layer.geometryType() == QgsWkbTypes.GeometryType.LineGeometry:
                 creation_text = "LineString"
-            elif source_layer.geometryType() == QgsWkbTypes .PolygonGeometry:
+            elif source_layer.geometryType() == QgsWkbTypes.GeometryType.PolygonGeometry:
                 creation_text = "Polygon"
             else:
                 creation_text = "None"
@@ -5530,7 +5531,7 @@ class LegendBase(object):
         for tree_layer in group.findLayers():
             layer = tree_layer.layer()
             # Descartem si es una capa només amb dades (sense cap tipus de geometria)
-            if type(layer) is QgsVectorLayer and layer.geometryType() in [QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry]:
+            if type(layer) is QgsVectorLayer and layer.geometryType() in [QgsWkbTypes.GeometryType.UnknownGeometry, QgsWkbTypes.GeometryType.NullGeometry]:
                 continue
             area = layer.extent()
             if area.isNull() or area.isEmpty():
@@ -5727,7 +5728,7 @@ class ComposerBase(object):
         height = int(dpmm * composition.paperHeight())
 
         # create output image and initialize it
-        image = QImage(QSize(width, height), QImage.Format_RGB888)
+        image = QImage(QSize(width, height), QImage.Format.Format_RGB888)
         image.setDotsPerMeterX(dpmm * 1000)
         image.setDotsPerMeterY(dpmm * 1000)
         image.fill(0)
@@ -6378,7 +6379,7 @@ class ToolsBase(object):
             """
         if not self.transparency_dialog:
             self.transparency_dialog = TransparencyDialog(title, layer, transparency, show, self.iface.mainWindow())
-            self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.transparency_dialog)
+            self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.transparency_dialog)
         else:
             if show:
                 if title:
@@ -6419,7 +6420,7 @@ class ToolsBase(object):
                 self.time_series_dialog = TimeSeriesDialog(time_series_list, current_time,
                     layer.name().replace(" [%s]" % current_time, ""), update_callback,
                     title, current_prefix, True, self.iface.mainWindow())
-                self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.time_series_dialog)
+                self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.time_series_dialog)
                 # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
                 # algun botó si cal... en principi això està implementat en l'event de canvi de capa
                 # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè
@@ -6467,7 +6468,7 @@ class ToolsBase(object):
             if not self.anaglyph_dialog:
                 self.anaglyph_dialog = AnaglyphDialog(layer.name() if layer else "", update_callback, parallax, inverted_stereo,
                     title, parallax_label, inverted_stereo_label, True, self.iface.mainWindow())
-                self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.anaglyph_dialog)
+                self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.anaglyph_dialog)
                 # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
                 # algun botó si cal... en principi això està implementat en l'event de canvi de capa
                 # (que detecta si es tracta d'una capa WMS-T o no) per això emeto un un signal perquè

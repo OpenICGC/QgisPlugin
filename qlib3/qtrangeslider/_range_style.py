@@ -5,9 +5,9 @@ import re
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from .qtcompat import PYQT_VERSION
-from .qtcompat.QtCore import Qt
-from .qtcompat.QtGui import (
+from qgis.PyQt import PYQT_VERSION
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import (
     QBrush,
     QColor,
     QGradient,
@@ -15,7 +15,7 @@ from .qtcompat.QtGui import (
     QPalette,
     QRadialGradient,
 )
-from .qtcompat.QtWidgets import QApplication, QSlider, QStyleOptionSlider
+from qgis.PyQt.QtWidgets import QApplication, QSlider, QStyleOptionSlider
 
 if TYPE_CHECKING:
     from ._generic_range_slider import _GenericRangeSlider
@@ -40,9 +40,9 @@ class RangeSliderStyle:
     def brush(self, opt: QStyleOptionSlider) -> QBrush:
         cg = opt.palette.currentColorGroup()
         attr = {
-            QPalette.Active: "brush_active",  # 0
-            QPalette.Disabled: "brush_disabled",  # 1
-            QPalette.Inactive: "brush_inactive",  # 2
+            QPalette.ColorGroup.Active: "brush_active",  # 0
+            QPalette.ColorGroup.Disabled: "brush_disabled",  # 1
+            QPalette.ColorGroup.Inactive: "brush_inactive",  # 2
         }[cg]
         _val = getattr(self, attr)
         if not _val:
@@ -67,7 +67,7 @@ class RangeSliderStyle:
         else:
             val = _val
 
-        if opt.tickPosition != QSlider.NoTicks:
+        if opt.tickPosition != QSlider.TickPosition.NoTicks:
             val.setAlphaF(self.tick_bar_alpha or SYSTEM_STYLE.tick_bar_alpha)
 
         return QBrush(val)
@@ -75,16 +75,16 @@ class RangeSliderStyle:
     def pen(self, opt: QStyleOptionSlider) -> Qt.PenStyle | QColor:
         cg = opt.palette.currentColorGroup()
         attr = {
-            QPalette.Active: "pen_active",  # 0
-            QPalette.Disabled: "pen_disabled",  # 1
-            QPalette.Inactive: "pen_inactive",  # 2
+            QPalette.ColorGroup.Active: "pen_active",  # 0
+            QPalette.ColorGroup.Disabled: "pen_disabled",  # 1
+            QPalette.ColorGroup.Inactive: "pen_inactive",  # 2
         }[cg]
         val = getattr(self, attr) or getattr(SYSTEM_STYLE, attr)
         if not val:
-            return Qt.NoPen
+            return Qt.PenStyle.NoPen
         if isinstance(val, str):
             val = QColor(val)
-        if opt.tickPosition != QSlider.NoTicks:
+        if opt.tickPosition != QSlider.TickPosition.NoTicks:
             val.setAlphaF(self.tick_bar_alpha or SYSTEM_STYLE.tick_bar_alpha)
 
         return val
@@ -93,18 +93,18 @@ class RangeSliderStyle:
         tp = opt.tickPosition
         off = 0
         if not self.has_stylesheet:
-            if opt.orientation == Qt.Horizontal:
+            if opt.orientation == Qt.Orientation.Horizontal:
                 off += self.h_offset or SYSTEM_STYLE.h_offset or 0
             else:
                 off += self.v_offset or SYSTEM_STYLE.v_offset or 0
-            if tp == QSlider.TicksAbove:
+            if tp == QSlider.TickPosition.TicksAbove:
                 off += self.tick_offset or SYSTEM_STYLE.tick_offset
-            elif tp == QSlider.TicksBelow:
+            elif tp == QSlider.TickPosition.TicksBelow:
                 off -= self.tick_offset or SYSTEM_STYLE.tick_offset
         return off
 
     def thickness(self, opt: QStyleOptionSlider) -> float:
-        if opt.orientation == Qt.Horizontal:
+        if opt.orientation == Qt.Orientation.Horizontal:
             return self.horizontal_thickness or SYSTEM_STYLE.horizontal_thickness
         else:
             return self.vertical_thickness or SYSTEM_STYLE.vertical_thickness

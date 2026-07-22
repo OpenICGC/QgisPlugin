@@ -1,6 +1,6 @@
 from ._generic_range_slider import _GenericRangeSlider
 from ._generic_slider import _GenericSlider
-from .qtcompat.QtCore import Signal
+from qgis.PyQt.QtCore import Signal
 
 
 class _IntMixin:

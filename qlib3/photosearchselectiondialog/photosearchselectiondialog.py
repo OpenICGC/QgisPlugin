@@ -77,7 +77,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         """ Initialize time range and refresh / action callbacks """
         super().__init__(parent)
         self.setupUi(self)
-        self.INFO_ICON = self.style().standardIcon(QStyle.SP_MessageBoxInformation)
+        self.INFO_ICON = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
 
         # Connectem l'event de QRangeSlider.valueChanged (no funciona des del QtDesigner perquè rep dos paràmetres en lloc d'un)
         self.horizontalSlider_range.valueChanged.connect(self.on_range_value_changed)
@@ -335,7 +335,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
                 row = self.tableWidget_photos.rowCount()
                 self.tableWidget_photos.insertRow(row)
                 item = QTableWidgetItem(name)
-                item.setData(Qt.UserRole, (id, image_available, available, publishable, analog))
+                item.setData(Qt.ItemDataRole.UserRole, (id, image_available, available, publishable, analog))
                 item.setBackground(color)
                 item.setToolTip(tooltip)
                 item.setIcon(icon)
@@ -523,7 +523,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
             return None, None, None, None, None
         row = items_list[0].row()
         item = self.tableWidget_photos.item(row, 0)
-        photo_id, image_available, available, publishable, analog = item.data(Qt.UserRole)
+        photo_id, image_available, available, publishable, analog = item.data(Qt.ItemDataRole.UserRole)
         image_available = item.background() not in [self.UNSCANNED_PHOTO_COLOR, self.UNAVAILABLE_PHOTO_COLOR]
         available = item.background() != self.UNAVAILABLE_PHOTO_COLOR
         publishable = item.background() != self.UNPUBLISHABLE_PHOTO_COLOR
@@ -548,7 +548,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         if photo_id is not None:
             # Search photo_id row
             for i in range(self.tableWidget_photos.rowCount()):
-                photo_id2, _image_available, _publishable, _available, _analog = self.tableWidget_photos.item(i, 0).data(Qt.UserRole)
+                photo_id2, _image_available, _publishable, _available, _analog = self.tableWidget_photos.item(i, 0).data(Qt.ItemDataRole.UserRole)
                 if photo_id2 == photo_id:
                     row = i
                     break
@@ -673,22 +673,22 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
 
     def on_table_key_press(self, event):
         """ Mapped table keyPress event to change current year with cursors and load preview photo raster """
-        if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             self.pushButton_link_preview.click()
             self.tableWidget_photos.setFocus()
-        elif event.key() == Qt.Key_Left:
+        elif event.key() == Qt.Key.Key_Left:
             self.horizontalSlider.setValue(self.horizontalSlider.value() - 1)
-        elif event.key() == Qt.Key_Right:
+        elif event.key() == Qt.Key.Key_Right:
             self.horizontalSlider.setValue(self.horizontalSlider.value() + 1)
         else:
             self.tableWidget_photos.__class__.keyPressEvent(self.tableWidget_photos, event)
 
     def on_slider_key_press(self, event, widget):
         """ Mapped sliders keyPress event to change current selected photogram with cursors"""
-        if event.key() == Qt.Key_Up:
+        if event.key() == Qt.Key.Key_Up:
             rows_list = self.tableWidget_photos.selectionModel().selectedRows()
             self.tableWidget_photos.selectRow(rows_list[0].row()-1 if rows_list else self.tableWidget_photos.rowCount() - 1)
-        elif event.key() == Qt.Key_Down:
+        elif event.key() == Qt.Key.Key_Down:
             rows_list = self.tableWidget_photos.selectionModel().selectedRows()
             self.tableWidget_photos.selectRow(rows_list[0].row()+1 if rows_list else 0)
         else:
@@ -712,7 +712,7 @@ class PhotoSearchSelectionDialog(QDockWidget, Ui_TimeSeries):
         return self.horizontalSlider_parallax.value() * 4 + 80
 
     def is_inverted_stereo(self):
-        return self.checkBox_inverted_stereo.checkState() == Qt.Checked
+        return self.checkBox_inverted_stereo.checkState() == Qt.CheckState.Checked
 
     def is_only_one_photo(self):
         return self.checkBox_show_only_one.isChecked()

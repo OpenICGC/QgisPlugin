@@ -22,9 +22,9 @@ QRangeSlider.
 
 from typing import Generic, TypeVar
 
-from .qtcompat import QtGui
-from .qtcompat.QtCore import QEvent, QPoint, QPointF, QRect, Qt, Signal
-from .qtcompat.QtWidgets import (
+from qgis.PyQt import QtGui
+from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, QRect, Qt, Signal
+from qgis.PyQt.QtWidgets import (
     QApplication,
     QSlider,
     QStyle,
@@ -73,7 +73,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         self._control_fraction = 0.04
 
         super().__init__(*args, **kwargs)
-        self.setAttribute(Qt.WA_Hover)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
 
     # ###############  QtOverrides  #######################
 
@@ -158,15 +158,15 @@ class _GenericSlider(QSlider, Generic[_T]):
         option.orientation = self.orientation()
         option.tickPosition = self.tickPosition()
         option.upsideDown = (
-            self.invertedAppearance() != (option.direction == Qt.RightToLeft)
-            if self.orientation() == Qt.Horizontal
+            self.invertedAppearance() != (option.direction == Qt.LayoutDirection.RightToLeft)
+            if self.orientation() == Qt.Orientation.Horizontal
             else not self.invertedAppearance()
         )
-        option.direction = Qt.LeftToRight  # we use the upsideDown option instead
+        option.direction = Qt.LayoutDirection.LeftToRight  # we use the upsideDown option instead
         # option.sliderValue = self._value  # type: ignore
         # option.singleStep = self._singleStep  # type: ignore
-        if self.orientation() == Qt.Horizontal:
-            option.state |= QStyle.State_Horizontal
+        if self.orientation() == Qt.Orientation.Horizontal:
+            option.state |= QStyle.StateFlag.State_Horizontal
 
         # scale style option to integer space
         option.minimum = 0
@@ -177,11 +177,11 @@ class _GenericSlider(QSlider, Generic[_T]):
         self._fixStyleOption(option)
 
     def event(self, ev: QEvent) -> bool:
-        if ev.type() == QEvent.WindowActivate:
+        if ev.type() == QEvent.Type.WindowActivate:
             self.update()
-        elif ev.type() in (QEvent.HoverEnter, QEvent.HoverMove):
+        elif ev.type() in (QEvent.Type.HoverEnter, QEvent.Type.HoverMove):
             self._updateHoverControl(_event_position(ev))
-        elif ev.type() == QEvent.HoverLeave:
+        elif ev.type() == QEvent.Type.HoverLeave:
             self._hoverControl = SC_NONE
             lastHoverRect, self._hoverRect = self._hoverRect, QRect()
             self.update(lastHoverRect)
@@ -197,7 +197,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         pos = _event_position(ev)
 
         # If the mouse button used is allowed to set the value
-        if ev.button() in (Qt.LeftButton, Qt.MiddleButton):
+        if ev.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.MiddleButton):
             self._updatePressedControl(pos)
             if self._pressedControl == SC_HANDLE:
                 opt = self._styleOption
@@ -205,8 +205,8 @@ class _GenericSlider(QSlider, Generic[_T]):
                 offset = sr.center() - sr.topLeft()
                 new_pos = self._pixelPosToRangeValue(self._pick(pos - offset))
                 self.setSliderPosition(new_pos)
-                self.triggerAction(QSlider.SliderMove)
-                self.setRepeatAction(QSlider.SliderNoAction)
+                self.triggerAction(QSlider.SliderAction.SliderMove)
+                self.setRepeatAction(QSlider.SliderAction.SliderNoAction)
 
             self.update()
         # elif: deal with PageSetButtons
@@ -214,7 +214,7 @@ class _GenericSlider(QSlider, Generic[_T]):
             ev.ignore()
 
         if self._pressedControl != SC_NONE:
-            self.setRepeatAction(QSlider.SliderNoAction)
+            self.setRepeatAction(QSlider.SliderAction.SliderNoAction)
             self._setClickOffset(pos)
             self.update()
             self.setSliderDown(True)
@@ -237,7 +237,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         ev.accept()
         oldPressed = self._pressedControl
         self._pressedControl = SC_NONE
-        self.setRepeatAction(QSlider.SliderNoAction)
+        self.setRepeatAction(QSlider.SliderAction.SliderNoAction)
         if oldPressed != SC_NONE:
             self.setSliderDown(False)
         self.update()
@@ -250,7 +250,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         if e.inverted():
             delta *= -1
 
-        orientation = Qt.Vertical if vertical else Qt.Horizontal
+        orientation = Qt.Orientation.Vertical if vertical else Qt.Orientation.Horizontal
         if self._scrollByDelta(orientation, e.modifiers(), delta):
             e.accept()
 
@@ -260,7 +260,7 @@ class _GenericSlider(QSlider, Generic[_T]):
 
         # draw groove and ticks
         opt.subControls = SC_GROOVE
-        if opt.tickPosition != QSlider.NoTicks:
+        if opt.tickPosition != QSlider.TickPosition.NoTicks:
             opt.subControls |= SC_TICKMARKS
         painter.drawComplexControl(CC_SLIDER, opt)
 
@@ -286,12 +286,12 @@ class _GenericSlider(QSlider, Generic[_T]):
         return int(min(QOVERFLOW, val / (self._maximum - self._minimum) * _max))
 
     def _pick(self, pt: QPoint) -> int:
-        return pt.x() if self.orientation() == Qt.Horizontal else pt.y()
+        return pt.x() if self.orientation() == Qt.Orientation.Horizontal else pt.y()
 
     def _setSteps(self, single: float, page: float):
         self._singleStep = single
         self._pageStep = page
-        self.sliderChange(QSlider.SliderStepsChange)
+        self.sliderChange(QSlider.SliderChange.SliderStepsChange)
 
     def _doSliderMove(self):
         if not self.hasTracking():
@@ -299,7 +299,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         if self.isSliderDown():
             self.sliderMoved.emit(self.sliderPosition())
         if self.hasTracking() and not self._blocktracking:
-            self.triggerAction(QSlider.SliderMove)
+            self.triggerAction(QSlider.SliderAction.SliderMove)
 
     @property
     def _styleOption(self):
@@ -310,7 +310,7 @@ class _GenericSlider(QSlider, Generic[_T]):
     def _updateHoverControl(self, pos: QPoint) -> bool:
         lastHoverRect = self._hoverRect
         lastHoverControl = self._hoverControl
-        doesHover = self.testAttribute(Qt.WA_Hover)
+        doesHover = self.testAttribute(Qt.WidgetAttribute.WA_Hover)
         if lastHoverControl != self._newHoverControl(pos) and doesHover:
             self.update(lastHoverRect)
             self.update(self._hoverRect)
@@ -350,7 +350,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         opt.subControls = SC_HANDLE
         if self._pressedControl:
             opt.activeSubControls = self._pressedControl
-            opt.state |= QStyle.State_Sunken
+            opt.state |= QStyle.StateFlag.State_Sunken
         else:
             opt.activeSubControls = self._hoverControl
 
@@ -363,7 +363,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         gr = self.style().subControlRect(CC_SLIDER, opt, SC_GROOVE, self)
         sr = self.style().subControlRect(CC_SLIDER, opt, SC_HANDLE, self)
 
-        if self.orientation() == Qt.Horizontal:
+        if self.orientation() == Qt.Orientation.Horizontal:
             sliderLength = sr.width()
             sliderMin = gr.x()
             sliderMax = gr.right() - sliderLength + 1
@@ -384,14 +384,14 @@ class _GenericSlider(QSlider, Generic[_T]):
         pg_step = self._pageStep
 
         # in Qt scrolling to the right gives negative values.
-        if orientation == Qt.Horizontal:
+        if orientation == Qt.Orientation.Horizontal:
             delta *= -1
         offset = delta / 120
-        if modifiers & Qt.ShiftModifier:
+        if modifiers & Qt.KeyboardModifier.ShiftModifier:
             # Scroll one page regardless of delta:
             steps_to_scroll = max(-pg_step, min(pg_step, offset * pg_step))
             self._offset_accum = 0
-        elif modifiers & Qt.ControlModifier:
+        elif modifiers & Qt.KeyboardModifier.ControlModifier:
             _range = self._maximum - self._minimum
             steps_to_scroll = offset * _range * self._control_fraction
             self._offset_accum = 0
@@ -439,7 +439,7 @@ class _GenericSlider(QSlider, Generic[_T]):
 
     def _execute_scroll(self, steps_to_scroll, modifiers):
         self._setPosition(self._bound(self._overflowSafeAdd(steps_to_scroll)))
-        self.triggerAction(QSlider.SliderMove)
+        self.triggerAction(QSlider.SliderAction.SliderMove)
 
     def _effectiveSingleStep(self) -> float:
         return self._singleStep * self._repeatMultiplier

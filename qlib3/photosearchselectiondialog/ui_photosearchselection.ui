@@ -693,7 +693,7 @@
   <customwidget>
    <class>QRangeSlider</class>
    <extends>QSlider</extends>
-   <header>qtrangeslider</header>
+   <header>qlib3.qtrangeslider</header>
   </customwidget>
  </customwidgets>
  <resources/>

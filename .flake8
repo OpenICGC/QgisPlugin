@@ -8,5 +8,7 @@ extend-ignore = E125,E127,E128,E129,E261,E302,E305,E402,E501,E731
 # per-file-ignores =
 #     vendor/*.py: E501,F401,F811
 #     *_generated.py: E501
-per-file-ignores =
-    lib/qtrangeslider*.py: E501,F405,F403
+# Ignore external lib QtRangeSlider
+# per-file-ignores =
+#     ./lib/qtrangeslider/*.py: E501,F405,F403
+#     /OpenICGC/lib/qtrangeslider/*.py: E501,F405,F403

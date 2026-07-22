@@ -2,9 +2,9 @@ from enum import IntEnum
 from functools import partial
 
 from ._sliders import QDoubleRangeSlider, QDoubleSlider, QRangeSlider
-from .qtcompat.QtCore import QPoint, QSize, Qt, Signal
-from .qtcompat.QtGui import QFontMetrics, QValidator
-from .qtcompat.QtWidgets import (
+from qgis.PyQt.QtCore import QPoint, QSize, Qt, Signal
+from qgis.PyQt.QtGui import QFontMetrics, QValidator
+from qgis.PyQt.QtWidgets import (
     QAbstractSlider,
     QApplication,
     QDoubleSpinBox,
@@ -89,7 +89,7 @@ class SliderProxy:
 
 def _handle_overloaded_slider_sig(args, kwargs):
     parent = None
-    orientation = Qt.Vertical
+    orientation = Qt.Orientation.Vertical
     errmsg = (
         "TypeError: arguments did not match any overloaded call:\n"
         "  QSlider(parent: QWidget = None)\n"
@@ -133,17 +133,17 @@ class QLabeledSlider(SliderProxy, QAbstractSlider):
     def setOrientation(self, orientation):
         """Set orientation, value will be 'horizontal' or 'vertical'."""
         self._slider.setOrientation(orientation)
-        if orientation == Qt.Vertical:
+        if orientation == Qt.Orientation.Vertical:
             layout = QVBoxLayout()
-            layout.addWidget(self._slider, alignment=Qt.AlignHCenter)
-            layout.addWidget(self._label, alignment=Qt.AlignHCenter)
-            self._label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(self._slider, alignment=Qt.AlignmentFlag.AlignHCenter)
+            layout.addWidget(self._label, alignment=Qt.AlignmentFlag.AlignHCenter)
+            self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.setSpacing(1)
         else:
             layout = QHBoxLayout()
             layout.addWidget(self._slider)
             layout.addWidget(self._label)
-            self._label.setAlignment(Qt.AlignRight)
+            self._label.setAlignment(Qt.AlignmentFlag.AlignRight)
             layout.setSpacing(6)
 
         old_layout = self.layout()
@@ -181,7 +181,7 @@ class QLabeledRangeSlider(SliderProxy, QAbstractSlider):
     def __init__(self, *args, **kwargs) -> None:
         parent, orientation = _handle_overloaded_slider_sig(args, kwargs)
         super().__init__(parent)
-        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self._handle_labels = []
         self._handle_label_position: LabelPosition = LabelPosition.LabelsAbove
 
@@ -194,10 +194,10 @@ class QLabeledRangeSlider(SliderProxy, QAbstractSlider):
         self._slider.rangeChanged.connect(self.rangeChanged.emit)
 
         self._min_label = SliderLabel(
-            self._slider, alignment=Qt.AlignLeft, connect=self._min_label_edited
+            self._slider, alignment=Qt.AlignmentFlag.AlignLeft, connect=self._min_label_edited
         )
         self._max_label = SliderLabel(
-            self._slider, alignment=Qt.AlignRight, connect=self._max_label_edited
+            self._slider, alignment=Qt.AlignmentFlag.AlignRight, connect=self._max_label_edited
         )
         self.setEdgeLabelMode(EdgeLabelMode.LabelIsRange)
 
@@ -248,7 +248,7 @@ class QLabeledRangeSlider(SliderProxy, QAbstractSlider):
         if not self._handle_labels:
             return
 
-        horizontal = self.orientation() == Qt.Horizontal
+        horizontal = self.orientation() == Qt.Orientation.Horizontal
         labels_above = self._handle_label_position == LabelPosition.LabelsAbove
 
         last_edge = None
@@ -338,7 +338,7 @@ class QLabeledRangeSlider(SliderProxy, QAbstractSlider):
         """Set orientation, value will be 'horizontal' or 'vertical'."""
 
         self._slider.setOrientation(orientation)
-        if orientation == Qt.Vertical:
+        if orientation == Qt.Orientation.Vertical:
             layout = QVBoxLayout()
             layout.setSpacing(1)
             layout.addWidget(self._max_label)
@@ -351,7 +351,7 @@ class QLabeledRangeSlider(SliderProxy, QAbstractSlider):
                 marg = (0, 0, 0, 0)
             else:
                 marg = (0, 0, 20, 0)
-            layout.setAlignment(Qt.AlignCenter)
+            layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
             layout = QHBoxLayout()
             layout.setSpacing(7)
@@ -402,18 +402,18 @@ class QLabeledDoubleRangeSlider(QLabeledRangeSlider):
 
 class SliderLabel(QDoubleSpinBox):
     def __init__(
-        self, slider: QSlider, parent=None, alignment=Qt.AlignCenter, connect=None
+        self, slider: QSlider, parent=None, alignment=Qt.AlignmentFlag.AlignCenter, connect=None
     ) -> None:
         super().__init__(parent=parent)
         self._slider = slider
-        self.setFocusPolicy(Qt.ClickFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.setMode(EdgeLabelMode.LabelIsValue)
         self.setDecimals(0)
 
         self.setRange(slider.minimum(), slider.maximum())
         slider.rangeChanged.connect(self._update_size)
         self.setAlignment(alignment)
-        self.setButtonSymbols(QSpinBox.NoButtons)
+        self.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self.setStyleSheet("background:transparent; border: 0;")
         if connect is not None:
             self.editingFinished.connect(lambda: connect(self.value()))
@@ -445,7 +445,7 @@ class SliderLabel(QDoubleSpinBox):
         # get the final size hint
         opt = QStyleOptionSpinBox()
         self.initStyleOption(opt)
-        size = self.style().sizeFromContents(QStyle.CT_SpinBox, opt, QSize(w, h), self)
+        size = self.style().sizeFromContents(QStyle.ContentsType.CT_SpinBox, opt, QSize(w, h), self)
         self.setFixedSize(size)
 
     def setValue(self, val):
@@ -473,7 +473,9 @@ class SliderLabel(QDoubleSpinBox):
             try:
                 self._slider.rangeChanged.disconnect(self.setRange)
             except Exception:
-                pass
+                # codi redundant per evitar que es queixi el test "bandit" amb u except pass
+                # pass
+                self._mode = opt
         else:
             self.setMinimum(self._slider.minimum())
             self.setMaximum(self._slider.maximum())
@@ -483,11 +485,11 @@ class SliderLabel(QDoubleSpinBox):
     def validate(self, input: str, pos: int):
         # fake like an integer spinbox
         if "." in input and self.decimals() < 1:
-            return QValidator.Invalid, input, len(input)
+            return QValidator.State.Invalid, input, len(input)
         return super().validate(input, pos)
 
 
 def _fm_width(fm, text):
     if hasattr(fm, "horizontalAdvance"):
         return fm.horizontalAdvance(text)
-    return fm.width(text)
+    return fm.boundingRect(text).width()

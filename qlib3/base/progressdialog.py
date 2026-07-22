@@ -74,10 +74,10 @@ class ProgressDialog(object):
                         parent = get_main_window()
                     if self.isMinimized():
                         # print("minimize")
-                        parent.setWindowState(Qt.WindowMinimized)
+                        parent.setWindowState(Qt.WindowState.WindowMinimized)
                     else:
                         # print("restore")
-                        parent.setWindowState(Qt.WindowNoState)
+                        parent.setWindowState(Qt.WindowState.WindowNoState)
             #    elif event.type() == event.Close:
             #        # print("close")
             #        pass
@@ -96,11 +96,13 @@ class ProgressDialog(object):
             # def canceled(self):
             #    # print("canceled")
             #    pass
-        self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent, Qt.Dialog | Qt.WindowTitleHint | Qt.WindowMinimizeButtonHint)
+        self.dlg = MyQProgressDialog(label + "\n", cancel_button_text, 0, num_steps, self.parent,
+            Qt.WindowType.Dialog | Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowMinimizeButtonHint)
 
         # Configurem el diàleg
-        self.dlg.setWindowState(Qt.WindowNoState if self.parent is not None and not self.parent.isMinimized() else Qt.WindowMinimized)
-        self.dlg.setWindowModality(Qt.WindowModal)
+        self.dlg.setWindowState(Qt.WindowState.WindowNoState if self.parent is not None and not self.parent.isMinimized()
+            else Qt.WindowState.WindowMinimized)
+        self.dlg.setWindowModality(Qt.WindowModality.WindowModal)
         self.dlg.setWindowTitle(title)
         self.dlg.setAutoClose(autoclose)
         # self.dlg.setValue(0)
