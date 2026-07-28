@@ -4,14 +4,14 @@ from ._generic_slider import CC_SLIDER, SC_GROOVE, SC_HANDLE, SC_NONE, _GenericS
 from ._range_style import RangeSliderStyle, update_styles_from_stylesheet
 from qgis.PyQt import QtGui
 from qgis.PyQt.QtCore import (
-    Property,
+    pyqtProperty as Property,
+    pyqtSignal as Signal,
     QEvent,
     QPoint,
     QPointF,
     QRect,
     QRectF,
-    Qt,
-    Signal,
+    Qt
 )
 from qgis.PyQt.QtWidgets import QSlider, QStyle, QStyleOptionSlider, QStylePainter
 

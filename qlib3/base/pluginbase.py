@@ -43,7 +43,7 @@ import unittest
 reload(unittest)
 
 from qgis.PyQt.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread, QEvent
+from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QTimeZone, QLocale, QUrl, QThread, QEvent
 from qgis.PyQt.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from qgis.PyQt.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
 from qgis.PyQt.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog
@@ -51,7 +51,7 @@ from qgis.PyQt.QtGui import QPainter, QCursor, QIcon, QColor, QKeySequence, QDes
 from qgis.PyQt.QtXml import QDomDocument
 
 from qgis.gui import QgsProjectionSelectionDialog, QgsAttributeDialog
-from qgis.core import QgsCoordinateReferenceSystem, QgsGeometry, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
+from qgis.core import QgsApplication, QgsCoordinateReferenceSystem, QgsGeometry, QgsCoordinateTransform, QgsProject, QgsWkbTypes, QgsRectangle, QgsPointXY
 from qgis.core import QgsRasterMinMaxOrigin, QgsDataSourceUri, QgsHueSaturationFilter, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeGroup
 from qgis.core import QgsLayerTreeLayer, QgsLayerDefinition, QgsReadWriteContext, QgsLayoutItemMap, QgsContrastEnhancement
 from qgis.core import QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRendererRange, QgsGraduatedSymbolRenderer, QgsRenderContext
@@ -4274,7 +4274,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False, use_qgis_time_controller=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -4308,16 +4308,17 @@ class LayersBase(object):
             time_series_list, default_time2 = self.get_wms_t_time_series(url, layer_id)
             if not time_series_list:
                 return None
+            time_list = [time for time, layer in time_series_list]
             default_time = default_time or default_time2
             if not default_time:
-                default_time = time_series_list[-1][0]
+                default_time = time_list[-1]
             default_layer = dict(time_series_list)[default_time]
             is_question_mark = url.find("?") >= 0
-            url_time = "%s%stime=%s" % (url, "%26" if is_question_mark else "?", default_time)
-            if use_qgis_time_controller:
-                # Doc: https://gis.stackexchange.com/questions/444332/pyqgis-selecting-wms-timestamp-in-a-standalone-script
-                extra_tags = (extra_tags or "") + ("&" if extra_tags else "") \
-                    + "allowTemporalUpdates=true&temporalSource=provider&type=wmst" # + "&timeDimensionExtent=time=2006/2024/P1Y"
+            url_time = url
+            # Doc: https://gis.stackexchange.com/questions/444332/pyqgis-selecting-wms-timestamp-in-a-standalone-script
+            extra_tags = (extra_tags or "") + ("&" if extra_tags else "") \
+                + "type=wmst&allowTemporalUpdates=true&temporalSource=provider" \
+                + "&timeDimensionExtent=" + ",".join(time_list)
 
         # Obtenim el nom del temps per defecte i creem la capa
         time_layer_name = "%s [%s]" % (layer_name, default_time)
@@ -4374,7 +4375,8 @@ class LayersBase(object):
             wms_date_parts = [int(v) for v in wms_date_text.split("-") if v]
             wms_date_parts += [1] * (3-len(wms_date_parts))
             wms_time_parts = [int(v) for v in wms_time_text.split("-") if v]
-            wms_time_parts += [0] * (3 - len(wms_time_parts))
+            # LI SUMO 1H PER LA CARA SI NO ES MOSTRA BÉ EN EL CONTROL DE TEMPS DE QGIS (HORARI ESTIU??)
+            wms_time_parts += [0] * (3 - len(wms_time_parts)) if wms_time_parts else [1, 0, 0]
             wms_datetime = QDateTime(QDate(*wms_date_parts), QTime(*wms_time_parts))
             return wms_datetime
 
@@ -4401,7 +4403,7 @@ class LayersBase(object):
                         navigation_mode = 2 # NO hauria de passar
                     temporal_controller.setNavigationMode(navigation_mode)
                     wms_datetime = wms_datetime_to_qdatetime(wms_time)
-                    temporal_controller.setTemporalExtents(QgsDateTimeRange(wms_datetime, wms_datetime))
+                    temporal_controller.setTemporalExtents(QgsDateTimeRange(wms_datetime, wms_datetime.addSecs(1)))
 
         # Actualitzem el pintat de la capa
         self.update_wms_layer(layer, layer_id, wms_time, color_expansion=color_expansion)
@@ -4587,6 +4589,7 @@ class LayersBase(object):
             if wms_layer:
                 new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
             if wms_time:
+                print("ZZZ 6")
                 new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
             if wms_style:
                 found = re.search(r"(styles=[^&]+)", new_uri, re.IGNORECASE)
@@ -5889,8 +5892,8 @@ class DebugBase(object):
     """ Classe per amb funcions de debug i test
         ---
         Class with debug and test functions
-        """
-    def __init__(self, parent, ini_console=True):
+        """  
+    def __init__(self, parent, ini_console=True, ini_debug=False):
         """ Inicialització de variables membre apuntant al pare, a l'iface,
             inicialització de llista de timestamps i consola de QGIS
             ---
@@ -5907,9 +5910,9 @@ class DebugBase(object):
         if ini_console:
             self.ini_console()
 
-    def is_debug_mode(self):
-        """ Indica si estem executant l'appQ des del repositori de desenvolupament """
-        return __file__.find("pyrepo") >= 0
+        # Inicialitzem debug
+        if not DebugBase.is_debug_active() and (self.is_debug_mode() or ini_debug):
+            DebugBase.enable_debug()            
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de consola QGIS
@@ -6116,7 +6119,49 @@ class DebugBase(object):
             """
         print(self.get_timestamps_info(info))
 
+    ###########################################################################
+    # Gestió del mode debug
+    #
+    def is_debug_mode(self):
+        """ Indica si estem executant l'appQ des del repositori de desenvolupament """
+        return __file__.find("pyrepo") >= 0 or os.environ.get('QGIS_DEBUG', False) 
 
+    @staticmethod
+    def is_debug_active():
+        """ Indica si el mode debug està actiu o no 
+            ---
+            La variable '_is_debuggin' que indica si està en debug o no es guarda dintre de QgsApplication, la qual
+            com és a singleton, tots els plugins comparteixen la mateixa variable i per tant un únic valor.
+        """
+        return getattr(QgsApplication, "_is_debugging", False)
+
+    @staticmethod
+    def enable_debug(host="127.0.0.1", port=5678):
+        """ Activa la part servidor per poder debugar els plugins 
+            ---
+            La variable '_is_debuggin' que indica si està en debug o no es guarda dintre de QgsApplication, la qual
+            com és a singleton, tots els plugins comparteixen la mateixa variable i per tant un únic valor.    
+        """
+        # si ja estem debugant no fem res        
+        if DebugBase.is_debug_active():
+            return
+
+        # importem la llibrearia i iniciem el debug
+        try:          
+            # la llibreria debugpq necessita que sys.executable apunti al python (i no a qgis-bin.exe)
+            current_exe = sys.executable
+            sys.executable = os.path.join(os.environ['PYTHONHOME'], "python.exe")
+
+            import debugpy        
+            debugpy.listen((host, port))
+            QgsApplication._is_debugging = True
+            print("Mode debug inicialitzat correctament")         
+        except Exception as e:
+            print("Error inicialitzant el mode debug: ", e)
+        finally:
+            # restaurem la variable 
+            sys.executable = current_exe
+            
 class ToolsBase(object):
     """ Classe amb eines d'alt nivell a afegir opcionalment a QGIS
         ---
@@ -6904,7 +6949,7 @@ class PluginBase(QObject):
         ---
         Class to facilitate the creation of a QGIS plugin with a set of utilities included
         """
-    def __init__(self, iface, plugin_pathname, ini_console=True):
+    def __init__(self, iface, plugin_pathname, ini_console=True, ini_debug=False):
         """ Inicialització d'informació del plugin, accés a iface i accés a classes auxiliar de gestió
             ---
             Initialization of plugin information, access to access and access to auxiliary management classes
@@ -6923,7 +6968,7 @@ class PluginBase(QObject):
         self.legend = LegendBase(self)
         self.composer = ComposerBase(self)
         self.crs = CrsToolsBase(self)
-        self.debug = DebugBase(self, ini_console)
+        self.debug = DebugBase(self, ini_console, ini_debug)
         self.tools = ToolsBase(self)
         self.metadata = MetadataBase(self, plugin_pathname)
         self.translation = TranslationBase(self)

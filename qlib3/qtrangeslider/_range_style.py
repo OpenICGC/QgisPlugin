@@ -5,8 +5,8 @@ import re
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from qgis.PyQt import PYQT_VERSION
-from qgis.PyQt.QtCore import Qt
+# from qgis.PyQt import PYQT_VERSION
+from qgis.PyQt.QtCore import Qt, PYQT_VERSION_STR as PYQT_VERSION
 from qgis.PyQt.QtGui import (
     QBrush,
     QColor,

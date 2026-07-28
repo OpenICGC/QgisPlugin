@@ -47,7 +47,7 @@ from qgis.PyQt.QtWidgets import QLineEdit, QFileDialog, QWidgetAction
 is_import_relative = os.path.exists(os.path.join(os.path.dirname(__file__), "qlib3"))
 if is_import_relative:
     # Add a additional library folder to pythonpath (for external libraries)
-    sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+    sys.path.append(os.path.dirname(__file__))
     # Import basic plugin functionalities
     from .qlib3.base.loginfodialog import LogInfoDialog
     from .qlib3.base.pluginbase import PluginBase, WaitCursor
@@ -1446,7 +1446,7 @@ class OpenICGC(PluginBase):
                             "ortofoto_color_serie_anual", None, "", "image/png", None, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                            use_qgis_time_controller=False),
+                            ),
                             "cat_ortho5k.png", True, False, "annual_color_orthophoto",
                             self.manage_metadata_button("Color orthophoto (temporal serie)"), True),
                         ]),
@@ -1465,7 +1465,7 @@ class OpenICGC(PluginBase):
                         self.ortho_color_local_time_series_list, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                        use_qgis_time_controller=False),
+                        ),
                         "cat_ortho5k.png", len(self.ortho_color_local_time_series_list) > 0,
                         self.manage_metadata_button("Color local orthophoto (temporal serie)"), True),
                     # Ortofoto color satèl·lit
@@ -1528,7 +1528,7 @@ class OpenICGC(PluginBase):
                             "ortofoto_infraroig_serie_anual", None, "", "image/png", None, None, 25831,
                             self.request_referrer_param + "&bgcolor=0x000000",
                             self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                            use_qgis_time_controller=False),
+                            ),
                             "cat_ortho5ki.png",
                             self.manage_metadata_button("Infrared orthophoto (temporal serie)"), True),
                         ]),
@@ -1547,7 +1547,7 @@ class OpenICGC(PluginBase):
                         self.ortho_infrared_local_time_series_list, None, 25831,
                         self.request_referrer_param + "&bgcolor=0x000000",
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True,
-                        use_qgis_time_controller=False),
+                        ),
                         "cat_ortho5ki.png", len(self.ortho_infrared_local_time_series_list) > 0,
                         self.manage_metadata_button("Infrared local orthophoto (temporal serie)"), True),
                     # Ortofoto infraroja satèl·lit
@@ -1583,21 +1583,21 @@ class OpenICGC(PluginBase):
                         self.photolib_wms_url, "foto_central", self.photolib_current_time, "central",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
-                        use_qgis_time_controller=True),
+                        ),
                         "photo.png"),
                     (self.tr("Centered rectified photogram (annual serie)"),
                         lambda _checked: self.add_wms_t_layer(self.tr("[AS] Centered rectified photogram"),
                         self.photolib_wms_url, "ortoxpres_central", self.photolib_current_time, "central",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
-                        use_qgis_time_controller=True),
+                        ),
                         "rectified.png"),
                     (self.tr("Centered anaglyph photogram (annual serie)"),
                         lambda _checked: self.add_wms_t_layer(self.tr("[AS] Centered anaglyph phootogram"),
                         self.photolib_wms_url, "anaglif_central", self.photolib_current_time, "central,100,false",
                         "image/png", None, None, 25831, self.request_referrer_param,
                         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=False,
-                        use_qgis_time_controller=True),
+                        ),
                         "stereo.png"),
                     ]),
                 "---",
@@ -2188,10 +2188,10 @@ class OpenICGC(PluginBase):
         searches_list = [self.combobox.itemText(i) for i in range(self.combobox.count())][:self.combobox.maxVisibleItems()]
         self.set_setting_value("last_searches", searches_list)
 
-    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False, use_qgis_time_controller=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id, time, style, image_format, time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False):
         """ Add WMS-T layer and enable timeseries dialog """
         # Add WMS-T
-        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, color_default_expansion, set_current, use_qgis_time_controller)
+        layer = self.layers.add_wms_t_layer(layer_name, url, layer_id, time, style, image_format, time_series_list, time_series_regex, epsg, extra_tags, group_name, group_pos, only_one_map_on_group, only_one_visible_map_on_group, collapsed, visible, transparency, saturation, resampling_bilinear, resampling_cubic, color_default_expansion, set_current)
         if layer:
             if type(layer) in [QgsRasterLayer, QgsVectorLayer]:
                 # Show timeseries dialog

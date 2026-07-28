@@ -2,7 +2,7 @@ from enum import IntEnum
 from functools import partial
 
 from ._sliders import QDoubleRangeSlider, QDoubleSlider, QRangeSlider
-from qgis.PyQt.QtCore import QPoint, QSize, Qt, Signal
+from qgis.PyQt.QtCore import QPoint, QSize, Qt, pyqtSignal as Signal
 from qgis.PyQt.QtGui import QFontMetrics, QValidator
 from qgis.PyQt.QtWidgets import (
     QAbstractSlider,

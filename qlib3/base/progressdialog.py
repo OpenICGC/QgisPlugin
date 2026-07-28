@@ -17,7 +17,7 @@ import time
 import threading
 import operator
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QEvent
 from qgis.PyQt.QtWidgets import QProgressDialog, QProgressBar, QApplication
 
 
@@ -68,7 +68,7 @@ class ProgressDialog(object):
 
         class MyQProgressDialog(QProgressDialog):
             def changeEvent(self, event):
-                if event.type() == event.WindowStateChange:
+                if event.type() == QEvent.Type.WindowStateChange:
                     parent = self.parent()
                     if not parent:
                         parent = get_main_window()
@@ -78,10 +78,10 @@ class ProgressDialog(object):
                     else:
                         # print("restore")
                         parent.setWindowState(Qt.WindowState.WindowNoState)
-            #    elif event.type() == event.Close:
+            #    elif event.type() == QEvent.Type.Close:
             #        # print("close")
             #        pass
-            #    elif event.type() == event.Hide:
+            #    elif event.type() == QEvent.Type.Hide:
             #        # print("hide")
             #        pass
             # def closeEvent(self, event):

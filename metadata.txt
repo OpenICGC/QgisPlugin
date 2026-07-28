@@ -28,8 +28,12 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=4.99
-version=1.2.2
-changelog=v1.2.2 (2026-07-22)
+version=1.2.3
+changelog=v1.2.3 (2026-07-28)
+	- Fixed photolibrary access
+	- Fixed time control activation on WMS-T layers
+
+	v1.2.2 (2026-07-22)
 	- Fixed code validation issues
 
 	v1.2.1 (2026-07-20)

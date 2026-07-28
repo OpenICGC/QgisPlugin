@@ -23,7 +23,7 @@ QRangeSlider.
 from typing import Generic, TypeVar
 
 from qgis.PyQt import QtGui
-from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, QRect, Qt, Signal
+from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, QRect, Qt, pyqtSignal as Signal
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QSlider,
@@ -133,7 +133,7 @@ class _GenericSlider(QSlider, Generic[_T]):
         oldMax, self._maximum = self._maximum, float(max(min, max_))
 
         if oldMin != self._minimum or oldMax != self._maximum:
-            self.sliderChange(self.SliderRangeChange)
+            #self.sliderChange(self.SliderRangeChange)
             self.rangeChanged.emit(self._minimum, self._maximum)
             self.setValue(self._value)  # re-bound
 
