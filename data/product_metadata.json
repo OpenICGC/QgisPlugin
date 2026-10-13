@@ -74,7 +74,14 @@
       "Cobertura": "Sèrie temporal",
       "Carpeta": "coastline_temporal_serie",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=format%2FSHP&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=L%C3%ADnia%20de%20costa&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/linia-costa-v1r0"
+   },
+   {
+      "Producte": "Mapa base",
+      "Cobertura": "Vigent",
+      "Carpeta": "Base maps (world-wide)",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/mapa-base-wms"
    },
    {
       "Producte": "Mapa de Cobertes del Sòl de Catalunya (MCSC)",
@@ -133,18 +140,25 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2Fdatasets&resultType=details&sortBy=changeDate&_content_type=json&title=Mapa%20topogr%C3%A0fic%201:250%20000&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
-      "Producte": "Model d'elevacions del terreny",
+      "Producte": "Model d'alçàries",
       "Cobertura": "Sèrie temporal",
-      "Carpeta": "Digital terrain model",
+      "Carpeta": "Elevation model",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Model%20d'elevacions%20del%20terreny&without=litoral"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d%E2%80%99al%C3%A7%C3%A0ries&abstract=elements%20naturals%20i%20artificials"
+   },
+   {
+      "Producte": "Model d'alçàries de vegetació",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Vegetation elevation model",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d%E2%80%99al%C3%A7%C3%A0ries%20de%20vegetaci%C3%B3"
    },
    {
       "Producte": "Model d'elevacions del terreny amb edificis del litoral",
       "Cobertura": "Sèrie temporal",
       "Carpeta": "Coastal digital terrain model buildings",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Model%20del%20terreny%20amb%20edificis%20del%20litoral"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d'elevacions%20del%20terreny%20amb%20edificis%20del%20litoral"
    },
    {
       "Producte": "Model d'elevacions del terreny del litoral",
@@ -154,25 +168,46 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d'elevacions%20del%20terreny%20del%20litoral&without=construccions"
    },
    {
-      "Producte": "Model de superfícies",
+      "Producte": "Model d'elevacions del terreny territorial",
       "Cobertura": "Sèrie temporal",
-      "Carpeta": "Surface model",
+      "Carpeta": "Digital terrain model",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Model%20de%20superficies&without=litoral%20geologiques"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d'elevacions%20del%20terreny&without=litoral"
    },
    {
       "Producte": "Model de superfícies del litoral",
       "Cobertura": "Sèrie temporal",
       "Carpeta": "Coastal surface model",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=spatialRepresentationType%2Fgrid%26keyword%2FElevacions%26format%2FCOG&resultType=details&sortBy=changeDate&fast=index&_content_type=json&from=1&to=50&any=Model%20de%20superf%C3%ADcies%20del%20litoral"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20de%20superf%C3%ADcies%20del%20litoral"
+   },
+   {
+      "Producte": "Model de superfícies territorial",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Surface model",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20de%20superficies&without=litoral%20geologiques"
+   },
+   {
+      "Producte": "Model d’elevacions del terreny amb edificis i vegetació territorial",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Vegetation building digital terrain model",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d'elevacions%20del%20terreny%20amb%20edificis%20i%20vegetaci%C3%B3"
+   },
+   {
+      "Producte": "Model d’elevacions del terreny amb edificis territorial",
+      "Cobertura": "Sèrie temporal",
+      "Carpeta": "Building digital terrain model",
+      "Formats de fitxer": "",
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d'elevacions%20del%20terreny%20amb%20edificis%20de%20Catalunya&abstract=edificis%20existents"
    },
    {
       "Producte": "Model d’orientacions del litoral",
       "Cobertura": "Sèrie temporal",
       "Carpeta": "Coastal orientations model",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=title&from=1&to=20&fast=index&_content_type=json&title=Model%20d%E2%80%99orientacions%20del%20litoral"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?resultType=details&sortBy=changeDate&type=dataset&from=1&to=20&title=Model%20d%E2%80%99orientacions%20del%20litoral"
    },
    {
       "Producte": "NDVI",
@@ -214,7 +249,7 @@
       "Cobertura": "Sèrie temporal",
       "Carpeta": "coast_orthophoto_temporal_serie",
       "Formats de fitxer": "",
-      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=orgName%2FInstitut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya&type=dataset&resultType=details&sortBy=title&title=Ortofoto%20costa&from=1&to=20"
+      "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/metadata/orto-costa-v1r0"
    },
    {
       "Producte": "Ortofoto infraroja 25 cm",
@@ -343,7 +378,7 @@
       "Metadades": "https://catalegs.ide.cat/geonetwork/srv/cat/catalog.search#/search?facet.q=category%2FrccState&resultType=details&sortBy=changeDate&from=1&to=20&fast=index&_content_type=json&title=Seccions%20Censals&orgName=Institut%20Cartogr%C3%A0fic%20i%20Geol%C3%B2gic%20de%20Catalunya"
    },
    {
-      "Producte": "Talls ETRS89",
+      "Producte": "Talls cartogràfics",
       "Cobertura": "Vigent",
       "Carpeta": "Cartographic series",
       "Formats de fitxer": "",

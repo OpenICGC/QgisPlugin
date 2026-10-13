@@ -168,6 +168,12 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     ("ed1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-1m-(\d+-\d+)\.json)"),
     ("ed2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-2m-(\d+-\d+)\.json)"),
     ("ed5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis/json_unzip", r"(model-elevacions-terreny-edificis-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-elevacions-terreny-edificis-vegetacio
+    ("ev25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-vegetacio/json_unzip", r"(model-elevacions-terreny-edificis-vegetacio-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("ev50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-vegetacio/json_unzip", r"(model-elevacions-terreny-edificis-vegetacio-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("ev1m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-vegetacio/json_unzip", r"(model-elevacions-terreny-edificis-vegetacio-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("ev2m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-vegetacio/json_unzip", r"(model-elevacions-terreny-edificis-vegetacio-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("ev5m-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-edificis-vegetacio/json_unzip", r"(model-elevacions-terreny-edificis-vegetacio-\w+-\w+-5m-(\d+-\d+)\.json)"),
     # model-superficies
     ("ms25cm-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-25cm-(\d+-\d+)\.json)"),
     ("ms50cm-", "https://datacloud.icgc.cat/datacloud/model-superficies/json_unzip", r"(model-superficies-\w+-(\w+)-50cm-(\d+-\d+)\.json)"),
@@ -204,7 +210,19 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     ("mol1m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-1m-(\d+-\d+)\.json)"),
     ("mol2m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-2m-(\d+-\d+)\.json)"),
     ("mol5m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-5m-(\d+-\d+)\.json)"),
-    ], json_not_tiff=True, remove_prefix=False, sort_by_key=False):
+    # model-alcaries
+    ("ml25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("ml50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("ml1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("ml2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("ml5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-alcaries-vegetacio
+    ("mv25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("mv50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("mv1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("mv2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("mv5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    ], json_not_tiff=True, remove_prefix=False, sort_by_key=False, only_best_gsd=False):
     """ Obté les URLs dels arxius de MET disponibles de l'ICGC
         Retorna: [(dtm_name, dtm_url)]
         ---
@@ -218,10 +236,22 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
         dtm_list = get_products(urlbase_list)
     if group_by_product_not_gsd:
         # Si ens demanen agrupar per producte, juntem tots productes iguals de diferent GSD
-        final_dtm_list = []
-        for dtm_name_gsd, dtm_url in dtm_list:
-            dtm_id = "".join(re.split(r"\d+c*m", dtm_name_gsd))
-            final_dtm_list.append((dtm_id, dtm_url))
+        if only_best_gsd:
+            # Si ens demanen només el millors GSD, en quedem amb GSD més petit dels DTMs amb el mateix id
+            dtm_dict = {}
+            for dtm_name_gsd, dtm_url in dtm_list:
+                dtm_id = "".join(re.split(r"\d+c*m", dtm_name_gsd))
+                dtm_gsd = float(re.match(r".*(\d+c*m).*", dtm_name_gsd).group(1).replace("cm", "").replace("m", "00"))
+                previous_dtm_gsd = dtm_dict.get(dtm_id, (1000000, None))[0]
+                if dtm_gsd < previous_dtm_gsd:
+                    dtm_dict[dtm_id] = (dtm_gsd, dtm_url)
+            final_dtm_list = [(dtm_id, dtm_url) for dtm_id, (_dtm_gsd, dtm_url) in dtm_dict.items()]
+        else:
+            # Si ens demanen agrupar per producte, juntem tots productes iguals de diferent GSD
+            final_dtm_list = []
+            for dtm_name_gsd, dtm_url in dtm_list:
+                dtm_id = "".join(re.split(r"\d+c*m", dtm_name_gsd))
+                final_dtm_list.append((dtm_id, dtm_url))
     else:
         final_dtm_list = dtm_list
     if dtm_name:

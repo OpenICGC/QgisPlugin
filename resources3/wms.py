@@ -247,7 +247,8 @@ def get_historic_satelite_ortho(url="https://geoserveis.icgc.cat/icgc_sentinel2/
     return url, wms_ex_list
 
 def get_coastlines(url="https://geoserveis.icgc.cat/servei/catalunya/linia-costa/wms",
-    reg_ex_filter=r"<Name>(linia_costa_(.+))</Name>\s*<Title>\s*<\!\[CDATA\[\s*Línia de costa (.+)\s*\]\]>\s*</Title>"):
+    reg_ex_filter=r"<Name>(linia_costa_(\d+)_(\d+))</Name>\s*<Title>\s*<\!\[CDATA\[\s*Línia de costa (.+)\s*\]\]>\s*</Title>",
+    separator="-"):
     """ Obté la URL del servidor de linies de costa i la llista capes disponibles
         Retorna: URL, [(layer_id, layer_name, date_tag)]
         ---
@@ -255,7 +256,9 @@ def get_coastlines(url="https://geoserveis.icgc.cat/servei/catalunya/linia-costa
         Returns: URL, [(layer_id, layer_name, date_tag)]
         """
     # Recuperem les linies de costa
-    wms_list = get_wms_capabilities_info(url, reg_ex_filter)
+    wms_list = [(layer_id, f"{date_begin}{separator}{date_end}", layer_name)
+        for layer_id, date_begin, date_end, layer_name
+        in get_wms_capabilities_info(url, reg_ex_filter)]
 
     # Reorganitzem la informació
     wms_ex_list = [(layer_id, layer_name, date_tag) for layer_id, date_tag, layer_name in wms_list]

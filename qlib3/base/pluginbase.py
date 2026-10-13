@@ -43,7 +43,7 @@ import unittest
 reload(unittest)
 
 from qgis.PyQt.QtCore import Qt, QSize, QSettings, QObject, QTranslator, qVersion, QCoreApplication
-from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QTimeZone, QLocale, QUrl, QThread, QEvent
+from qgis.PyQt.QtCore import QVariant, QDateTime, QDate, QTime, QLocale, QUrl, QThread, QEvent
 from qgis.PyQt.QtWidgets import QApplication, QAction, QToolBar, QLabel, QMessageBox, QMenu, QToolButton
 from qgis.PyQt.QtWidgets import QFileDialog, QWidgetAction, QDockWidget, QShortcut, QTableView
 from qgis.PyQt.QtWidgets import QWidget, QPushButton, QHBoxLayout, QDialog
@@ -1346,7 +1346,7 @@ class LayersBase(object):
         self.iface = parent.iface
         self.root = QgsProject.instance().layerTreeRoot()
 
-        self.time_series_dict = {} # tuple: (<time_list>, <color_expansion>)
+        self.time_series_dict = {} # tuple: (<time_list>, <color_expansion>, <simplify_begin_end>, <title>, <current_prefix>)
 
         self.download_manager = DownloadManager()
 
@@ -4274,7 +4274,7 @@ class LayersBase(object):
         # Retornem la última capa
         return layers_list
 
-    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False):
+    def add_wms_t_layer(self, layer_name, url, layer_id=None, default_time=None, style="default", image_format="image/png", time_series_list=None, time_series_regex=None, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, resampling_bilinear=False, resampling_cubic=False, color_default_expansion=False, set_current=False, time_series_regex_sort_callback=None, simplify_begin_end=False, title=None, current_prefix=""):
         """ Afegeix una capa WMS-T a partir de la URL base i una capa amb informació temporal.
             Veure add_wms_layer per la resta de paràmetres
             ---
@@ -4292,10 +4292,11 @@ class LayersBase(object):
             else:
                 if not default_time:
                     default_time = time_series_list[-1][0]
+                default_layer = None
                 url_time = dict(time_series_list)[default_time]
         elif time_series_regex:
             # Utilitzem la expressió regular per cercar capes i simular una sèrie temporal
-            time_series_list, default_time2 = self.get_wms_t_time_series(url, None, time_series_regex)
+            time_series_list, default_time2 = self.get_wms_t_time_series(url, None, time_series_regex, time_series_regex_sort_callback)
             if not time_series_list:
                 return None
             default_time = default_time or default_time2
@@ -4313,7 +4314,6 @@ class LayersBase(object):
             if not default_time:
                 default_time = time_list[-1]
             default_layer = dict(time_series_list)[default_time]
-            is_question_mark = url.find("?") >= 0
             url_time = url
             # Doc: https://gis.stackexchange.com/questions/444332/pyqgis-selecting-wms-timestamp-in-a-standalone-script
             extra_tags = (extra_tags or "") + ("&" if extra_tags else "") \
@@ -4333,7 +4333,7 @@ class LayersBase(object):
                 set_current=set_current, only_one_map_on_group=only_one_map_on_group, only_one_visible_map_on_group=only_one_visible_map_on_group)
 
         # Registrem les capes temporals de la url, si cal expandir colors i refresquem la capa activa
-        self.time_series_dict[layer] = (time_series_list, color_default_expansion)
+        self.time_series_dict[layer] = (time_series_list, color_default_expansion, simplify_begin_end, title, current_prefix)
         self.iface.layerTreeView().currentLayerChanged.emit(layer)
 
         return layer
@@ -4352,7 +4352,7 @@ class LayersBase(object):
 
     def is_wms_t_layer(self, layer):
         # Obtenim el nom de la capa associada al temps escollit
-        time_series_list, _color_expansion = self.time_series_dict.get(layer, ([], False))
+        time_series_list, _color_expansion, _simplify_begin_end, _title, _current_prefix = self.time_series_dict.get(layer, ([], False, False, None, None))
         return len(time_series_list) > 0
 
     def update_wms_t_layer_current_time(self, layer, wms_time):
@@ -4381,7 +4381,7 @@ class LayersBase(object):
             return wms_datetime
 
         # Obtenim el nom de la capa associada al temps escollit
-        time_series_list, color_expansion = self.time_series_dict.get(layer, ([], False))
+        time_series_list, color_expansion, _simplify_begin_end, _label, _current_prefix = self.time_series_dict.get(layer, ([], False, False, None, None))
         if not time_series_list:
             return
         layer_id = dict(time_series_list)[wms_time]
@@ -4415,7 +4415,8 @@ class LayersBase(object):
 
         return new_name
 
-    def get_wms_t_time_series(self, url, layer_id, ts_regex=None, version="1.1.1", timeout_seconds=5, retries=3, check_ssl=CHECK_SSL):
+    def get_wms_t_time_series(self, url, layer_id, ts_regex=None, ts_regex_sort_callback=None, remove_repeated=True,
+        version="1.1.1", timeout_seconds=5, retries=3, check_ssl=CHECK_SSL, separator="-"):
         """ Obté informació temporal d'una capa d'un servidor WMS-T o d'un grup de capes (via expresió regular)
             Retona:
             - llista de tuples [(<name>, <layer_id>), ...]
@@ -4499,11 +4500,19 @@ class LayersBase(object):
                 layer_id = layer.find("Name").text
                 found = re.findall(ts_regex, layer_id)
                 if found:
-                    time = "-".join(found[0]) if type(found[0]) is tuple else found[0]
+                    time = separator.join([v for v in found[0] if v]) if type(found[0]) is tuple else found[0]
                     time_series_list.append((time, layer_id))
                 layer_id = None
 
-        time_series_list.sort()
+        # Eliminem claus repetides de la llista de sèries temporals (es queda la última)
+        # per exemple en cas de capes multiresolució i només volem la millor (ha de ser l'última...)
+        if remove_repeated:
+            time_series_list = list(dict(time_series_list).items())
+
+        # Si tenim una regex in hem d'ordenar ho fem
+        if ts_regex and ts_regex_sort_callback is not None:
+            time_series_list.sort(key=lambda ts: ts_regex_sort_callback(ts[0].split(separator)))
+
         return time_series_list, default_time
 
     def add_wms_layer(self, layer_name, url, layers_list, styles_list, image_format, epsg=None, extra_tags="", group_name="", group_pos=None, only_one_map_on_group=False, only_one_visible_map_on_group=True, collapsed=True, visible=True, transparency=None, saturation=None, set_current=False, resampling_bilinear=False, resampling_cubic=False, ignore_get_map_url=True):
@@ -4589,7 +4598,6 @@ class LayersBase(object):
             if wms_layer:
                 new_uri = new_uri.replace("layers=%s" % current_layer, "layers=%s" % wms_layer)
             if wms_time:
-                print("ZZZ 6")
                 new_uri = new_uri.replace("time=%s" % (current_time), "time=%s" % (wms_time))
             if wms_style:
                 found = re.search(r"(styles=[^&]+)", new_uri, re.IGNORECASE)
@@ -5470,7 +5478,7 @@ class LegendBase(object):
             Expand or collapse a group by name
             """
         group = self.get_group_by_name(group_name)
-        if group is not None:
+        if group is None:
             return False
         self.expand_group(group, expand)
         return True
@@ -5892,7 +5900,7 @@ class DebugBase(object):
     """ Classe per amb funcions de debug i test
         ---
         Class with debug and test functions
-        """  
+        """
     def __init__(self, parent, ini_console=True, ini_debug=False):
         """ Inicialització de variables membre apuntant al pare, a l'iface,
             inicialització de llista de timestamps i consola de QGIS
@@ -5912,7 +5920,9 @@ class DebugBase(object):
 
         # Inicialitzem debug
         if not DebugBase.is_debug_active() and (self.is_debug_mode() or ini_debug):
-            DebugBase.enable_debug()            
+            debug_status = DebugBase.enable_debug()
+            if not debug_status:
+                self.show_debug_error(debug_status)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de consola QGIS
@@ -6124,11 +6134,11 @@ class DebugBase(object):
     #
     def is_debug_mode(self):
         """ Indica si estem executant l'appQ des del repositori de desenvolupament """
-        return __file__.find("pyrepo") >= 0 or os.environ.get('QGIS_DEBUG', False) 
+        return __file__.find("pyrepo") >= 0 or os.environ.get('QGIS_DEBUG', False)
 
     @staticmethod
     def is_debug_active():
-        """ Indica si el mode debug està actiu o no 
+        """ Indica si el mode debug està actiu o no
             ---
             La variable '_is_debuggin' que indica si està en debug o no es guarda dintre de QgsApplication, la qual
             com és a singleton, tots els plugins comparteixen la mateixa variable i per tant un únic valor.
@@ -6137,31 +6147,120 @@ class DebugBase(object):
 
     @staticmethod
     def enable_debug(host="127.0.0.1", port=5678):
-        """ Activa la part servidor per poder debugar els plugins 
+        """ Activa la part servidor per poder debugar els plugins
+            Retorna: bool indicant si s'ha pogut activar correctament el mode debug
             ---
             La variable '_is_debuggin' que indica si està en debug o no es guarda dintre de QgsApplication, la qual
-            com és a singleton, tots els plugins comparteixen la mateixa variable i per tant un únic valor.    
+            com és a singleton, tots els plugins comparteixen la mateixa variable i per tant un únic valor.
         """
-        # si ja estem debugant no fem res        
-        if DebugBase.is_debug_active():
-            return
+        debug_ok = True
 
-        # importem la llibrearia i iniciem el debug
-        try:          
-            # la llibreria debugpq necessita que sys.executable apunti al python (i no a qgis-bin.exe)
+        # si ja estem debugant no fem res
+        if not DebugBase.is_debug_active():
             current_exe = sys.executable
-            sys.executable = os.path.join(os.environ['PYTHONHOME'], "python.exe")
+            try:
+                # la llibreria debugpq necessita que sys.executable apunti al python (i no a qgis-bin.exe)
+                sys.executable = os.path.join(os.environ['PYTHONHOME'], "python.exe")
+                # importem la llibrearia i iniciem el debug
+                import debugpy
+                # arrenquem el servidor de debug
+                debugpy.listen((host, port))
+                # marquem que estem debugant (veure is_debug_active())
+                QgsApplication._is_debugging = True
+                print("Mode debug inicialitzat correctament")
 
-            import debugpy        
-            debugpy.listen((host, port))
-            QgsApplication._is_debugging = True
-            print("Mode debug inicialitzat correctament")         
-        except Exception as e:
-            print("Error inicialitzant el mode debug: ", e)
-        finally:
-            # restaurem la variable 
-            sys.executable = current_exe
-            
+            except ImportError as e:
+                # Error important debugpy
+                debug_ok = None
+                print("Error important la llibreria debugpy: ", e)
+
+            except Exception as e:
+                # Error activant debugpy
+                debug_ok = False
+                print("Error inicialitzant el mode debug: ", e)
+
+            finally:
+                # restaurem la variable
+                sys.executable = current_exe
+
+        return debug_ok
+
+    def show_debug_error(self, debug_status):
+        """ Mostra un missatge d'error indicant que no es pot activar el mode debug
+            i dóna la opció d'instal·lar la llibreria 'debugpy' si cal
+            Params:
+            - debug_status: None si hi ha hagut un error d'importació de debugpy, False si hi ha hagut un altre error
+            ---
+            Shows an error message indicating that the debug mode cannot be activated
+            and gives the option to install the 'debugpy' library if it is necessary
+            Params:
+            - debug_status: None if there was an import error for debugpy, False if there was another error
+            """
+        is_import_not_activation_error = debug_status is None
+        if is_import_not_activation_error:
+            # Error important d'importació de debugpy
+            widget_bar = self.parent.iface.messageBar().createMessage("Atenció",
+                "No es pot activar el mode debug, revisa tenir instal·lada la llibreria 'debugpy'")
+            # Afegim un botó per poder instal·lar la llibreria
+            btn_install = QPushButton("Instal·lar debugpy")
+            btn_install.clicked.connect(self.show_install_debugpy)
+            widget_bar.layout().addWidget(btn_install)
+            self.parent.iface.messageBar().pushWidget(widget_bar, Qgis.MessageLevel.Warning, duration=0)
+        else:
+            # Error activant debugpy
+            self.parent.iface.messageBar().pushMessage(
+                "Error activant el mode debug", Qgis.MessageLevel.Warning, duration=0)
+
+    def show_install_debugpy(self):
+        """ Mostra el procés d'instal·lació de debugpy
+            ---
+            Shows the debugpy installation process
+            """
+        # Tanquem l'error
+        self.parent.iface.messageBar().clearWidgets()
+        # Instal·lem la llibreria debugpy
+        with WaitCursor():
+            status_ok = self.install_debugpy()
+        # Mostrem com ha anat el procés
+        if status_ok:
+            if DebugBase.enable_debug():
+                self.parent.iface.messageBar().pushMessage(
+                    "Debugpy instal·lada correctament i debug activat", Qgis.MessageLevel.Success, duration=5)
+            else:
+                self.parent.iface.messageBar().pushMessage(
+                    "Debugpy instal·lada correctament però no s'ha pogut activar el debug", Qgis.MessageLevel.Warning, duration=0)
+        else:
+            self.parent.iface.messageBar().pushMessage(
+                "Error en instal·lar Debugpy", Qgis.MessageLevel.Critical, duration=0)
+
+    def install_debugpy(self):
+        """ Instal·la la llibreria 'debugpy' si no està instal·lada
+            retorna True si la instal·lació ha estat correcta, False en cas contrari.
+            ---
+            Installs the 'debugpy' library if it is not installed
+            Returns True if the installation was successful, False otherwise.
+            """
+        return self.install_lib("debugpy")
+
+    def install_lib(self, lib_name):
+        """ Instal·la la llibreria especificada si no està instal·lada
+            retorna True si la instal·lació ha estat correcta, False en cas contrari.
+            ---
+            Installs the specified library if it is not installed
+            Returns True if the installation was successful, False otherwise.
+            """
+        try:
+            __import__(lib_name)
+            status_ok = True
+        except ImportError:
+            python_exe = os.path.join(os.environ['PYTHONHOME'], "python.exe")
+            status_ok = subprocess.run( # nosec B603
+                [python_exe, "-m", "pip", "install", lib_name],
+                creationflags=subprocess.CREATE_NO_WINDOW
+                ).returncode == 0
+        return status_ok
+
+
 class ToolsBase(object):
     """ Classe amb eines d'alt nivell a afegir opcionalment a QGIS
         ---
@@ -6439,11 +6538,11 @@ class ToolsBase(object):
     def toggle_transparency_dialog(self, title=None, layer=None, transparency=None):
         self.show_transparency_dialog(title, layer, transparency, not self.transparency_dialog.isVisible() if self.transparency_dialog else True)
 
-    def show_time_series_dialog(self, layer, title=None, current_prefix="", show=True):
+    def show_time_series_dialog(self, layer, show=True):
         # Mostrem o ocultem el diàleg de sèries temporals
         if show:
             # Obtenim la llista de capes temporal del diccionari de sèries temporals
-            time_series_tuple_list, _color_expansion = self.parent.layers.time_series_dict.get(layer, ([], False))
+            time_series_tuple_list, _color_expansion, simplify_begin_end, title, current_prefix = self.parent.layers.time_series_dict.get(layer, ([], False, False, None, None))
             if not time_series_tuple_list:
                 return
             # Obtenim la url de la capa i la capa seleccionada
@@ -6462,9 +6561,9 @@ class ToolsBase(object):
             update_callback = lambda current_time: self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
             if not self.time_series_dialog:
                 # Si no tenim el diàleg el creem i el mostrem
-                self.time_series_dialog = TimeSeriesDialog(time_series_list, current_time,
-                    layer.name().replace(" [%s]" % current_time, ""), update_callback,
-                    title, current_prefix, True, self.iface.mainWindow())
+                self.time_series_dialog = TimeSeriesDialog(time_series_list,
+                    current_time, layer.name().replace(" [%s]" % current_time, ""),
+                    simplify_begin_end, update_callback, title, current_prefix, self.iface.mainWindow())
                 self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.time_series_dialog)
                 # Mapegem l'event de visibilitat per detectar quan tanquin el widget i poder refrescar
                 # algun botó si cal... en principi això està implementat en l'event de canvi de capa
@@ -6475,9 +6574,12 @@ class ToolsBase(object):
             else:
                 # Configurem el diàleg
                 if title:
-                    self.time_series_dialog.setWindowTitle(title)
+                    self.time_series_dialog.set_title_prefix(title)
+                if current_prefix:
+                    self.time_series_dialog.set_current_prefix(current_prefix)
                 if layer:
-                    self.time_series_dialog.set_time_series(time_series_list, current_time, layer.name(), update_callback)
+                    self.time_series_dialog.set_time_series(time_series_list, current_time, layer.name(),
+                        simplify_begin_end, update_callback)
                 # Activem els controls
                 self.time_series_dialog.set_enabled(True)
                 # Mostrem el diàleg
@@ -6488,8 +6590,8 @@ class ToolsBase(object):
             if self.time_series_dialog:
                 self.time_series_dialog.hide()
 
-    def toggle_time_series_dialog(self, layer, title=None, current_prefix=""):
-        self.show_time_series_dialog(layer, title, current_prefix, not self.time_series_dialog.isVisible() if self.time_series_dialog else True)
+    def toggle_time_series_dialog(self, layer):
+        self.show_time_series_dialog(layer, not self.time_series_dialog.isVisible() if self.time_series_dialog else True)
 
     def show_anaglyph_dialog(self, layer=None, title=None, parallax_label="", inverted_stereo_label="", show=True):
         # Mostrem o ocultem el diàleg de sèries temporals
@@ -6562,7 +6664,7 @@ class ToolsBase(object):
 
     def on_layer_removed(self, layer):
         if self.parent and self.parent.layers and self.parent.layers.time_series_dict:
-            time_series_list, _color_expansion = self.parent.layers.time_series_dict.get(layer, ([], False))
+            time_series_list, _color_expansion, _simplify_begin_end, _label, _current_prefix = self.parent.layers.time_series_dict.get(layer, ([], False, False, None, None))
             if time_series_list:
                 self.parent.layers.time_series_dict.pop(layer)
 

@@ -32,71 +32,98 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
     layer = None
     time_series_list = []
 
-    def __init__(self, time_series_list, current_time, layer_name, update_callback=None, title=None, current_label="", autoshow=True, parent=None):
+    def __init__(self, time_series_list, current_time, layer_name, simplify_begin_end=False,
+        update_callback=None, title_prefix=None, current_prefix="", parent=None, autoshow=True):
         """ Inicialització del diàleg "about", cal informar de:
             - title: Títol del diàleg
             - layer: capa a modificar
             - time_series_list: Llista de dates disponibles
             Opcionalment:
-            - autoshow: Mostra el diàleg automàticament al crear-lo
             - parent: Especifica la finestra pare del diàleg
+            - autoshow: Mostra el diàleg automàticament al crear-lo
             ---
             Initialization of the "about" dialog, you need to report:
              - title: Title of the dialog
              - layer: layer to modify
              - time_series_list: List of available dates
             Optionally:
-             - autoshow: Show the dialog automatically when you create it
              - parent: Specifies the parent window of the dialog
+             - autoshow: Show the dialog automatically when you create it
             """
         super().__init__(parent)
         self.setupUi(self)
         # Canviem l'estil del QSlider per fer que surti la "fletxeta"
         QtExtra.forceQSliderArrowStyle(self.horizontalSlider)
 
-        # Etiqueta opcional pel valors seleccionat
-        self.current_value_prefix = current_label
-
         # Canviem el títol i la icona
-        if title:
-            self.setWindowTitle(title)
+        self.set_title_prefix(title_prefix)
+
+        # Etiqueta opcional pel valors seleccionat
+        self.set_current_prefix(current_prefix)
 
         # Configurem un timer per fer les actualitzacions amb retard (i evitar events molt seguits)
         self.timer_delay = 500
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update)
 
+        # Configurem els botons anterior i següent
+        self.toolButton_previous.clicked.connect(self.previous)
+        self.toolButton_next.clicked.connect(self.next)
+
         # Carreguem la sèrie temporal
         self.blockSignals(True)
-        self.set_time_series(time_series_list, current_time, layer_name, update_callback)
+        self.set_time_series(time_series_list, current_time, layer_name, simplify_begin_end, update_callback)
         self.blockSignals(False)
 
         # Mostrem el diàleg
         if autoshow:
             self.show()
 
-    def set_time_series(self, time_series_list, current_time, layer_name, update_callback):
+    def set_title_prefix(self, title):
+        self.title = title
+        if title:
+            self.setWindowTitle(title)
+
+    def set_current_prefix(self, current_prefix):
+        self.current_value_prefix = current_prefix
+        self.label_current.setText(self.current_value_prefix)
+
+    def set_time_series(self, time_series_list, current_time, layer_name, simplify_begin_end, update_callback, separator="-"):
         # Ens guardem la funció d'actualització de dades
         self.update_callback = update_callback
 
         # Actualitzem el títol amb el nom de la capa
         self.set_title(layer_name)
 
+        # Ens guardem les sèries temporals disponibles
         self.time_series_list = time_series_list
-        # Assignem les etiquetes
-        self.label_begin.setText(time_series_list[0])
-        self.label_end.setText(time_series_list[-1])
+
+        # Assignem les etiquetes inici i fi
+        if simplify_begin_end:
+            begin_parts = time_series_list[0].split(separator)
+            for value in begin_parts:
+                if value.isdigit():
+                    self.label_begin.setText(value)
+                    break
+            end_parts = time_series_list[-1].split(separator)[::-1]
+            for value in end_parts:
+                if value.isdigit():
+                    self.label_end.setText(value)
+                    break
+        else:
+            self.label_begin.setText(time_series_list[0])
+            self.label_end.setText(time_series_list[-1])
+        # Assignem el valor actual al label
         self.label_current.setText(self.current_value_prefix + current_time)
+
         # Assignem el slider
-        # self.horizontalSlider = MySlider(self.horizontalSlider)
         self.horizontalSlider.setTickInterval(1)
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(len(time_series_list) - 1)
         self.set_current_time(current_time)
 
     def set_title(self, layer_name):
-        title = self.windowTitle().split(":")[0]
-        self.setWindowTitle("%s: %s" % (title, layer_name))
+        self.setWindowTitle("%s: %s" % (self.title, layer_name))
 
     def set_current_time(self, current_time):
         # Canviem el valor quan és diferent de l'actual
@@ -117,6 +144,16 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
         if not self.horizontalSlider.isSliderDown():
             # Activem el refresc retardat
             self.timer.start(self.timer_delay)
+
+    def previous(self):
+        current_index = self.horizontalSlider.value()
+        if current_index > 0:
+            self.set_current_time(self.time_series_list[current_index - 1])
+
+    def next(self):
+        current_index = self.horizontalSlider.value()
+        if current_index < len(self.time_series_list) - 1:
+            self.set_current_time(self.time_series_list[current_index + 1])
 
     def update(self):
         # Aturem el temporitzador de refresc retardat
