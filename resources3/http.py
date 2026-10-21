@@ -156,6 +156,7 @@ def get_old_dtms(urlbase_list=[
 
 dtm_list = []
 def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
+    # TERRENY *****************************************************************
     # model-elevacions-terreny
     ("met25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-25cm-(\d+-\d+)\.json)"),
     ("met50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny/json_unzip", r"(model-elevacions-terreny-\w+-(\w+)-50cm-(\d+-\d+)\.json)"),
@@ -186,6 +187,19 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     ("mo1m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-1m-(\d+-\d+)\.json)"),
     ("mo2m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-2m-(\d+-\d+)\.json)"),
     ("mo5m-", "https://datacloud.icgc.cat/datacloud/model-orientacions/json_unzip", r"(model-orientacions-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-alcaries
+    ("ml25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("ml50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("ml1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("ml2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("ml5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # model-alcaries-vegetacio
+    ("mv25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-25cm-(\d+-\d+)\.json)"),
+    ("mv50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-50cm-(\d+-\d+)\.json)"),
+    ("mv1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-1m-(\d+-\d+)\.json)"),
+    ("mv2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-2m-(\d+-\d+)\.json)"),
+    ("mv5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-5m-(\d+-\d+)\.json)"),
+    # LITORAL *****************************************************************
     # model-elevacions-terreny-litoral
     ("metl25cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-25cm-(\d+-\d+)\.json)"),
     ("metl50cm-", "https://datacloud.icgc.cat/datacloud/model-elevacions-terreny-litoral/json_unzip", r"(model-elevacions-terreny-\w+-\w+-50cm-(\d+-\d+)\.json)"),
@@ -210,18 +224,6 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     ("mol1m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-1m-(\d+-\d+)\.json)"),
     ("mol2m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-2m-(\d+-\d+)\.json)"),
     ("mol5m-", "https://datacloud.icgc.cat/datacloud/model-orientacions-litoral/json_unzip", r"(model-orientacions-\w+-\w+-5m-(\d+-\d+)\.json)"),
-    # model-alcaries
-    ("ml25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-25cm-(\d+-\d+)\.json)"),
-    ("ml50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-50cm-(\d+-\d+)\.json)"),
-    ("ml1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-1m-(\d+-\d+)\.json)"),
-    ("ml2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-2m-(\d+-\d+)\.json)"),
-    ("ml5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries/json_unzip", r"(model-alcaries-\w+-\w+-5m-(\d+-\d+)\.json)"),
-    # model-alcaries-vegetacio
-    ("mv25cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-25cm-(\d+-\d+)\.json)"),
-    ("mv50cm-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-50cm-(\d+-\d+)\.json)"),
-    ("mv1m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-1m-(\d+-\d+)\.json)"),
-    ("mv2m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-2m-(\d+-\d+)\.json)"),
-    ("mv5m-", "https://datacloud.icgc.cat/datacloud/model-alcaries-vegetacio/json_unzip", r"(model-alcaries-vegetacio-\w+-\w+-5m-(\d+-\d+)\.json)"),
     ], json_not_tiff=True, remove_prefix=False, sort_by_key=False, only_best_gsd=False):
     """ Obté les URLs dels arxius de MET disponibles de l'ICGC
         Retorna: [(dtm_name, dtm_url)]
@@ -233,7 +235,7 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
     # els filtres indicats
     global dtm_list
     if not dtm_list:
-        dtm_list = get_products(urlbase_list)
+        dtm_list = get_products(urlbase_list, subproduct_separator=" ")
     if group_by_product_not_gsd:
         # Si ens demanen agrupar per producte, juntem tots productes iguals de diferent GSD
         if only_best_gsd:
@@ -264,10 +266,10 @@ def get_dtms(dtm_name="", group_by_product_not_gsd=True, urlbase_list=[
         final_dtm_list = [(dtm_id, dtm_url.replace("json_unzip", "tif_unzip").replace(".json", ".tif"))
             for dtm_id, dtm_url in final_dtm_list]
 
-    # ATENCIÓ el nom dels DTMS [(nom, url), ...] té la forma: <data0>-<data1>[\nlloc]
+    # ATENCIÓ el nom dels DTMS [(nom, url), ...] té la forma: <data0>-<data1>[ lloc]
     # i volem ordenar per la segona data
     return sorted(final_dtm_list,
-        key=lambda dtm_info: dtm_info[0].split("\n")[0].split("-")[1]) \
+        key=lambda dtm_info: dtm_info[0].split(" ")[0].split("-")[1]) \
         if sort_by_key else final_dtm_list
 
 def get_dtm_time(dtm_name, group_by_product_not_gsd=False):

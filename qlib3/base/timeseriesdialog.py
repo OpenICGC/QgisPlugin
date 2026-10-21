@@ -100,12 +100,12 @@ class TimeSeriesDialog(QDockWidget, Ui_TimeSeries):
 
         # Assignem les etiquetes inici i fi
         if simplify_begin_end:
-            begin_parts = time_series_list[0].split(separator)
+            begin_parts = time_series_list[0].replace(" ", separator).split(separator)
             for value in begin_parts:
                 if value.isdigit():
                     self.label_begin.setText(value)
                     break
-            end_parts = time_series_list[-1].split(separator)[::-1]
+            end_parts = time_series_list[-1].replace(" ", separator).split(separator)[::-1]
             for value in end_parts:
                 if value.isdigit():
                     self.label_end.setText(value)

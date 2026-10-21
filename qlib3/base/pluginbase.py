@@ -62,7 +62,7 @@ from qgis.utils import plugins, reloadPlugin # , showPluginHelp
 
 from . import progressdialog
 reload(progressdialog)
-from .progressdialog import ProgressDialog
+from .progressdialog import ProgressDialog, WorkingDialog
 
 from . import loginfodialog
 reload(loginfodialog)
@@ -5918,11 +5918,38 @@ class DebugBase(object):
         if ini_console:
             self.ini_console()
 
+        # Inicialitzem variables de test
+        self.test_log = None
+        self.set_test_files()
+
         # Inicialitzem debug
         if not DebugBase.is_debug_active() and (self.is_debug_mode() or ini_debug):
             debug_status = DebugBase.enable_debug()
             if not debug_status:
                 self.show_debug_error(debug_status)
+
+    def remove(self):
+        """ Allibera el logger per tests
+            ---
+            Releases the logger for tests
+            """
+        if self.test_log:
+            self.test_log.remove()
+            self.test_log = None
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Gestió de panells de missatges de QGIS
+    #
+    def show_message_viewer(self, tab_name):
+        # Obrim el diàleg de missatges de QGIS
+        self.parent.iface.openMessageLog()
+        # Cerquem el dock del registre de missatges
+        log_dock = self.parent.iface.mainWindow().findChild(object, "MessageLog")
+        if log_dock:
+            # Find the actual QgsMessageLogViewer widget inside the dock
+            viewer = log_dock.findChild(object, "QgsMessageLogViewer")
+            if viewer:
+                viewer.showTab(tab_name)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de consola QGIS
@@ -5987,31 +6014,46 @@ class DebugBase(object):
         # Restaurem el cursor, per si algún plugin l'ha deixat penjat
         QApplication.restoreOverrideCursor()
 
+    def add_reload_to_toolbar(self, toolbar, name, icon="python.png"):
+        """ Afegeix un botó a la toolbar per recarregar el plugin actual
+            ---
+            Adds a button to the toolbar to reload the current plugin
+            """
+        self.parent.gui.add_to_toolbar(toolbar, [
+            (name, lambda _checked: self.parent.reload_plugin(), icon)
+        ])
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Unit tests
     #
-    def is_test_available(self, plugin_subfolder="test", test_files_pattern="test*.py"):
+    def set_test_files(self, test_folder="test", test_files_pattern="test*.py"):
+        """ Estableix la carpeta i el patró d'arxius de test
+            ---
+            Sets the test folder and test files pattern
+            """
+        self.test_folder = test_folder
+        self.test_files_pattern = test_files_pattern
+
+    def is_test_available(self):
         """ Retorna True si el plugin té UnitTest disponbiles
             ---
             Returns True if plugin has UnitTests availables
             """
-        test_files_path = os.path.join(self.parent.plugin_path, plugin_subfolder)
-        if not os.path.exists(test_files_path):
-            return False
-        return len(glob.glob(os.path.join(test_files_path, test_files_pattern))) > 0
+        return self.get_test_suite() is not None
 
-    def get_test_suite(self, plugin_subfolder="test", test_files_pattern="test*.py"):
-        """ Detecta arxius de test i retorna un UnitTestSuit
+    def get_test_suite(self):
+        """ Detecta arxius de test i retorna un UnitTestSuit. Guarda la suite de tests per ús futur
             ---
-            Detects test files and return a UnitTestSuit
+            Detects test files and return a UnitTestSuit. Saves the test suite for future use
             """
-        test_files_path = os.path.join(self.parent.plugin_path, plugin_subfolder)
-        if not os.path.exists(test_files_path):
-            return None
-        test_suite = unittest.defaultTestLoader.discover(test_files_path, test_files_pattern)
+        test_files_path = os.path.join(self.parent.plugin_path, self.test_folder)
+        if os.path.exists(test_files_path):
+            test_suite = unittest.defaultTestLoader.discover(test_files_path, self.test_files_pattern)
+        else:
+            test_suite = None
         return test_suite
 
-    def get_test_names(self, plugin_subfolder="test", test_files_pattern="test*.py", suite=None):
+    def get_test_names(self, suite=None):
         """ Retorna una llista de tuples amb els tests disponibles [(<test_name>, <test_class>), ...]
             ---
             Returns a tuple list with all availabes tests [(<test_name>, <test_class>), ...]
@@ -6026,7 +6068,7 @@ class DebugBase(object):
             names_list.append(suite._testMethodName)
         return names_list
 
-    def get_test(self, test_name, suite):
+    def get_test(self, test_name, suite=None):
         """ Retorna la funció de test corresponent a <test_name>
             ---
             Returns test call named as <test_name>
@@ -6043,31 +6085,71 @@ class DebugBase(object):
             test_call = suite if suite._testMethodName == test_name else None
         return test_call
 
-    def test_plugin(self, test_name=None, plugin_subfolder="test", test_files_pattern="test*.py"):
+    def test(self, test_name=None, test_suite=None):
         """ Executa els UnitsTests del plugin i retorna objecte UnitTestResult i un text amb el resultat del test
             ---
             It execute UnitTests and return UnitTestResult objent and test text result
             """
-        test_suite = self.get_test_suite(plugin_subfolder, test_files_pattern)
-        if test_name:
-            test_call = self.get_test(test_name, test_suite)
-            if test_call:
-                test_suite = test_call
+        # Executem el test indicat
+        if not test_suite:
+            test_suite = self.get_test_suite()
+        test_call = self.get_test(test_name, test_suite) if test_name else test_suite
         with io.StringIO() as memory:
-            test_result = unittest.TextTestRunner(stream=memory, verbosity=2).run(test_suite)
+            test_result = unittest.TextTestRunner(stream=memory, verbosity=2).run(test_call)
             memory.seek(0)
             test_text = memory.read()
+
         return test_result, test_text
 
-    def show_test_plugin(self, title="Unit Tests", test_name=None, plugin_subfolder="test", test_files_pattern="test*.py"):
+    def show_test_dialog(self, title="Unit Tests", test_name=None, show_log=True, show_dialog=True, width=1000, height=700):
         """ Mostra el resultat dels UnitTests en un diàleg
             ---
             Show UnitTest results in a dialog
             """
-        test_result, test_text = self.test_plugin(test_name, plugin_subfolder, test_files_pattern)
-        # Test result attributes: test_result.errors, test_result.failures, test_result.skipped
-        log_info_mode = LogInfoDialog.mode_info if not test_result.errors and not test_result.failures else LogInfoDialog.mode_error
-        LogInfoDialog(test_text, title, log_info_mode, width=1000, height=800)
+        test_label = test_name or "All Tests"
+
+        # Creem un logger de test si no el tenim
+        if not self.test_log:
+            self.test_log = PluginLogger(self.parent, test_mode=True)
+        # Obrim la visualització de missatge de QGIS
+        if show_log:
+            self.test_log.info(f"Running test: {test_label} ...")
+            self.show_message_viewer(self.test_log.getName())
+
+        # Executem el test
+        with WorkingDialog(test_label, title, parent=self.parent.iface.mainWindow()):
+            # Test result attributes: test_result.errors, test_result.failures, test_result.skipped
+            test_result, test_text = self.test(test_name) if show_log else (None, "")
+        status_ok = not test_result.errors and not test_result.failures
+
+        # mostrem informació del resultat pel logger
+        if status_ok:
+            self.test_log.info(test_text)
+        else:
+            self.test_log.error(test_text, stack_trace=False)
+
+        # Mostrem el resultat en un diàleg
+        if show_dialog:
+            log_info_mode = LogInfoDialog.mode_info if status_ok else LogInfoDialog.mode_error
+            LogInfoDialog(test_text, title, log_info_mode, width=width, height=height)
+
+        return status_ok
+
+    def add_tests_to_toolbar(self, toolbar, name, icon="flask.png"):
+        """ Afegeix un botó a la barra d'eines per executar els UnitTests del plugin
+            ---
+            Add a button to the toolbar to run the plugin's UnitTests
+        """
+        self.parent.gui.add_to_toolbar(toolbar, [
+            (name, lambda _checked: self.show_test_dialog(name), icon, [
+                (name, lambda _checked: self.show_test_dialog(name), icon),
+                "---",
+            ] + [(
+                test_name,
+                lambda _checked, test_name=test_name: self.show_test_dialog(name, test_name),
+                icon
+            ) for test_name in self.get_test_names()])
+        ])
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Gestió de timestamps
@@ -6558,7 +6640,9 @@ class ToolsBase(object):
                 current_time = dict([(layer_id, name) for name, layer_id in time_series_tuple_list])[current_layer]
             time_series_list = [name for name, _layer_id in time_series_tuple_list]
 
-            update_callback = lambda current_time: self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
+            def update_callback(current_time):
+                return self.parent.layers.update_wms_t_layer_current_time(layer, current_time)
+
             if not self.time_series_dialog:
                 # Si no tenim el diàleg el creem i el mostrem
                 self.time_series_dialog = TimeSeriesDialog(time_series_list,
@@ -6609,9 +6693,12 @@ class ToolsBase(object):
                     photo_id = anaglyph_params_list[0]
                     parallax = int(anaglyph_params_list[1])
                     inverted_stereo = anaglyph_params_list[2] == "true"
+
             # Si no tenim el diàleg el creem i el mostrem
-            update_callback = lambda parallax, inverted_stereo: self.parent.layers.update_wms_layer(
-                layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
+            def update_callback(parallax, inverted_stereo):
+                return self.parent.layers.update_wms_layer(
+                    layer, wms_style=",".join([photo_id, str(parallax), "true" if inverted_stereo else "false"]))
+
             if not self.anaglyph_dialog:
                 self.anaglyph_dialog = AnaglyphDialog(layer.name() if layer else "", update_callback, parallax, inverted_stereo,
                     title, parallax_label, inverted_stereo_label, True, self.iface.mainWindow())
@@ -7094,6 +7181,7 @@ class PluginBase(QObject):
         self.legend = None
         self.composer = None
         self.crs = None
+        self.debug.remove()
         self.debug = None
         self.tools.remove()
         self.tools = None

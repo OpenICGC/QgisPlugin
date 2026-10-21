@@ -2020,7 +2020,7 @@ Actualitza la teva versió de QGIS si és possible.</translation>
     <message>
         <location filename="../openicgc.py" line="1098"/>
         <source>[TS] Vegetation building digital terrain model</source>
-        <translation>[ST] Model d&apos;elevacions del terreny edificis ombrejat</translation>
+        <translation>[ST] Model d&apos;elevacions del terreny edificis vegetació</translation>
     </message>
     <message>
         <location filename="../openicgc.py" line="1098"/>

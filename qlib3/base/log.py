@@ -21,13 +21,13 @@ from qgis.PyQt.QtWidgets import QDockWidget, QDialog, QTabWidget, QTabBar, QStac
 
 
 class QGISHandler(logging.Handler):
-    """ Classe per connextar el logger de QGIS amb el sistema de logging estàndar de python
+    """ Classe per connectar el logger de QGIS amb el sistema de logging estàndar de python
         ---
-        Class to connext QGIS logger with standard python logging system
+        Class to connect QGIS logger with standard python logging system
         """
     level_dict = {
-        logging.NOTSET: Qgis.MessageLevel.Info,
-        logging.DEBUG: Qgis.MessageLevel.Info,
+        logging.NOTSET: Qgis.MessageLevel.NoLevel,
+        logging.DEBUG: Qgis.MessageLevel.Success,
         logging.INFO: Qgis.MessageLevel.Info,
         logging.WARNING: Qgis.MessageLevel.Warning,
         logging.ERROR: Qgis.MessageLevel.Critical,
@@ -51,34 +51,41 @@ class PluginLogger():
         ---
         Log message manager class
         """
-    def __init__(self, plugin):
+    def __init__(self, plugin, test_mode=False):
         """ Initialize logger class with two logger handlers, first for show messages on QGIS log window and other
             to store log messages in a file """
         self.plugin = plugin
 
         # Configurem el logger de QGIS per utilitzar una subfinestra amb el nom del plugin
-        self.logger = logging.getLogger(self.plugin.plugin_id)
+        self.id = self.plugin.plugin_id + ("_test" if test_mode else "")
+        self.logger = logging.getLogger(self.id)
 
         # Configurem logs per mostrar en la fistra de log de QGIS i per guardar en un fitxer "<nom_plugin>.log"
         # en el path del plugin
-        self.qgis_handler = QGISHandler(self.plugin.metadata.get_name())
+        self.name = self.plugin.metadata.get_name() + (" TEST" if test_mode else "")
+        self.qgis_handler = QGISHandler(self.name)
         self.logger.addHandler(self.qgis_handler)
+
         # Intentem crear el fitxer de log en la carpeta del plugin i si no el la carpeta per defecte de plugins de QGIS
-        log_path_list = [self.plugin.plugin_path,
-            os.path.join(QgsApplication.instance().qgisSettingsDirPath(), "python", "plugins")]
-        for log_path in log_path_list:
-            self.log_filename = os.path.join(log_path, "%s.log" % self.plugin.plugin_id)
-            try:
-                self.file_handler = logging.FileHandler(self.log_filename, mode='w')
-                self.logger.addHandler(self.file_handler)
-                break
-            except Exception:
-                self.log_filename = None
-                self.file_handler = None
+        if not test_mode:
+            log_path_list = [self.plugin.plugin_path,
+                os.path.join(QgsApplication.instance().qgisSettingsDirPath(), "python", "plugins")]
+            for log_path in log_path_list:
+                self.log_filename = os.path.join(log_path, "%s.log" % self.plugin.plugin_id)
+                try:
+                    self.file_handler = logging.FileHandler(self.log_filename, mode='w')
+                    self.logger.addHandler(self.file_handler)
+                    break
+                except Exception:
+                    self.log_filename = None
+                    self.file_handler = None
+        else:
+            self.log_filename = None
+            self.file_handler = None
 
         # Configurem el format dels logs a dist i el nivell de log en general
         self.setFormat()
-        self.setLevel()
+        self.setLevel(logging.DEBUG if test_mode else logging.WARNING)
 
     def setFormat(self, format="%(asctime)s\t%(levelname)s\t%(message)s"): # \t%(pathname)s line:%(lineno)d %(funcName)s"):
         """ Configure log file info format """
@@ -102,26 +109,38 @@ class PluginLogger():
             self.qgis_handler.setLevel(level)
 
     def debug(self, message, *args, **kwargs):
-        self.logger.debug(message, *args, **kwargs)
+        if self.logger:
+            self.logger.debug(message, *args, **kwargs)
 
     def info(self, message, *args, **kwargs):
-        self.logger.info(message, *args, **kwargs)
+        if self.logger:
+            self.logger.info(message, *args, **kwargs)
 
     def warning(self, message, *args, **kwargs):
-        self.logger.warning(message, *args, **kwargs)
+        if self.logger:
+            self.logger.warning(message, *args, **kwargs)
 
     def error(self, message, *args, stack_trace=True, **kwargs):
-        if stack_trace:
-            message += "\n" + "".join(traceback.format_stack()[:-1]).strip()
-        self.logger.error(message, *args, **kwargs)
+        if self.logger:
+            if stack_trace:
+                message += "\n" + "".join(traceback.format_stack()[:-1]).strip()
+            self.logger.error(message, *args, **kwargs)
 
     def critical(self, message, *args, stack_trace=True, **kwargs):
-        if stack_trace:
-            message += "\n" + "".join(traceback.format_stack()[:-1]).strip()
-        self.logger.critical(message, *args, **kwargs)
+        if self.logger:
+            if stack_trace:
+                message += "\n" + "".join(traceback.format_stack()[:-1]).strip()
+            self.logger.critical(message, *args, **kwargs)
 
     def exception(self, message, *args, **kwargs):
-        self.logger.exception(message, *args, **kwargs)
+        if self.logger:
+            self.logger.exception(message, *args, **kwargs)
+
+    def getId(self):
+        return self.id
+
+    def getName(self):
+        return self.name
 
     def getLogText(self, file_not_qgis=True):
         """ Gets log messages text from QGIS log or log file """
@@ -153,8 +172,9 @@ class PluginLogger():
         """ Remove handlers """
         if self.file_handler:
             self.file_handler.close()
-        self.logger.handlers.clear()
-        self.logger = None
+        if self.logger:
+            self.logger.handlers.clear()
+            self.logger = None
 
 
 if __name__ == '__main__':

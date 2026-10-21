@@ -28,8 +28,12 @@ email=qgis.openicgc@icgc.cat
 
 qgisMinimumVersion=2.99
 qgisMaximumVersion=4.99
-version=1.2.4
-changelog=v1.2.4 (2026-10-13)
+version=1.2.5
+changelog=v1.2.5 (2026-10-21)
+	- Updated DTM layers to get real numeric values
+	- Fixed any layer translations
+
+	v1.2.4 (2026-10-13)
 	- Added "Muted topographic base map" and "Muted gray topographic base map" products
 	- Added "Base maps (levels)" products
 	- Added "Geographic names" and "Official gazetteer of major place names" products

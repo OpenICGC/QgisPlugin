@@ -119,7 +119,8 @@ else:
     from resources3 import http as http_resources, wms as wms_resources, fme as fme_resources
 
 # Global function to set HTML tags to apply fontsize to QInputDialog text
-set_html_font_size = lambda text, size=9: ('<html style="font-size:%spt;">%s</html>' % (size, text.replace("\n", "<br/>").replace(" ", "&nbsp;")))
+def set_html_font_size(text, size=9):
+    return ('<html style="font-size:%spt;">%s</html>' % (size, text.replace("\n", "<br/>").replace(" ", "&nbsp;")))
 
 # Constants
 PHOTOLIB_WFS = "https://fototeca-connector.icgc.cat/"
@@ -885,7 +886,7 @@ class OpenICGC(PluginBase):
             # Load extra fonts (Fira Sans)
             self.font_id_list = []
             # Detection unit test files
-            self.test_list = []
+            self.test_available = False
 
         else:
             self.log.info("Initializing local resources")
@@ -926,9 +927,9 @@ class OpenICGC(PluginBase):
             # Detection unit test files
             if self.debug_mode:
                 t0 = datetime.datetime.now()
-                self.test_list = self.debug.get_test_names()
+                self.test_available = self.debug.is_test_available()
                 t1 = datetime.datetime.now()
-                self.log.info("Load unit tests: %s (%s)" % (len(self.test_list), t1-t0))
+                self.log.info("Load unit tests: %s (%s)" % (self.test_available, t1-t0))
 
     def init_online_resources(self, empty=False, check_qgis_updates=True, check_icgc_updates=False):
         """ Online resources initialization with real or empty values """
@@ -939,7 +940,17 @@ class OpenICGC(PluginBase):
             self.topo_ltr_layers = []
 
             # Gets available DTMs (only for gets height_highlighting)
+            self.dtm_list = []
             self.height_highlighting_url = None
+            self.dtmb_list = []
+            self.dtmvb_list = []
+            self.sm_list = []
+            self.em_list = []
+            self.emv_list = []
+            self.cdtm_list = []
+            self.cdtmb_list = []
+            self.csm_list = []
+            self.com_list = []
 
             # Gets available Coast
             self.coastline_url, self.coastline_list = (None, [])
@@ -1001,9 +1012,36 @@ class OpenICGC(PluginBase):
             self.topo_ltr_layers = get_topo_ltr_layers()
 
             # Gets available DTMs
-            dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("met",
+            self.dtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("met",
                 json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
-            self.height_highlighting_url = dtm_list[0][1] if dtm_list else None
+            self.height_highlighting_url = self.dtm_list[0][1] if self.dtm_list else None
+            # Gets available DTMs with buildings
+            self.dtmb_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ed",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available DTMs with buildings vegetation
+            self.dtmvb_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ev",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available Surface models
+            self.sm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ms",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available Elevations models
+            self.em_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("ml",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available Vegetation Elevations models
+            self.emv_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("mv",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available coastal elevation models
+            self.cdtm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("metl",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available coastal elevation models with buildings
+            self.cdtmb_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("edl",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available coastal surface models
+            self.csm_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("msl",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
+            # Gets available coastal orientation models
+            self.com_list = [(name, "/vsicurl/%s" % url) for name, url in get_dtms("mol",
+                json_not_tiff=False, remove_prefix=True, sort_by_key=True, only_best_gsd=True)]
 
             # Gets available Coast
             self.coastline_url, self.coastline_list = get_coastlines()
@@ -1087,13 +1125,14 @@ class OpenICGC(PluginBase):
         self.combobox.activated.connect(self.run) # Press intro and select combo value
 
         # Add new toolbar with plugin options (using pluginbase functions)
+        def base_map_callback(layer_name):
+            return self.force_project_epsg_when_empty(
+                self.zoom_to_cat_when_empty(self.layers.add_wms_layer(
+                    self.BASE_MAP_DICT[layer_name][0],
+                    "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms",
+                    [layer_name], None, "image/png", 25831, self.request_referrer_param,
+                    self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True)), 25831)
         style = self.iface.mainWindow().style()
-        base_map_callback = lambda layer_name: self.force_project_epsg_when_empty(
-            self.zoom_to_cat_when_empty(self.layers.add_wms_layer(
-                self.BASE_MAP_DICT[layer_name][0],
-                "https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms",
-                [layer_name], None, "image/png", 25831, self.request_referrer_param,
-                self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, set_current=True)), 25831)
         self.default_map_callback = lambda _checked=False: base_map_callback("topografic") # Used on find call and layers button
         self.toolbar = self.gui.configure_toolbar(self.tr("Open ICGC Toolbar") + (" lite" if self.lite else ""), [
             self.tr("Find"), # Label text
@@ -1340,18 +1379,31 @@ class OpenICGC(PluginBase):
                     "cat_landcover.png",
                     self.manage_metadata_button("Land cover map (temporal serie)"), True),
                 "---",
+                # $$$
                 (self.tr("Elevations"), None, "cat_dtm.png", [
+                    # DTM from Datacloud
                     (self.tr("Digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Digital terrain model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-elevacions-terreny-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.dtm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Digital terrain model"), True),
+                    # # DTM from WMS
+                    # (self.tr("Digital terrain model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Digital terrain model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Digital terrain model"), True),
                     (self.tr("Shaded digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Shaded digital terrain model"),
@@ -1363,16 +1415,28 @@ class OpenICGC(PluginBase):
                             time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
                         "cat_shadows.png", True,
                         self.manage_metadata_button("Digital terrain model"), True),
+                    # # DTM Buildings from WMS
+                    # (self.tr("Building digital terrain model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Building digital terrain model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-edificis-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Building digital terrain model"), True),
+                    # DTM Buildings from Datacloud
                     (self.tr("Building digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Building digital terrain model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-elevacions-terreny-edificis-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.dtmb_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Building digital terrain model"), True),
                     (self.tr("Shaded building digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1385,16 +1449,28 @@ class OpenICGC(PluginBase):
                             time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
                         "cat_shadows.png", True,
                         self.manage_metadata_button("Building digital terrain model"), True),
+                    # # Vegetation DTM Buildings from WMS
+                    # (self.tr("Vegetation building digital terrain model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Vegetation building digital terrain model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-edificis-vegetacio-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Vegetation building digital terrain model"), True),
+                    # Vegetation DTM Buildings from Datacloud
                     (self.tr("Vegetation building digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Vegetation building digital terrain model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-elevacions-terreny-edificis-vegetacio-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.dtmvb_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Vegetation building digital terrain model"), True),
                     (self.tr("Shaded vegetation building digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1407,16 +1483,28 @@ class OpenICGC(PluginBase):
                             time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
                         "cat_shadows.png", True,
                         self.manage_metadata_button("Vegetation building digital terrain model"), True),
+                    # # Surface model from WMS
+                    # (self.tr("Surface model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Surface model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-superficies-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Surface model"), True),
+                    # Surface model from Datacloud
                     (self.tr("Surface model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Surface model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-superficies-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.sm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Surface model"), True),
                     (self.tr("Shaded surface model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1429,39 +1517,75 @@ class OpenICGC(PluginBase):
                             time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
                         "cat_shadows.png", True,
                         self.manage_metadata_button("Surface model"), True),
+                    # # Elevation model from WMS
+                    # (self.tr("Elevation model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Elevation model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-alcaries-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Elevation model"), True),
+                    # Surface model from Datacloud
                     (self.tr("Elevation model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Elevation model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-alcaries-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.em_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Elevation model"), True),
+                    # # Vegetation elevation model from WMS
+                    # (self.tr("Vegetation elevation model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Vegetation elevation model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-alcaries-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
+                    #         time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
+                    #     "cat_dtm.png", True,
+                    #     self.manage_metadata_button("Vegetation elevation model"), True),
+                    # Vegetation elevation model from Datacloud
                     (self.tr("Vegetation elevation model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Vegetation elevation model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-territorial/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-alcaries-(\w+)-(\w+)-\d+c*m-(\d+)(?:-(\d+))*",
+                            None, None, None, "default", "image/png",
+                            self.emv_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=False, set_current=True,
-                            time_series_regex_sort_callback=lambda values: values[-1], simplify_begin_end=True),
-                        "cat_dtm.png", True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
+                            simplify_begin_end=True),
+                        "cat_dtm.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Vegetation elevation model"), True),
                     "---",
+                    # # Coastal digital terrain model from WMS
+                    # (self.tr("Coastal digital terrain model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Coastal digital terrain model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-litoral-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                    #         simplify_begin_end=True),
+                    #     "cat_coast.png",
+                    #     self.manage_metadata_button("Coastal digital terrain model"), True),
+                    # Coastal digital terrain model from Datacloud
                     (self.tr("Coastal digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal digital terrain model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-elevacions-terreny-litoral-\w+-\d+c*m-(\d+-\d+)",
+                            None, None, None, "default", "image/png",
+                            self.cdtm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
                             simplify_begin_end=True),
-                        "cat_coast.png",
+                        "cat_coast.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Coastal digital terrain model"), True),
                     (self.tr("Shaded coastal digital terrain model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1474,16 +1598,28 @@ class OpenICGC(PluginBase):
                             simplify_begin_end=True),
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal digital terrain model"), True),
+                    # # Coastal digital terrain model buildings from WMS
+                    # (self.tr("Coastal digital terrain model buildings (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Coastal digital terrain model buildings"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-elevacions-terreny-edificis-litoral-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                    #         simplify_begin_end=True),
+                    #     "cat_coast.png",
+                    #     self.manage_metadata_button("Coastal digital terrain model buildings"), True),
+                    # Coastal digital terrain model buildings from Datacloud
                     (self.tr("Coastal digital terrain model buildings (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal digital terrain model buildings"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-elevacions-terreny-edificis-litoral-\w+-\d+c*m-(\d+-\d+)",
+                            None, None, None, "default", "image/png",
+                            self.cdtmb_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
                             simplify_begin_end=True),
-                        "cat_coast.png",
+                        "cat_coast.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Coastal digital terrain model buildings"), True),
                     (self.tr("Shaded coastal digital terrain model buildings (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1496,16 +1632,28 @@ class OpenICGC(PluginBase):
                             simplify_begin_end=True),
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal digital terrain model buildings"), True),
+                    # # Coastal surface model from WMS
+                    # (self.tr("Coastal surface model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Coastal surface model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-superficies-litoral-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                    #         simplify_begin_end=True),
+                    #     "cat_coast.png",
+                    #     self.manage_metadata_button("Coastal surface model"), True),
+                    # Coastal surface model from Datacloud
                     (self.tr("Coastal surface model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal surface model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-superficies-litoral-\w+-\d+c*m-(\d+-\d+)",
+                            None, None, None, "default", "image/png",
+                            self.csm_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
                             simplify_begin_end=True),
-                        "cat_coast.png",
+                        "cat_coast.png", self.enable_http_files and len(self.dtm_list) > 0,
                         self.manage_metadata_button("Coastal surface model"), True),
                     (self.tr("Shaded coastal surface model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -1518,16 +1666,28 @@ class OpenICGC(PluginBase):
                             simplify_begin_end=True),
                         "cat_coast.png",
                         self.manage_metadata_button("Coastal surface model"), True),
+                    # # Coastal orientations model from WMS
+                    # (self.tr("Coastal orientations model (temporal serie)"),
+                    #     lambda _checked: self.add_wms_t_layer(
+                    #         self.tr("[TS] Coastal orientations model"),
+                    #         "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
+                    #         None, None, "default", "image/png",
+                    #         None, r"model-orientacions-litoral-\w+-\d+c*m-(\d+-\d+)",
+                    #         25831, self.request_referrer_param + "&bgcolor=0x000000",
+                    #         self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                    #         simplify_begin_end=True),
+                    #     "cat_coast.png",
+                    #     self.manage_metadata_button("Coastal orientations model"), True),
+                    # Coastal orientations model from Datacloud
                     (self.tr("Coastal orientations model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
                             self.tr("[TS] Coastal orientations model"),
-                            "https://geoserveis.icgc.cat/servei/catalunya/elevacions-litoral/wms",
-                            None, None, "default", "image/png",
-                            None, r"model-orientacions-litoral-\w+-\d+c*m-(\d+-\d+)",
+                            None, None, None, "default", "image/png",
+                            self.com_list, None,
                             25831, self.request_referrer_param + "&bgcolor=0x000000",
-                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, set_current=True,
+                            self.BACKGROUND_MAP_GROUP_NAME, only_one_map_on_group=False, resampling_bilinear=True, color_default_expansion=True, set_current=True,
                             simplify_begin_end=True),
-                        "cat_coast.png",
+                        "cat_coast.png", self.enable_http_files and len(self.csm_list) > 0,
                         self.manage_metadata_button("Coastal orientations model"), True),
                     (self.tr("RGB coastal orientations model (temporal serie)"),
                         lambda _checked: self.add_wms_t_layer(
@@ -2088,29 +2248,14 @@ class OpenICGC(PluginBase):
                     style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)),
             ]))
 
-        # Add plugin reload and test buttons (debug purpose)
-        if not self.lite:
-            if self.debug_mode or self.test_list:
-                self.gui.add_to_toolbar(self.toolbar, ["---"])
-            if self.debug_mode:
-                self.gui.add_to_toolbar(self.toolbar, [
-                    (self.tr("Reload Open ICGC"), lambda _checked: self.reload_plugin(),
-                        "python.png"),
-                    ])
-            if self.test_list:
-                self.gui.add_to_toolbar(self.toolbar, [
-                    (self.tr("Unit tests"),
-                        lambda _checked: self.debug.show_test_plugin(self.tr("Unit tests")),
-                        "flask.png", [
-                            (test_name,
-                                lambda _checked, test_name=test_name: self.debug.show_test_plugin(self.tr("Unit tests"), test_name),
-                                "flask.png")
-                            for test_name in self.debug.get_test_names()
-                        ]),
-                    ])
-
-        # Check debug button if debug_mode
         if self.debug_mode:
+            # Add plugin reload and test buttons (debug purpose)
+            if not self.lite:
+                self.gui.add_to_toolbar(self.toolbar, ["---"])
+                self.debug.add_reload_to_toolbar(self.toolbar, self.tr("Reload Open ICGC"))
+                if self.test_available:
+                    self.debug.add_tests_to_toolbar(self.toolbar, self.tr("Unit tests"))
+            # Check debug button
             self.gui.set_check_item("enable_debug_log")
 
         # Get a reference to any actions to an easy update
@@ -2487,12 +2632,7 @@ class OpenICGC(PluginBase):
 
         # We create the GeoFinderDialog if it is necessary
         if not self.geofinder_dialog:
-            # Attentions, seems than QSettings store boolean values as str!
-            geocoder_create_layer = self.get_setting_value("geocoder_create_layer", "true") == "true"
-            self.geofinder_dialog = GeoFinderDialog(self.geofinder, title=self.tr("Spatial search"),
-                columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")],
-                keep_scale_text=self.tr("Keep scale"), create_layer_text=self.tr("Create site layer"),
-                default_create_layer=geocoder_create_layer)
+            self.geofinder_dialog = self.CreateGeoFinderDialog()
         # Find user text
         try:
             if not self.geofinder_dialog.find(user_text, self.project.get_epsg()):
@@ -2545,6 +2685,15 @@ class OpenICGC(PluginBase):
                 site_layer, autocreate_group=True, group_pos=0, visible_layer=True, pos=0,
                 remove_repeated_layers=True)
             self.iface.mapCanvas().refresh()
+
+    def CreateGeoFinderDialog(self):
+        # Attentions, seems than QSettings store boolean values as str!
+        geocoder_create_layer = self.get_setting_value("geocoder_create_layer", "true") == "true"
+        self.geofinder_dialog = GeoFinderDialog(self.geofinder, title=self.tr("Spatial search"),
+            columns_list=[self.tr("Name"), self.tr("Type"), self.tr("Municipality"), self.tr("Region")],
+            keep_scale_text=self.tr("Keep scale"), create_layer_text=self.tr("Create site layer"),
+            default_create_layer=geocoder_create_layer)
+        return self.geofinder_dialog
 
     def is_unsupported_file(self, pathname):
         return self.is_file_type(pathname, ["dgn", "dwg", "ifc"])
@@ -3750,23 +3899,41 @@ Update your version of qgis if possible.""") % Qgis.QGIS_VERSION,
                 current_year = years_list[-1]
 
             # If not exist dialog we create it else we configure and show it
-            update_photo_time_callback = lambda current_year, range_year, layer=layer: self.update_photo_search_layer_year(layer, current_year, range_year)
-            update_photo_selection_callback = lambda photo_id, layer=layer: self.layers.set_selection(layer, [photo_id] if photo_id is not None else [])
-            show_info_callback = lambda photo_id, layer=layer: self.iface.openFeatureForm(layer, layer.getFeature(photo_id))
-            preview_callback = lambda photo_id, layer=layer: self.photo_preview(layer.getFeature(photo_id)['name'])
-            rectified_preview_callback = lambda photo_id, layer=layer: self.photo_preview(layer.getFeature(photo_id)['name'], rectified=True)
-            stereo_preview_callback = lambda photo_id, layer=layer: self.photo_preview(layer.getFeature(photo_id)['name'], stereo=True)
-            download_callback = lambda photo_id, layer=layer: self.photo_download_action.trigger()
+            def update_photo_time_callback(current_year, range_year, layer=layer):
+                return self.update_photo_search_layer_year(layer, current_year, range_year)
+
+            def update_photo_selection_callback(photo_id, layer=layer):
+                return self.layers.set_selection(layer, [photo_id] if photo_id is not None else [])
+
+            def show_info_callback(photo_id, layer=layer):
+                return self.iface.openFeatureForm(layer, layer.getFeature(photo_id))
+
+            def preview_callback(photo_id, layer=layer):
+                return self.photo_preview(layer.getFeature(photo_id)['name'])
+
+            def rectified_preview_callback(photo_id, layer=layer):
+                return self.photo_preview(layer.getFeature(photo_id)['name'], rectified=True)
+
+            def stereo_preview_callback(photo_id, layer=layer):
+                return self.photo_preview(layer.getFeature(photo_id)['name'], stereo=True)
+
+            def download_callback(photo_id, layer=layer):
+                return self.photo_download_action.trigger()
+
+            def report_photo_bug_callback(photo_id, layer=layer):
+                return self.report_photo_bug(layer.getFeature(photo_id)['name'],
+                    layer.getFeature(photo_id)['flight_code'],
+                    layer.getFeature(photo_id)['flight_date'],
+                    layer.getFeature(photo_id)['gsd'])
+
             request_certificate_callback = None # lambda photo_id, layer=layer: self.send_email(
             # "OpenICGC QGIS plugin. certificate %s" % layer.getFeature(photo_id)['name'],
             # self.tr("Certificate request for photogram: %s") % layer.getFeature(photo_id)['name'])
+
             request_scan_callback = None # lambda photo_id, layer=layer: self.send_email(
             # "OpenICGC QGIS plugin. scan %s" % layer.getFeature(photo_id)['name'],
             # self.tr("Scan request for photogram: %s") % layer.getFeature(photo_id)['name'])
-            report_photo_bug_callback = lambda photo_id, layer=layer: self.report_photo_bug(layer.getFeature(photo_id)['name'],
-                layer.getFeature(photo_id)['flight_code'],
-                layer.getFeature(photo_id)['flight_date'],
-                layer.getFeature(photo_id)['gsd'])
+
             if not self.photo_search_dialog:
                 self.photo_search_dialog = PhotoSearchSelectionDialog(layer,
                     years_list, current_year,
